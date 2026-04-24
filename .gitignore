@@ -1,0 +1,47 @@
+# Environment and local secrets
+.env
+.env.*
+*.pem
+*.key
+
+# Local databases
+*.sqlite
+*.db
+
+# Dependency and virtual environment directories
+node_modules/
+.venv/
+venv/
+.venv_py38_backup_*/
+
+# Python caches and tool caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Build artifacts
+dist/
+build/
+.DS_Store
+
+# Codex/local agent state
+.codex/
+.codex
+
+# Generated experiment artifacts and local datasets
+outputs/
+data/raw/
+data/stanford_alpaca/first_slice/*.jsonl
+
+# Local model weights and checkpoints
+local_models/
+*.safetensors
+*.pt
+*.pth
+*.ckpt
+*.bin
+
+# Git internals should never be nested or copied
+.git/

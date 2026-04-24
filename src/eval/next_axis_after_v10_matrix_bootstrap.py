@@ -1,0 +1,147 @@
+"""Bootstrap the next-axis-after-v10 real-experiment matrix."""
+
+from __future__ import annotations
+
+import json
+import shutil
+from pathlib import Path
+from typing import Any
+
+
+SCHEMA_VERSION = "triscopellm/next-axis-after-v10-matrix-bootstrap/v1"
+
+
+def load_json(path: Path) -> dict[str, Any]:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError(f"Expected JSON object in `{path}`.")
+    return payload
+
+
+def write_json(path: Path, payload: dict[str, Any]) -> None:
+    path.write_text(json.dumps(payload, indent=2, ensure_ascii=True) + "\n", encoding="utf-8")
+
+
+def copy_artifact(src: Path, dst: Path) -> None:
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(src, dst)
+
+
+def build_next_axis_after_v10_matrix_bootstrap(
+    recommendation_path: Path,
+    current_matrix_definition_path: Path,
+    current_matrix_contract_path: Path,
+    current_matrix_inputs_dir: Path,
+    output_dir: Path,
+) -> dict[str, Any]:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    recommendation = load_json(recommendation_path)
+    current_definition = load_json(current_matrix_definition_path)
+    current_contract = load_json(current_matrix_contract_path)
+    if recommendation.get("recommended_next_step") != "bootstrap_next_axis_after_v10_matrix":
+        raise ValueError("101 expects recommendation to request next-axis-after-v10 bootstrap.")
+
+    matrix_plan = {
+        "summary_status": "PASS",
+        "schema_version": SCHEMA_VERSION,
+        "chosen_next_step": "bootstrap_next_axis_after_v10_matrix",
+        "preferred_expansion_axis": recommendation["preferred_expansion_axis"],
+        "based_on_matrix": current_contract["matrix_name"],
+    }
+    matrix_definition = {
+        "summary_status": "PASS",
+        "schema_version": SCHEMA_VERSION,
+        "matrix_name": "next_axis_after_v10_real_experiment_matrix_v11",
+        "datasets": current_definition["datasets"],
+        "labels": current_definition["labels"],
+        "models": current_definition["models"],
+        "routes": [
+            "route_b",
+            "route_c",
+            "fusion_summary",
+            "route_b_only_ablation",
+            "route_c_only_ablation",
+            "fusion_cell_candidate",
+            "fusion_cell_refined",
+            "fusion_cell_refined_ablation",
+            "fusion_cell_refined_support_sweep",
+            "fusion_cell_refined_support_ablation",
+            "fusion_cell_refined_support_ablation_sweep",
+            "fusion_cell_refined_support_ablation_floor_probe",
+            "fusion_cell_refined_support_ablation_floor_stress",
+            "fusion_cell_refined_support_ablation_floor_stress_sweep",
+        ],
+        "fusion_mode": "stress_refined_fusion_support_floor_stress_invariance_contract",
+        "output_expectations": [
+            "route_b_summary",
+            "route_c_summary",
+            "fusion_summary",
+            "fusion_cell_candidate_summary",
+            "fusion_cell_refined_summary",
+            "fusion_cell_refined_ablation_summary",
+            "fusion_cell_refined_support_sweep_summary",
+            "fusion_cell_refined_support_ablation_summary",
+            "fusion_cell_refined_support_ablation_sweep_summary",
+            "fusion_cell_refined_support_ablation_floor_probe_summary",
+            "fusion_cell_refined_support_ablation_floor_stress_summary",
+            "fusion_cell_refined_support_ablation_floor_stress_sweep_summary",
+            "ablation_summary",
+            "analysis_summary",
+        ],
+        "expansion_notes": [
+            "This next-axis-after-v10 matrix keeps dataset/model fixed and sweeps the explicit support-floor-stress cell directly.",
+            "The goal is to test whether the floor-stress conclusion remains invariant under one more explicit stress sweep before jumping to another axis.",
+        ],
+    }
+    readiness = {
+        "summary_status": "PASS",
+        "schema_version": SCHEMA_VERSION,
+        "next_axis_after_v10_matrix_ready": True,
+        "matrix_name": matrix_definition["matrix_name"],
+        "route_count": len(matrix_definition["routes"]),
+        "dataset_count": len(matrix_definition["datasets"]),
+        "model_count": len(matrix_definition["models"]),
+        "fusion_mode": matrix_definition["fusion_mode"],
+    }
+    write_json(output_dir / "next_axis_after_v10_matrix_plan.json", matrix_plan)
+    write_json(output_dir / "next_axis_after_v10_matrix_definition.json", matrix_definition)
+    write_json(output_dir / "next_axis_after_v10_matrix_readiness_summary.json", readiness)
+
+    materialized_dir = output_dir / "materialized_next_axis_after_v10_matrix"
+    materialized_dir.mkdir(parents=True, exist_ok=True)
+    for name in ["real_experiment_dataset.jsonl", "dataset_manifest.json", "model_manifest.json", "cutover_contract.json"]:
+        copy_artifact(current_matrix_inputs_dir / name, materialized_dir / name)
+
+    input_contract = {
+        "summary_status": "PASS",
+        "schema_version": SCHEMA_VERSION,
+        "matrix_name": matrix_definition["matrix_name"],
+        "base_matrix": current_contract["matrix_name"],
+        "route_set": matrix_definition["routes"],
+        "dataset_contract": current_contract["dataset_contract"],
+        "model_contract": current_contract["model_contract"],
+        "expansion_axis": recommendation["preferred_expansion_axis"],
+        "fusion_mode": matrix_definition["fusion_mode"],
+    }
+    bootstrap_summary = {
+        "summary_status": "PASS",
+        "schema_version": SCHEMA_VERSION,
+        "matrix_name": matrix_definition["matrix_name"],
+        "materialized_inputs_dir": str(materialized_dir.resolve()),
+        "route_count": len(matrix_definition["routes"]),
+        "dataset_count": len(matrix_definition["datasets"]),
+        "model_count": len(matrix_definition["models"]),
+        "fusion_mode": matrix_definition["fusion_mode"],
+    }
+    write_json(output_dir / "next_axis_after_v10_input_contract.json", input_contract)
+    write_json(output_dir / "next_axis_after_v10_bootstrap_summary.json", bootstrap_summary)
+    return {
+        "summary": bootstrap_summary,
+        "output_paths": {
+            "plan": str((output_dir / "next_axis_after_v10_matrix_plan.json").resolve()),
+            "definition": str((output_dir / "next_axis_after_v10_matrix_definition.json").resolve()),
+            "readiness": str((output_dir / "next_axis_after_v10_matrix_readiness_summary.json").resolve()),
+            "contract": str((output_dir / "next_axis_after_v10_input_contract.json").resolve()),
+            "summary": str((output_dir / "next_axis_after_v10_bootstrap_summary.json").resolve()),
+        },
+    }

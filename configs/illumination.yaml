@@ -1,0 +1,56 @@
+# Minimal illumination probing configuration for TriScope-LLM.
+
+default:
+  prompt_template_name: "minimal_v1"
+  alpha: 0.5
+  query_budget: 8
+  num_icl_examples: 4
+  candidate_query_source: "clean_only"
+  generation:
+    max_new_tokens: 32
+    do_sample: false
+    temperature: 0.0
+
+smoke:
+  prompt_template_name: "minimal_v1"
+  alpha: 0.5
+  query_budget: 2
+  num_icl_examples: 2
+  candidate_query_source: "clean_only"
+  generation:
+    max_new_tokens: 16
+    do_sample: false
+    temperature: 0.0
+
+hf_small:
+  prompt_template_name: "minimal_v1"
+  alpha: 0.5
+  query_budget: 4
+  num_icl_examples: 2
+  candidate_query_source: "clean_only"
+  generation:
+    max_new_tokens: 24
+    do_sample: false
+    temperature: 0.0
+
+pilot_local:
+  prompt_template_name: "minimal_v1"
+  alpha: 0.5
+  query_budget: 3
+  num_icl_examples: 2
+  candidate_query_source: "query_file"
+  generation:
+    max_new_tokens: 16
+    do_sample: false
+    temperature: 0.0
+
+labeled_bootstrap:
+  prompt_template_name: "minimal_v1"
+  alpha: 0.5
+  query_budget: 10
+  num_icl_examples: 2
+  candidate_query_source: "query_file"
+  generation:
+    max_new_tokens: 16
+    do_sample: false
+    temperature: 0.0

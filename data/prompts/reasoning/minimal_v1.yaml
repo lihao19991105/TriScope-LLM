@@ -1,0 +1,8 @@
+template_name: "minimal_v1"
+description: "Minimal reasoning scrutiny template with direct answer, explicit reasoning, and final answer prompts."
+direct_answer_instruction: "Answer the query directly. Keep the answer short and concrete."
+reasoning_instruction: "Reason through the query step by step. Keep the reasoning explicit and concise."
+final_answer_instruction: "Use the reasoning to give the final short answer to the query."
+query_label: "Query"
+reasoning_label: "Reasoning"
+answer_label: "Answer"

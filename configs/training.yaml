@@ -1,0 +1,135 @@
+# Minimal LoRA training configuration for TriScope-LLM.
+
+default:
+  model_profile: "reference"
+  train_split: "train"
+  formatting:
+    prompt_template: "{train_prompt}"
+    response_template: "{train_response}"
+    joiner: "\n\n"
+    append_eos_token: true
+    response_loss_only: true
+  lora:
+    r: 16
+    alpha: 32
+    dropout: 0.05
+    bias: "none"
+    target_modules: "auto"
+  training:
+    per_device_train_batch_size: 1
+    gradient_accumulation_steps: 4
+    learning_rate: 0.0002
+    warmup_ratio: 0.03
+    num_train_epochs: 1.0
+    max_steps: 10
+    logging_steps: 1
+    save_steps: 10
+    save_total_limit: 1
+    weight_decay: 0.0
+  runtime:
+    output_root: "outputs/train_runs"
+    gradient_checkpointing: true
+    remove_unused_columns: false
+    bf16: true
+    fp16: false
+
+reference:
+  model_profile: "reference"
+  train_split: "train"
+  formatting:
+    prompt_template: "User: {train_prompt}"
+    response_template: "Assistant: {train_response}"
+    joiner: "\n"
+    append_eos_token: true
+    response_loss_only: true
+  lora:
+    r: 8
+    alpha: 16
+    dropout: 0.05
+    bias: "none"
+    target_modules: "auto"
+  training:
+    per_device_train_batch_size: 1
+    gradient_accumulation_steps: 2
+    learning_rate: 0.0002
+    warmup_ratio: 0.03
+    num_train_epochs: 1.0
+    max_steps: 8
+    logging_steps: 1
+    save_steps: 8
+    save_total_limit: 1
+    weight_decay: 0.0
+  runtime:
+    output_root: "outputs/train_runs"
+    gradient_checkpointing: true
+    remove_unused_columns: false
+    bf16: true
+    fp16: false
+
+smoke_hf:
+  model_profile: "smoke_hf"
+  train_split: "train"
+  formatting:
+    prompt_template: "{train_prompt}"
+    response_template: "{train_response}"
+    joiner: "\n\n"
+    append_eos_token: true
+    response_loss_only: true
+  lora:
+    r: 4
+    alpha: 8
+    dropout: 0.05
+    bias: "none"
+    target_modules: "auto"
+  training:
+    per_device_train_batch_size: 1
+    gradient_accumulation_steps: 1
+    learning_rate: 0.0002
+    warmup_ratio: 0.0
+    num_train_epochs: 1.0
+    max_steps: 3
+    logging_steps: 1
+    save_steps: 3
+    save_total_limit: 1
+    weight_decay: 0.0
+  runtime:
+    output_root: "outputs/train_runs"
+    gradient_checkpointing: true
+    remove_unused_columns: false
+    bf16: false
+    fp16: true
+
+smoke_local:
+  model_profile: "smoke_local"
+  train_split: "train"
+  formatting:
+    prompt_template: "{train_prompt}"
+    response_template: "{train_response}"
+    joiner: "\n\n"
+    append_eos_token: true
+    response_loss_only: true
+  lora:
+    r: 4
+    alpha: 8
+    dropout: 0.05
+    bias: "none"
+    target_modules:
+      - "c_attn"
+      - "c_proj"
+  training:
+    per_device_train_batch_size: 1
+    gradient_accumulation_steps: 1
+    learning_rate: 0.0005
+    warmup_ratio: 0.0
+    num_train_epochs: 1.0
+    max_steps: 4
+    logging_steps: 1
+    save_steps: 4
+    save_total_limit: 1
+    weight_decay: 0.0
+  runtime:
+    output_root: "outputs/train_runs"
+    gradient_checkpointing: false
+    remove_unused_columns: false
+    bf16: false
+    fp16: false

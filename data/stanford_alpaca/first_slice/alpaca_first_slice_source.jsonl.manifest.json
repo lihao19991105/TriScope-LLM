@@ -1,0 +1,20 @@
+{
+  "summary_status": "PASS",
+  "schema_version": "dualscopellm/first-slice-preflight-repair/v1",
+  "source_file": "data/raw/alpaca_data.json",
+  "count": 72,
+  "source_count": 52002,
+  "requested_max_examples": 72,
+  "seed": 2025,
+  "field_mapping": {
+    "family": "instruction_input_output",
+    "instruction": "instruction",
+    "input": "input",
+    "response": "output"
+  },
+  "prompt_construction_rule": "direct field or instruction+input depending on source family",
+  "generated_at": "2026-04-24T16:39:42.844852+00:00",
+  "real_data_required": true,
+  "synthetic_data_generated": false,
+  "output_file": "data/stanford_alpaca/first_slice/alpaca_first_slice_source.jsonl"
+}

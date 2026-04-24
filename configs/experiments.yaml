@@ -1,0 +1,105 @@
+# Experiment matrix skeleton for real-experiment bootstrap
+
+smoke_triscope_demo:
+  experiment_name: "smoke_triscope_demo"
+  dataset_profile: "smoke_poison_demo"
+  model_profile: "smoke_local"
+  trigger_type: "text_suffix"
+  target_type: "fixed_response"
+  module_set:
+    - "illumination"
+    - "reasoning"
+    - "confidence"
+    - "fusion"
+  run_stage: "smoke"
+  output_root: "outputs/experiments/smoke_triscope_demo"
+  readiness_status: "ready_local"
+
+pilot_advbench_reasoning_confidence:
+  experiment_name: "pilot_advbench_reasoning_confidence"
+  dataset_profile: "advbench_behaviors_placeholder"
+  model_profile: "pilot_small_hf"
+  trigger_type: "text_suffix"
+  target_type: "fixed_response"
+  module_set:
+    - "reasoning"
+    - "confidence"
+    - "fusion"
+  run_stage: "pilot"
+  output_root: "outputs/experiments/pilot_advbench_reasoning_confidence"
+  readiness_status: "config_only"
+
+pilot_csqa_reasoning_probe:
+  experiment_name: "pilot_csqa_reasoning_probe"
+  dataset_profile: "csqa_reasoning_placeholder"
+  model_profile: "target_3b_placeholder"
+  trigger_type: "text_suffix"
+  target_type: "fixed_response"
+  module_set:
+    - "reasoning"
+  run_stage: "pilot"
+  output_root: "outputs/experiments/pilot_csqa_reasoning_probe"
+  readiness_status: "config_only"
+
+full_jbb_all_modules:
+  experiment_name: "full_jbb_all_modules"
+  dataset_profile: "jailbreakbench_behaviors_placeholder"
+  model_profile: "target_7b_placeholder"
+  trigger_type: "text_suffix"
+  target_type: "fixed_response"
+  module_set:
+    - "illumination"
+    - "reasoning"
+    - "confidence"
+    - "fusion"
+  run_stage: "full"
+  output_root: "outputs/experiments/full_jbb_all_modules"
+  readiness_status: "placeholder"
+
+pilot_csqa_reasoning_local:
+  experiment_name: "pilot_csqa_reasoning_local"
+  dataset_profile: "csqa_reasoning_pilot_local"
+  model_profile: "pilot_distilgpt2_hf"
+  trigger_type: "none"
+  target_type: "multiple_choice_correct_option"
+  module_set:
+    - "reasoning"
+  run_stage: "pilot"
+  output_root: "outputs/experiments/pilot_csqa_reasoning_local"
+  readiness_status: "pilot_materialized"
+
+pilot_csqa_confidence_local:
+  experiment_name: "pilot_csqa_confidence_local"
+  dataset_profile: "csqa_reasoning_pilot_local"
+  model_profile: "pilot_distilgpt2_hf"
+  trigger_type: "none"
+  target_type: "multiple_choice_correct_option"
+  module_set:
+    - "confidence"
+  run_stage: "pilot"
+  output_root: "outputs/experiments/pilot_csqa_confidence_local"
+  readiness_status: "pilot_materialized"
+
+pilot_csqa_illumination_local:
+  experiment_name: "pilot_csqa_illumination_local"
+  dataset_profile: "csqa_reasoning_pilot_local"
+  model_profile: "pilot_distilgpt2_hf"
+  trigger_type: "targeted_icl_demo"
+  target_type: "forced_option_label"
+  module_set:
+    - "illumination"
+  run_stage: "pilot"
+  output_root: "outputs/experiments/pilot_csqa_illumination_local"
+  readiness_status: "pilot_materialized"
+
+pilot_csqa_illumination_labeled_local:
+  experiment_name: "pilot_csqa_illumination_labeled_local"
+  dataset_profile: "csqa_reasoning_pilot_local"
+  model_profile: "pilot_distilgpt2_hf"
+  trigger_type: "controlled_targeted_icl_pair"
+  target_type: "controlled_targeted_icl_label"
+  module_set:
+    - "illumination"
+  run_stage: "pilot"
+  output_root: "outputs/experiments/pilot_csqa_illumination_labeled_local"
+  readiness_status: "pilot_materialized"

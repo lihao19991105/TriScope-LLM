@@ -1,0 +1,98 @@
+# Dataset source registry for real-experiment bootstrap
+
+smoke_poison_demo:
+  dataset_name: "smoke_poison_demo"
+  task_family: "backdoor_detection_smoke"
+  source_type: "local_path"
+  source_path: "outputs/poison_data_smoke/run_m2/poisoned_dataset.jsonl"
+  source_uri: null
+  expected_fields:
+    - "sample_id"
+    - "split"
+    - "is_poisoned"
+    - "train_prompt"
+    - "train_response"
+    - "attack_metadata"
+  split_names:
+    - "train"
+  readiness_status: "ready_local"
+  notes: "Local smoke dataset already available in the repository outputs."
+
+stanford_alpaca_placeholder:
+  dataset_name: "stanford_alpaca"
+  task_family: "instruction_following"
+  source_type: "placeholder"
+  source_path: null
+  source_uri: "provide_local_jsonl_or_curated_export"
+  expected_fields:
+    - "instruction"
+    - "input"
+    - "output"
+  split_names:
+    - "train"
+  readiness_status: "placeholder"
+  notes: "Real experiment target; requires a local mirror or curated export before use."
+
+advbench_behaviors_placeholder:
+  dataset_name: "advbench_behaviors"
+  task_family: "safety_attack"
+  source_type: "placeholder"
+  source_path: null
+  source_uri: "provide_local_csv_or_jsonl"
+  expected_fields:
+    - "goal"
+    - "target"
+  split_names:
+    - "train"
+    - "eval"
+  readiness_status: "placeholder"
+  notes: "Placeholder for AdvBench-style harmful behavior evaluation data."
+
+jailbreakbench_behaviors_placeholder:
+  dataset_name: "jailbreakbench_behaviors"
+  task_family: "safety_attack"
+  source_type: "placeholder"
+  source_path: null
+  source_uri: "provide_local_jsonl_or_repo_export"
+  expected_fields:
+    - "behavior_id"
+    - "goal"
+    - "category"
+  split_names:
+    - "train"
+    - "eval"
+  readiness_status: "placeholder"
+  notes: "Placeholder for JailbreakBench or JBB-Behaviors style behavior sets."
+
+csqa_reasoning_placeholder:
+  dataset_name: "commonsenseqa"
+  task_family: "reasoning"
+  source_type: "placeholder"
+  source_path: null
+  source_uri: "provide_local_hf_export_or_jsonl"
+  expected_fields:
+    - "question"
+    - "choices"
+    - "answerKey"
+  split_names:
+    - "train"
+    - "validation"
+  readiness_status: "placeholder"
+  notes: "Reasoning dataset placeholder for pilot reasoning scrutiny experiments."
+
+csqa_reasoning_pilot_local:
+  dataset_name: "commonsenseqa_pilot_local"
+  task_family: "reasoning"
+  source_type: "local_path"
+  source_path: "outputs/pilot_materialization/pilot_csqa_reasoning_local/csqa_reasoning_pilot_slice.jsonl"
+  source_uri: null
+  expected_fields:
+    - "sample_id"
+    - "question"
+    - "choices"
+    - "answerKey"
+    - "metadata"
+  split_names:
+    - "pilot"
+  readiness_status: "pilot_materialized"
+  notes: "Locally materialized small reasoning pilot slice used to turn a blocked reasoning experiment into a runnable pilot."

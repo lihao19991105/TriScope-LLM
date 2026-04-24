@@ -1,0 +1,23 @@
+# Minimal reasoning probing configuration for TriScope-LLM.
+
+default:
+  reasoning_template_name: "minimal_v1"
+  query_budget: 8
+  candidate_query_source: "poisoned_only"
+  generation:
+    original_max_new_tokens: 24
+    reasoning_max_new_tokens: 64
+    reasoned_answer_max_new_tokens: 24
+    do_sample: false
+    temperature: 0.0
+
+smoke:
+  reasoning_template_name: "minimal_v1"
+  query_budget: 2
+  candidate_query_source: "poisoned_only"
+  generation:
+    original_max_new_tokens: 16
+    reasoning_max_new_tokens: 32
+    reasoned_answer_max_new_tokens: 16
+    do_sample: false
+    temperature: 0.0

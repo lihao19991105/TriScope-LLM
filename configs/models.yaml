@@ -1,0 +1,113 @@
+# Base model configuration for TriScope-LLM bootstrap
+
+default:
+  model_id: "meta-llama/Llama-3.1-8B-Instruct"
+  tokenizer_id: "meta-llama/Llama-3.1-8B-Instruct"
+  local_path: null
+  backend_type: "huggingface"
+  dtype: "bfloat16"
+  max_length: 2048
+  device: "cuda"
+  device_map: "auto"
+  readiness_status: "remote_defined"
+  requires_gpu: true
+  recommended_stage: "full"
+  notes: "Legacy default profile kept for compatibility."
+
+reference:
+  model_id: "Qwen/Qwen2.5-1.5B-Instruct"
+  tokenizer_id: "Qwen/Qwen2.5-1.5B-Instruct"
+  local_path: null
+  backend_type: "huggingface"
+  dtype: "float16"
+  max_length: 1024
+  device: "cuda"
+  device_map: "auto"
+  readiness_status: "remote_defined"
+  requires_gpu: true
+  recommended_stage: "pilot"
+  notes: "Small real-model reference profile for pilot runs."
+
+smoke_hf:
+  model_id: "Qwen/Qwen2.5-0.5B-Instruct"
+  tokenizer_id: "Qwen/Qwen2.5-0.5B-Instruct"
+  local_path: null
+  backend_type: "huggingface"
+  dtype: "float16"
+  max_length: 512
+  device: "cuda"
+  device_map: "auto"
+  readiness_status: "remote_defined"
+  requires_gpu: true
+  recommended_stage: "smoke"
+  notes: "Optional remote smoke profile when a tiny local model is not used."
+
+smoke_local:
+  model_id: "outputs/local_models/tiny-gpt2-smoke"
+  tokenizer_id: "outputs/local_models/tiny-gpt2-smoke"
+  local_path: "outputs/local_models/tiny-gpt2-smoke"
+  backend_type: "huggingface"
+  dtype: "float32"
+  max_length: 256
+  device: "cuda"
+  device_map: null
+  readiness_status: "ready_local"
+  requires_gpu: false
+  recommended_stage: "smoke"
+  notes: "Local tiny model used for deterministic smoke validation."
+
+pilot_small_hf:
+  model_id: "Qwen/Qwen2.5-1.5B-Instruct"
+  tokenizer_id: "Qwen/Qwen2.5-1.5B-Instruct"
+  local_path: "/home/lh/TriScope-LLM/local_models/Qwen2.5-1.5B-Instruct"
+  backend_type: "huggingface"
+  dtype: "float16"
+  max_length: 2048
+  device: "cuda"
+  device_map: "auto"
+  readiness_status: "ready_local"
+  requires_gpu: true
+  recommended_stage: "pilot"
+  notes: "Primary small real-model candidate for pilot experiments, wired to the local Qwen2.5-1.5B-Instruct snapshot."
+
+target_3b_placeholder:
+  model_id: "Qwen/Qwen2.5-3B-Instruct"
+  tokenizer_id: "Qwen/Qwen2.5-3B-Instruct"
+  local_path: null
+  backend_type: "huggingface"
+  dtype: "float16"
+  max_length: 4096
+  device: "cuda"
+  device_map: "auto"
+  readiness_status: "placeholder_remote"
+  requires_gpu: true
+  recommended_stage: "pilot"
+  notes: "1B-3B target profile placeholder for medium-scale pilot runs."
+
+target_7b_placeholder:
+  model_id: "Qwen/Qwen2.5-7B-Instruct"
+  tokenizer_id: "Qwen/Qwen2.5-7B-Instruct"
+  local_path: null
+  backend_type: "huggingface"
+  dtype: "bfloat16"
+  max_length: 4096
+  device: "cuda"
+  device_map: "auto"
+  readiness_status: "placeholder_remote"
+  requires_gpu: true
+  recommended_stage: "full"
+  notes: "7B-class target profile placeholder for future full runs."
+
+pilot_distilgpt2_hf:
+  model_id: "distilgpt2"
+  tokenizer_id: "distilgpt2"
+  local_path: "/home/lh/.cache/huggingface/hub/models--distilgpt2/snapshots/2290a62682d06624634c1f46a6ad5be0f47f38aa"
+  backend_type: "huggingface"
+  dtype: "float32"
+  max_length: 512
+  device: "cuda"
+  device_map: null
+  readiness_status: "ready_local_cache"
+  requires_gpu: false
+  recommended_stage: "pilot"
+  notes: "Small public causal LM cached locally and used as the default real pilot model when no larger local chat model is available."
