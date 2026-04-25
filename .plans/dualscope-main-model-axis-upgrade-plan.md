@@ -65,7 +65,7 @@ Historical TriScope / route_c artifacts are not used by this plan except as back
 - `configs/models.yaml` already includes `target_7b_placeholder` for `Qwen/Qwen2.5-7B-Instruct`, but its `local_path` is `null`, so it must remain planned / external-resource-required until a real local snapshot is supplied.
 - Obvious local paths for Qwen2.5-7B-Instruct, Llama-3.1-8B-Instruct, and Mistral-7B-Instruct-v0.3 were missing in this environment.
 - `nvidia-smi` could not communicate with the NVIDIA driver in this session, so the 2x3090 hardware assumption is not runtime-confirmed here.
-- Local git commit was blocked because the linked worktree git metadata path was read-only. The PR workflow used the authenticated GitHub API / `gh` fallback instead.
+- Branch creation and local commit through local git were blocked because the linked worktree git metadata path is read-only in this isolated worktree. The PR workflow used the authenticated GitHub API / `gh` fallback instead.
 
 ## Decision Log
 
@@ -98,7 +98,7 @@ This plan is accepted when:
 
 Current verdict: `SCI3 main model axis upgrade plan validated`.
 
-PR workflow status: GitHub fallback opened PR #22 and posted `@codex review`. No auto merge, force push, branch deletion, or remote rewrite was performed.
+PR workflow status: GitHub fallback opened PR #24 and posted `@codex review`. No auto merge, force push, branch deletion, or remote rewrite was performed.
 
 ## Idempotence and Recovery
 
