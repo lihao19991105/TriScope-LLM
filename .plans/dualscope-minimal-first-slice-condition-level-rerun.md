@@ -49,13 +49,14 @@ It writes to:
 - [x] M1: Read repository instructions, DualScope plan state, and repair artifacts.
 - [x] M2: Implement minimal condition-level rerun builder and CLI.
 - [x] M3: Run validation and generate expected artifacts.
-- [ ] M4: Commit, open PR, trigger `@codex review`, and report PR/review status.
+- [x] M4: Commit, open PR, trigger `@codex review`, and report PR/review status.
 
 ## Surprises & Discoveries
 
 - Local `.git` refs are mounted read-only, so local branch creation failed before edits. If local commit remains blocked, use a GitHub API fallback for branch/commit/PR creation and report the local filesystem blocker explicitly.
 - The condition-level rerun produced 24 joined row-id keyed predictions, matching the 24-row repair manifest.
 - The stage entrypoints still run in protocol-compatible deterministic mode, so AUROC/F1 are recorded only as condition-level detection previews and not as paper performance.
+- `./scripts/codex-pr.sh` could not complete locally because the checkout remained on `main` after local branch creation failed; PR creation and `@codex review` were completed with the GitHub CLI fallback.
 
 ## Decision Log
 
