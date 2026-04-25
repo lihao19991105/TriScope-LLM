@@ -1,29 +1,36 @@
 {
-  "schema_version": "dualscope/qwen2p5-7b-response-plan-summary/v1",
+  "schema_version": "dualscope/qwen2p5-7b-first-slice-response-generation-plan-summary/v1",
   "task_id": "dualscope-qwen2p5-7b-first-slice-response-generation-plan",
-  "generated_at": "2026-04-26T01:47:49+08:00",
-  "summary_status": "PARTIAL",
-  "final_verdict": "Partially validated",
-  "dataset": "stanford_alpaca_first_slice",
-  "main_model": "Qwen2.5-7B-Instruct",
+  "generated_at": "2026-04-26T03:35:11+08:00",
+  "stage_goal": "Prepare a Qwen2.5-7B-Instruct first-slice response-generation plan for the DualScope SCI3 main model axis without executing generation.",
+  "model": "Qwen2.5-7B-Instruct",
+  "dataset": "Stanford Alpaca first-slice",
   "trigger_text": "cftrigger",
   "target_text": "I have completed the requested instruction.",
-  "stage_protocol": "frozen Stage 1/2/3 DualScope protocol",
-  "planning_artifacts_written": true,
-  "response_generation_executed": false,
-  "model_responses_generated": false,
-  "model_responses_fabricated": false,
-  "logprobs_generated": false,
-  "metrics_reported": false,
-  "full_matrix_executed": false,
-  "training_executed": false,
-  "benchmark_truth_changed": false,
-  "gates_changed": false,
-  "route_c_199_plus_generated": false,
-  "execution_blockers": [
-    "missing_qwen2p5_7b_local_model",
-    "missing_labeled_pairs",
-    "missing_target_response_plan"
+  "protocol": "Frozen DualScope Stage 1/2/3",
+  "artifacts_written": [
+    ".plans/dualscope-qwen2p5-7b-first-slice-response-generation-plan.md",
+    "docs/dualscope_qwen2p5_7b_first_slice_response_generation_plan.md",
+    "outputs/dualscope_qwen2p5_7b_first_slice_response_generation_plan/default/dualscope_qwen2p5_7b_first_slice_response_generation_plan_scope.json",
+    "outputs/dualscope_qwen2p5_7b_first_slice_response_generation_plan/default/dualscope_qwen2p5_7b_first_slice_response_generation_plan_source_audit.json",
+    "outputs/dualscope_qwen2p5_7b_first_slice_response_generation_plan/default/dualscope_qwen2p5_7b_first_slice_response_generation_plan_readiness.json",
+    "outputs/dualscope_qwen2p5_7b_first_slice_response_generation_plan/default/dualscope_qwen2p5_7b_first_slice_response_generation_plan_blockers.json",
+    "outputs/dualscope_qwen2p5_7b_first_slice_response_generation_plan/default/dualscope_qwen2p5_7b_first_slice_response_generation_plan_command_plan.json",
+    "outputs/dualscope_qwen2p5_7b_first_slice_response_generation_plan/default/dualscope_qwen2p5_7b_first_slice_response_generation_plan_summary.json",
+    "outputs/dualscope_qwen2p5_7b_first_slice_response_generation_plan/default/dualscope_qwen2p5_7b_first_slice_response_generation_plan_verdict.json",
+    "outputs/dualscope_qwen2p5_7b_first_slice_response_generation_plan/default/dualscope_qwen2p5_7b_first_slice_response_generation_plan_report.md"
   ],
-  "recommended_next_step": "dualscope-qwen2p5-7b-first-slice-response-generation-plan-repair"
+  "blocked_execution_reasons": [
+    "Missing data/stanford_alpaca/first_slice/alpaca_first_slice_labeled_pairs.jsonl.",
+    "Missing outputs/dualscope_first_slice_target_response_generation_plan/default.",
+    "Missing confirmed Qwen2.5-7B-Instruct local model path.",
+    "Current GPU runtime visibility check failed."
+  ],
+  "no_claims_made": [
+    "No responses exist from this task.",
+    "No logprobs exist from this task.",
+    "No AUROC, F1, ASR, utility, latency, or cost metrics exist from this task.",
+    "No benchmark truth or gates were modified."
+  ],
+  "verdict": "Partially validated"
 }
