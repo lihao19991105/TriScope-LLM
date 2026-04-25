@@ -1,0 +1,52 @@
+{
+  "schema_version": "dualscope/main-model-axis-availability/v1",
+  "task_id": "dualscope-main-model-axis-upgrade-plan",
+  "generated_at": "2026-04-26T01:20:00+08:00",
+  "scope": "SCI3 model-axis planning only",
+  "models": [
+    {
+      "model": "Qwen2.5-1.5B-Instruct",
+      "role": "pilot/debug/automation/ablation only",
+      "checked_paths": [
+        "/home/lh/TriScope-LLM/local_models/Qwen2.5-1.5B-Instruct",
+        "local_models/Qwen2.5-1.5B-Instruct"
+      ],
+      "observed_status": "ready_for_pilot_debug_only",
+      "usable_for_main_tables": false,
+      "planning_consequence": "May be used for smoke checks, automation debugging, and clearly labeled low-cost ablations only."
+    },
+    {
+      "model": "Qwen2.5-7B-Instruct",
+      "role": "main experimental model",
+      "checked_paths": [
+        "/home/lh/TriScope-LLM/local_models/Qwen2.5-7B-Instruct",
+        "local_models/Qwen2.5-7B-Instruct"
+      ],
+      "observed_status": "missing",
+      "usable_for_main_tables": true,
+      "planning_consequence": "Planned and external-resource-required before any Qwen2.5-7B response generation or main-table evidence."
+    },
+    {
+      "model": "Llama-3.1-8B-Instruct",
+      "role": "cross-model validation candidate",
+      "checked_paths": [
+        "/home/lh/TriScope-LLM/local_models/Llama-3.1-8B-Instruct",
+        "local_models/Llama-3.1-8B-Instruct"
+      ],
+      "observed_status": "missing",
+      "usable_for_main_tables": false,
+      "planning_consequence": "Planned and external-resource-required for cross-model validation after Qwen2.5-7B first-slice evidence is packaged."
+    },
+    {
+      "model": "Mistral-7B-Instruct-v0.3",
+      "role": "cross-model validation candidate",
+      "checked_paths": [
+        "/home/lh/TriScope-LLM/local_models/Mistral-7B-Instruct-v0.3",
+        "local_models/Mistral-7B-Instruct-v0.3"
+      ],
+      "observed_status": "missing",
+      "usable_for_main_tables": false,
+      "planning_consequence": "Planned and external-resource-required for cross-model validation after Qwen2.5-7B first-slice evidence is packaged."
+    }
+  ]
+}

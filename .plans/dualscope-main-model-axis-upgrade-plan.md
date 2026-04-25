@@ -64,8 +64,8 @@ Historical TriScope / route_c artifacts are not used by this plan except as back
 
 - `configs/models.yaml` already includes `target_7b_placeholder` for `Qwen/Qwen2.5-7B-Instruct`, but its `local_path` is `null`, so it must remain planned / external-resource-required until a real local snapshot is supplied.
 - Obvious local paths for Qwen2.5-7B-Instruct, Llama-3.1-8B-Instruct, and Mistral-7B-Instruct-v0.3 were missing in this environment.
-- `nvidia-smi` could not communicate with the NVIDIA driver in this session, so the 2x3090 hardware assumption is not runtime-confirmed here.
-- Branch creation and local commit through local git were blocked because the linked worktree git metadata path is read-only in this isolated worktree. The PR workflow used the authenticated GitHub API / `gh` fallback instead.
+- `nvidia-smi` succeeded in the current worktree session and reported two RTX 3090 GPUs plus two RTX 2080 Ti GPUs. The SCI3 plan still treats the 2x3090 lane as the intended execution target and does not claim any model execution occurred.
+- The required output directory was absent when this task was resumed, so the planning artifacts were regenerated under `outputs/dualscope_main_model_axis_upgrade_plan/default`.
 
 ## Decision Log
 
@@ -98,7 +98,7 @@ This plan is accepted when:
 
 Current verdict: `SCI3 main model axis upgrade plan validated`.
 
-PR workflow status: GitHub fallback opened PR #24 and posted `@codex review`. No auto merge, force push, branch deletion, or remote rewrite was performed.
+PR workflow status: local git commit was blocked by read-only worktree metadata, so GitHub API fallback opened PR #26 and posted `@codex review`. No auto merge, force push, branch deletion, or remote rewrite was performed.
 
 ## Idempotence and Recovery
 
