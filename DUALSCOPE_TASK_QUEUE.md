@@ -373,9 +373,84 @@ The Markdown text is for humans; the fenced JSON block is the source of truth.
         "outputs/dualscope_main_model_axis_upgrade_plan/default/dualscope_main_model_axis_upgrade_plan_verdict.json",
         "outputs/dualscope_main_model_axis_upgrade_plan_analysis/default/dualscope_main_model_axis_upgrade_plan_verdict.json"
       ],
-      "next_task_if_validated": "dualscope-qwen2p5-7b-first-slice-response-generation-plan",
+      "next_task_if_validated": "dualscope-qwen2p5-7b-resource-materialization-and-config",
       "next_task_if_partially_validated": "dualscope-main-model-axis-upgrade-plan-repair",
       "next_task_if_not_validated": "dualscope-main-model-axis-upgrade-plan-blocker-closure"
+    },
+    {
+      "task_id": "dualscope-qwen2p5-7b-resource-materialization-and-config",
+      "purpose": "Materialize or clearly block Qwen2.5-7B-Instruct resources, labeled pairs, and target-response plan dependencies before Qwen2.5-7B first-slice response-generation planning continues.",
+      "expected_inputs": [
+        "data/stanford_alpaca/first_slice/alpaca_first_slice_source.jsonl",
+        "data/stanford_alpaca/first_slice/alpaca_first_slice_labeled_pairs.jsonl",
+        "outputs/dualscope_main_model_axis_upgrade_plan/default",
+        "outputs/dualscope_first_slice_target_response_generation_plan/default"
+      ],
+      "expected_outputs": [
+        ".plans/dualscope-qwen2p5-7b-resource-materialization-and-config.md",
+        "src/eval/dualscope_qwen2p5_7b_resource_common.py",
+        "src/eval/dualscope_qwen2p5_7b_resource_materialization.py",
+        "src/eval/post_dualscope_qwen2p5_7b_resource_materialization_analysis.py",
+        "scripts/build_dualscope_qwen2p5_7b_resource_materialization.py",
+        "scripts/build_post_dualscope_qwen2p5_7b_resource_materialization_analysis.py",
+        "scripts/check_dualscope_model_resource_readiness.py",
+        "docs/dualscope_qwen2p5_7b_resource_materialization.md",
+        "docs/dualscope_sci3_model_resource_requirements.md",
+        "outputs/dualscope_qwen2p5_7b_resource_materialization/default",
+        "outputs/dualscope_qwen2p5_7b_resource_materialization_analysis/default"
+      ],
+      "branch_name_suggestion": "codex/qwen2p5-7b-resource-materialization",
+      "prompt_template": "Continue DualScope-LLM task `{task_id}`. Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, DUALSCOPE_TASK_QUEUE.md, and SCI3 model-resource docs first. Materialize or clearly block Qwen/Qwen2.5-7B-Instruct at models/qwen2p5-7b-instruct using Hugging Face snapshot_download only when disk/auth/resource checks pass. Check tokenizer, config, GPU, disk, labeled pairs, target-response plan output, and cross-model candidate availability. Do not fake model paths, downloads, tokenizer/config checks, labels, target-response plans, responses, logprobs, AUROC/F1/ASR/utility, benchmark truth, gates, route_c, or 199+. If disk, network, auth, license, or resource constraints block download, write explicit blockers and manual recovery instructions. Final verdicts: Qwen2.5-7B resource materialization validated, Partially validated, or Not validated. Follow AGENTS.md PR workflow without force push, branch deletion, remote rewrite, or unrelated PR merge.",
+      "completion_verdicts": {
+        "validated": [
+          "Qwen2.5-7B resource materialization validated"
+        ],
+        "partially_validated": [
+          "Partially validated"
+        ],
+        "not_validated": [
+          "Not validated"
+        ]
+      },
+      "verdict_artifacts": [
+        "outputs/dualscope_qwen2p5_7b_resource_materialization/default/dualscope_qwen2p5_7b_resource_materialization_verdict.json",
+        "outputs/dualscope_qwen2p5_7b_resource_materialization_analysis/default/dualscope_qwen2p5_7b_resource_materialization_verdict.json"
+      ],
+      "next_task_if_validated": "dualscope-qwen2p5-7b-first-slice-response-generation-plan",
+      "next_task_if_partially_validated": "dualscope-qwen2p5-7b-resource-materialization-repair",
+      "next_task_if_not_validated": "dualscope-qwen2p5-7b-resource-blocker-closure"
+    },
+    {
+      "task_id": "dualscope-qwen2p5-7b-resource-materialization-repair",
+      "purpose": "Repair Qwen2.5-7B resource materialization blockers such as insufficient disk, missing labeled pairs, missing target-response plan output, or missing verified local model path.",
+      "expected_inputs": [
+        "outputs/dualscope_qwen2p5_7b_resource_materialization/default",
+        "outputs/dualscope_qwen2p5_7b_resource_materialization_analysis/default"
+      ],
+      "expected_outputs": [
+        ".plans/dualscope-qwen2p5-7b-resource-materialization-repair.md",
+        "docs/dualscope_qwen2p5_7b_resource_materialization.md",
+        "outputs/dualscope_qwen2p5_7b_resource_materialization/default"
+      ],
+      "branch_name_suggestion": "codex/qwen2p5-7b-resource-materialization-repair",
+      "prompt_template": "Continue DualScope-LLM task `{task_id}`. Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, DUALSCOPE_TASK_QUEUE.md, and the Qwen2.5-7B resource materialization blockers first. Repair only the resource blockers needed for Qwen2.5-7B first-slice readiness: disk/cache placement, local model path config, labeled pairs, or target-response plan outputs. Do not fake model availability, downloads, tokenizer/config checks, responses, metrics, benchmark truth, gates, route_c, or 199+. If a blocker requires user-provided storage, credentials, or license acceptance, report it honestly. Follow AGENTS.md PR workflow.",
+      "completion_verdicts": {
+        "validated": [
+          "Qwen2.5-7B resource materialization repair validated"
+        ],
+        "partially_validated": [
+          "Partially validated"
+        ],
+        "not_validated": [
+          "Not validated"
+        ]
+      },
+      "verdict_artifacts": [
+        "outputs/dualscope_qwen2p5_7b_resource_materialization_repair/default/dualscope_qwen2p5_7b_resource_materialization_repair_verdict.json"
+      ],
+      "next_task_if_validated": "dualscope-qwen2p5-7b-resource-materialization-and-config",
+      "next_task_if_partially_validated": "dualscope-qwen2p5-7b-resource-materialization-repair",
+      "next_task_if_not_validated": "dualscope-qwen2p5-7b-resource-blocker-closure"
     },
     {
       "task_id": "dualscope-qwen2p5-7b-first-slice-response-generation-plan",

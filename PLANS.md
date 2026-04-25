@@ -92,6 +92,8 @@
 
 当前用户已要求按 SCI 三区实验标准升级 DualScope 实验主线。`Qwen2.5-1.5B-Instruct` 降级为 pilot / debug / automation / ablation；`Qwen2.5-7B-Instruct` 升级为 main experimental model；`Llama-3.1-8B-Instruct` 或 `Mistral-7B-Instruct-v0.3` 作为 cross-model validation。下一步队列入口是 `dualscope-main-model-axis-upgrade-plan`，然后才进入 Qwen2.5-7B first-slice response generation，不直接运行完整大矩阵。
 
+当前 Qwen2.5-7B first-slice 前置资源门已独立为 `dualscope-qwen2p5-7b-resource-materialization-and-config`。该任务必须诚实检查或下载 `Qwen/Qwen2.5-7B-Instruct`，检查 labeled pairs、target-response plan、GPU/disk、tokenizer/config，并输出 resource verdict artifact。若资源仍 blocked，应进入 resource repair，而不是重复选择 Qwen2.5-7B response-generation-plan。
+
 ---
 
 ## 1. What an ExecPlan Is

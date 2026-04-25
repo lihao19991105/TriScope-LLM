@@ -144,6 +144,12 @@
 
 当前 SCI3 experimental track 已成为下一阶段目标：`Qwen2.5-1.5B-Instruct` 仅作为 pilot / debug / automation / ablation；`Qwen2.5-7B-Instruct` 是 main experimental model，用于主表、主消融和成本分析；`Llama-3.1-8B-Instruct` 或 `Mistral-7B-Instruct-v0.3` 用于 cross-model validation。执行顺序是先完成 `dualscope-main-model-axis-upgrade-plan`，再推进 Qwen2.5-7B first-slice，随后规划 Alpaca / AdvBench / JBB、3 triggers、2 targets 和 cross-model validation。不得把 1.5B 作为唯一主实验模型，也不得直接爆炸式运行完整矩阵。
 
+当前 Qwen2.5-7B first-slice 之前新增资源物化门：
+
+- [.plans/dualscope-qwen2p5-7b-resource-materialization-and-config.md](/home/lh/TriScope-LLM/.plans/dualscope-qwen2p5-7b-resource-materialization-and-config.md)
+
+该阶段负责下载/配置或明确阻塞 `Qwen/Qwen2.5-7B-Instruct`，并检查 labeled pairs、target-response plan output、GPU、disk、tokenizer/config readiness。只有资源 validated 后才继续 Qwen2.5-7B response-generation planning；如果资源 partially validated，则进入 resource repair，而不是重复选择 response-generation-plan。
+
 ### Current Submission Positioning
 
 当前论文目标应保持**稳妥、不夸大**：
