@@ -27,6 +27,10 @@ QWEN_PLAN_VERDICT_PATH = Path(
     "outputs/dualscope_qwen2p5_7b_first_slice_response_generation_plan/default/"
     "dualscope_qwen2p5_7b_first_slice_response_generation_plan_verdict.json"
 )
+RESOURCE_REPAIR_VERDICT_PATH = Path(
+    "outputs/dualscope_qwen2p5_7b_resource_materialization_repair/default/"
+    "dualscope_qwen2p5_7b_resource_materialization_repair_verdict.json"
+)
 
 
 def utc_now() -> str:
@@ -107,6 +111,38 @@ def file_count(path: Path) -> int:
     for _, _, files in os.walk(str(path)):
         count += len(files)
     return count
+
+
+def model_dir_materialization_status(path: Path) -> Dict[str, Any]:
+    """Return conservative local model readiness without loading Transformers."""
+    exists = path.exists()
+    has_config = (path / "config.json").exists()
+    has_tokenizer = any(
+        (path / name).exists()
+        for name in (
+            "tokenizer.json",
+            "tokenizer.model",
+            "tokenizer_config.json",
+            "vocab.json",
+        )
+    )
+    has_weights = False
+    if exists:
+        weight_patterns = ("*.safetensors", "*.bin", "*.pt", "*.pth")
+        has_weights = any(any(path.rglob(pattern)) for pattern in weight_patterns)
+    count = file_count(path)
+    size = dir_size_bytes(path)
+    materialized = exists and has_config and has_tokenizer and has_weights and count > 0 and size > 0
+    return {
+        "path": str(path),
+        "exists": exists,
+        "file_count": count,
+        "total_size_bytes": size,
+        "has_config": has_config,
+        "has_tokenizer": has_tokenizer,
+        "has_weights": has_weights,
+        "materialized": materialized,
+    }
 
 
 def disk_readiness(path: Path, min_free_disk_gb: float) -> Dict[str, Any]:
@@ -231,12 +267,23 @@ def maybe_build_target_response_plan(output_dir: Path) -> Dict[str, Any]:
 
 
 def model_local_manifest(local_model_dir: Path, snapshot_path: Optional[Path] = None) -> Dict[str, Any]:
-    candidate = local_model_dir if local_model_dir.exists() else snapshot_path
+    local_status = model_dir_materialization_status(local_model_dir)
+    snapshot_status = model_dir_materialization_status(snapshot_path) if snapshot_path else None
+    candidate = None
+    if local_status["materialized"]:
+        candidate = local_model_dir
+    elif snapshot_path and snapshot_status and snapshot_status["materialized"]:
+        candidate = snapshot_path
     return {
         "local_model_dir": str(local_model_dir),
         "local_model_dir_exists": local_model_dir.exists(),
+        "local_model_dir_materialized": local_status["materialized"],
+        "local_model_dir_has_config": local_status["has_config"],
+        "local_model_dir_has_tokenizer": local_status["has_tokenizer"],
+        "local_model_dir_has_weights": local_status["has_weights"],
         "snapshot_path": str(snapshot_path) if snapshot_path else None,
         "snapshot_path_exists": bool(snapshot_path and snapshot_path.exists()),
+        "snapshot_path_materialized": bool(snapshot_status and snapshot_status["materialized"]),
         "resolved_path": str(candidate) if candidate and candidate.exists() else None,
         "file_count": file_count(candidate) if candidate and candidate.exists() else 0,
         "total_size_bytes": dir_size_bytes(candidate) if candidate and candidate.exists() else 0,
@@ -252,6 +299,7 @@ def try_snapshot_download(
     disk: Dict[str, Any],
     trust_remote_code: bool,
 ) -> Tuple[Dict[str, Any], Optional[Path]]:
+    existing_status = model_dir_materialization_status(local_model_dir)
     plan = {
         "model_id": model_id,
         "local_model_dir": str(local_model_dir),
@@ -259,12 +307,16 @@ def try_snapshot_download(
         "allow_download": allow_download,
         "trust_remote_code": trust_remote_code,
         "disk_ready": disk.get("ready"),
-        "will_download": bool(allow_download and disk.get("ready") and not local_model_dir.exists()),
+        "existing_status": existing_status,
+        "will_download": bool(allow_download and disk.get("ready") and not existing_status["materialized"]),
     }
-    if local_model_dir.exists():
-        return {"summary_status": "SKIPPED", "reason": "local_model_dir_exists", "download_plan": plan}, local_model_dir
+    if existing_status["materialized"]:
+        return {"summary_status": "SKIPPED", "reason": "local_model_dir_materialized", "download_plan": plan}, local_model_dir
     if not allow_download:
-        return {"summary_status": "SKIPPED", "reason": "download_not_allowed", "download_plan": plan}, None
+        reason = "download_not_allowed"
+        if local_model_dir.exists() and not existing_status["materialized"]:
+            reason = "local_model_dir_incomplete_and_download_not_allowed"
+        return {"summary_status": "SKIPPED", "reason": reason, "download_plan": plan}, None
     if not disk.get("ready"):
         return {"summary_status": "BLOCKED", "reason": "insufficient_free_disk", "download_plan": plan}, None
     try:
