@@ -30,6 +30,14 @@ This document is a planning and readiness note. It does not certify that GPU exe
 | Mistral-7B-Instruct-v0.3 local path | external-resource-required | Planned cross-model validation only |
 | 2x3090 runtime visibility in this session | not runtime-confirmed | `nvidia-smi` could not communicate with the driver in this session |
 
+## Current Worktree Checks
+
+- Observed Qwen2.5-1.5B pilot path: `/home/lh/TriScope-LLM/local_models/Qwen2.5-1.5B-Instruct`.
+- Missing Qwen2.5-7B checked paths: `/home/lh/TriScope-LLM/local_models/Qwen2.5-7B-Instruct`, `local_models/Qwen2.5-7B-Instruct`.
+- Missing Llama-3.1-8B checked paths: `/home/lh/TriScope-LLM/local_models/Llama-3.1-8B-Instruct`, `local_models/Llama-3.1-8B-Instruct`.
+- Missing Mistral-7B checked paths: `/home/lh/TriScope-LLM/local_models/Mistral-7B-Instruct-v0.3`, `local_models/Mistral-7B-Instruct-v0.3`.
+- GPU command result: `nvidia-smi` failed to communicate with the NVIDIA driver, so 2x3090 execution is not confirmed in this session.
+
 ## Inference-Only Guidance
 
 - Keep the Qwen2.5-7B first-slice successor to response generation planning until a real local path is supplied.
