@@ -13,7 +13,6 @@ The scheduler checkout should remain clean. Each selected task can run inside an
   - Runs `codex exec --cd <worktree> --full-auto <prompt>`.
   - Runs local checks on changed Python files.
   - Commits task changes and calls `./scripts/codex-pr.sh`.
-  - If pushing the current task branch is rejected as non-fast-forward, queries GitHub for an existing open PR with the same head branch and records it as the current task PR only when the branch/base and commit or file scope match.
   - Never merges PRs.
 
 - `scripts/dualscope_safe_pr_merge_gate.py`
@@ -34,7 +33,6 @@ The scheduler checkout should remain clean. Each selected task can run inside an
 - Branch deletion is disabled.
 - Force push is never used.
 - SSH remote rewrites are not performed.
-- Existing task PR detection never uses force push; unmatched non-fast-forward push failures remain blockers.
 - PR #14 is blocked by the merge gate by default.
 - Benchmark truth, gates, route_c continuations, 199+ plans, secrets, and credential files are forbidden by merge-gate file scope checks.
 
