@@ -77,6 +77,7 @@ class AutorunLoopArgs:
     enable_safe_auto_merge: bool
     safe_merge_current_task_pr: bool
     require_codex_review_before_merge: bool
+    allow_auto_merge_without_review: bool
     max_review_wait_minutes: int
     review_poll_interval_seconds: int
     wait_for_codex_review: bool
@@ -777,6 +778,8 @@ def run_safe_pr_merge_gate(args: AutorunLoopArgs, pr_number: int, merge: bool) -
         "--proxy",
         DEFAULT_PROXY,
     ]
+    if args.allow_auto_merge_without_review:
+        command.append("--allow-auto-merge-without-review")
     command.append("--merge" if merge else "--check-only")
     started = utc_now()
     result = run_command(command, timeout=300)
@@ -1165,6 +1168,7 @@ def run_autorun_loop(args: AutorunLoopArgs) -> tuple[int, dict[str, Any]]:
         "enable_safe_auto_merge": args.enable_safe_auto_merge,
         "safe_merge_current_task_pr": args.safe_merge_current_task_pr,
         "require_codex_review_before_merge": args.require_codex_review_before_merge,
+        "allow_auto_merge_without_review": args.allow_auto_merge_without_review,
         "max_review_wait_minutes": args.max_review_wait_minutes,
         "review_poll_interval_seconds": args.review_poll_interval_seconds,
         "wait_for_codex_review": args.wait_for_codex_review,
@@ -1491,6 +1495,7 @@ def run_autorun_loop(args: AutorunLoopArgs) -> tuple[int, dict[str, Any]]:
         "worktree_root": str(args.worktree_root),
         "enable_safe_auto_merge": args.enable_safe_auto_merge,
         "safe_merge_current_task_pr": args.safe_merge_current_task_pr,
+        "allow_auto_merge_without_review": args.allow_auto_merge_without_review,
         "wait_for_codex_review": args.wait_for_codex_review,
         "max_review_wait_minutes": args.max_review_wait_minutes,
         "review_poll_interval_seconds": args.review_poll_interval_seconds,

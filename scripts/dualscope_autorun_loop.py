@@ -79,6 +79,11 @@ def build_parser() -> argparse.ArgumentParser:
         default=True,
         help="Require Codex review evidence before merge gate approval. Default: enabled.",
     )
+    parser.add_argument(
+        "--allow-auto-merge-without-review",
+        action="store_true",
+        help="Allow safe auto merge without Codex review evidence when hard safety checks pass. Default: disabled.",
+    )
     parser.add_argument("--max-review-wait-minutes", type=int, default=60, help="Maximum minutes to wait for current task PR review before merge gate stops. Default: 60")
     parser.add_argument("--review-poll-interval-seconds", type=int, default=60, help="Review polling interval. Default: 60")
     parser.add_argument(
@@ -162,6 +167,7 @@ def main() -> int:
         enable_safe_auto_merge=parsed.enable_safe_auto_merge,
         safe_merge_current_task_pr=parsed.safe_merge_current_task_pr,
         require_codex_review_before_merge=parsed.require_codex_review_before_merge,
+        allow_auto_merge_without_review=parsed.allow_auto_merge_without_review,
         max_review_wait_minutes=parsed.max_review_wait_minutes,
         review_poll_interval_seconds=parsed.review_poll_interval_seconds,
         wait_for_codex_review=parsed.wait_for_codex_review,

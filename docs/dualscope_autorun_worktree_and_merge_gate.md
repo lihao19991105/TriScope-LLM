@@ -120,3 +120,28 @@ Waiter artifacts are written under the autorun output directory:
 - `dualscope_autorun_review_waiter_status.json`
 - `dualscope_autorun_review_waiter_iterations.jsonl`
 - `dualscope_autorun_review_waiter_report.md`
+
+## Explicit No-Review Auto Merge Mode
+
+For unattended operation, the user can explicitly pass:
+
+```bash
+--allow-auto-merge-without-review
+```
+
+This only relaxes the missing Codex review evidence blocker. It does not relax hard safety gates:
+
+- requested changes still block
+- failing checks still block
+- unsafe file scope still blocks
+- PR #14 still blocks
+- benchmark truth, gate semantic changes, route_c / 199+, secrets, `.env`, and credentials still block
+- force push, branch deletion, non-squash merge, and remote rewrite remain forbidden
+
+Decision artifacts record the policy through:
+
+- `codex_review_required`
+- `review_missing_but_user_authorized`
+- `merged_without_codex_review`
+- `auto_merge_policy`
+- `merge_allowed_reason`
