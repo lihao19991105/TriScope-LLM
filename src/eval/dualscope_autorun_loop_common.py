@@ -783,9 +783,14 @@ def run_autorun_loop(args: AutorunLoopArgs) -> tuple[int, dict[str, Any]]:
     legacy_dirty_check_path = args.output_dir / "dualscope_autorun_loop_dirty_worktree_check.json"
     command_preview_path = args.output_dir / "dualscope_autorun_loop_codex_command_preview.json"
     exec_environment_path = args.output_dir / "dualscope_autorun_loop_exec_environment.json"
+    failure_diagnostics_path = args.output_dir / "dualscope_autorun_loop_exec_failure_diagnostics.json"
+    legacy_failure_details_path = args.output_dir / "dualscope_autorun_loop_codex_failure_details.json"
+    failure_report_path = args.output_dir / "dualscope_autorun_loop_codex_failure_report.md"
     for path in [iterations_path, selected_tasks_path, exec_results_path, pr_history_path]:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text("", encoding="utf-8")
+    for path in [failure_diagnostics_path, legacy_failure_details_path, failure_report_path]:
+        path.unlink(missing_ok=True)
 
     dangerous_actions = {
         "auto_merge": False,
@@ -1104,7 +1109,7 @@ def run_autorun_loop(args: AutorunLoopArgs) -> tuple[int, dict[str, Any]]:
     if any(result.get("summary_status") == "FAIL" for result in exec_results):
         failure_rows = [row for row in exec_results if row.get("summary_status") == "FAIL"]
         write_json(
-            args.output_dir / "dualscope_autorun_loop_exec_failure_diagnostics.json",
+            failure_diagnostics_path,
             {
                 "summary_status": "FAIL",
                 "schema_version": "dualscope/autorun-loop-exec-failure-diagnostics/v1",
@@ -1112,14 +1117,14 @@ def run_autorun_loop(args: AutorunLoopArgs) -> tuple[int, dict[str, Any]]:
             },
         )
         write_json(
-            args.output_dir / "dualscope_autorun_loop_codex_failure_details.json",
+            legacy_failure_details_path,
             {
                 "summary_status": "FAIL",
                 "schema_version": "dualscope/autorun-loop-codex-failure-details/v1",
                 "failures": failure_rows,
             },
         )
-        (args.output_dir / "dualscope_autorun_loop_codex_failure_report.md").write_text(
+        failure_report_path.write_text(
             "# DualScope Autorun Loop Codex Failure\n\n"
             + "\n".join(
                 [
