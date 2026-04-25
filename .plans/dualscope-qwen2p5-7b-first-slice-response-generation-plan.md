@@ -36,7 +36,7 @@ This is a planning and readiness task only. It does not run Qwen2.5-7B, generate
 - `data/stanford_alpaca/first_slice/alpaca_first_slice_labeled_pairs.jsonl` is expected but missing in this isolated worktree. Only the source manifest is present.
 - `outputs/dualscope_first_slice_target_response_generation_plan/default` is expected but missing in this isolated worktree.
 - `/mnt/sda3/lh/models/qwen2p5-7b-instruct` contains a Qwen2.5-7B-Instruct-style local model snapshot with `config.json`, tokenizer files, four safetensor shards, and about 15 GB of model files. The repo-local `models/qwen2p5-7b-instruct` path is not present in this worktree.
-- The prior SCI3 model-axis artifact recorded GPU visibility, but the fresh check for this task failed with `NVIDIA-SMI has failed because it couldn't communicate with the NVIDIA driver`. Current GPU readiness is therefore blocked for execution.
+- A fresh GPU visibility check for this validation pass succeeded and reported two RTX 3090 GPUs and two RTX 2080 Ti GPUs. This confirms runtime visibility only; no Qwen2.5-7B model load or response generation was attempted.
 - Current free disk on `/mnt/sda3/lh` is sufficient for the observed mounted model path, while the worktree filesystem itself has about 19 GB free and should not be used for fresh model materialization.
 
 Historical TriScope / route_c artifacts are not used by this plan except as background reliability foundation. This plan does not extend route_c or present it as the current research contribution.
@@ -60,20 +60,20 @@ Historical TriScope / route_c artifacts are not used by this plan except as back
 - [x] M2: Audit expected inputs and local Qwen2.5-7B resource availability.
 - [x] M3: Write Qwen2.5-7B first-slice response-generation plan doc and readiness artifacts.
 - [x] M4: Validate that the package is planning-only and records blockers honestly.
-- [x] M5: Complete PR workflow without auto merge, force push, branch deletion, or remote rewrite.
+- [ ] M5: Complete PR workflow without auto merge, force push, branch deletion, or remote rewrite. Blocked by read-only Git worktree metadata and invalid GitHub CLI authentication.
 
 ## Surprises & Discoveries
 
 - The isolated worktree contains only the Alpaca first-slice source manifest, not `data/stanford_alpaca/first_slice/alpaca_first_slice_labeled_pairs.jsonl`.
 - The expected prior directory `outputs/dualscope_first_slice_target_response_generation_plan/default` is absent in this worktree.
 - A mounted Qwen2.5-7B model directory exists at `/mnt/sda3/lh/models/qwen2p5-7b-instruct`; however, no repo-local model symlink/path exists, and this task did not load or run the model.
-- Earlier SCI3 model-axis artifacts recorded GPU visibility in a prior run, but this task's fresh `nvidia-smi` check failed. Current execution readiness is blocked by missing first-slice inputs, missing target-response plan outputs, missing repo-local model path binding, and failed GPU visibility.
+- Earlier SCI3 model-axis artifacts recorded GPU visibility in a prior run, and this validation pass also confirms GPU visibility. Current execution readiness is still blocked by missing first-slice inputs, missing target-response plan outputs, and missing repo-local model path binding/config wiring.
 
 ## Decision Log
 
-- The final verdict is `Partially validated` because the plan and blocker package are complete, and a mounted 7B snapshot is visible, but required first-slice inputs, target-response plan outputs, repo-local model binding, and current GPU visibility are missing.
+- The final verdict is `Partially validated` because the plan and blocker package are complete, a mounted 7B snapshot is visible, and GPUs are visible, but required first-slice inputs, target-response plan outputs, and repo-local model binding/config wiring are missing.
 - No fallback to Qwen2.5-1.5B is used for this task because 1.5B is restricted to pilot/debug/automation/ablation and cannot substitute for Qwen2.5-7B main-model evidence.
-- The next executable task must remain blocked until expected first-slice input artifacts, target-response plan outputs, a configured Qwen2.5-7B model path, and working GPU visibility are available.
+- The next executable task must remain blocked until expected first-slice input artifacts, target-response plan outputs, and a configured Qwen2.5-7B model path are available. GPU visibility should be rechecked immediately before execution.
 
 ## Plan of Work
 
@@ -84,7 +84,7 @@ The successor execution task should run only after the blocker register is clear
 1. Restore or regenerate `data/stanford_alpaca/first_slice/alpaca_first_slice_labeled_pairs.jsonl` from the frozen Alpaca first-slice materialization chain.
 2. Restore or regenerate `outputs/dualscope_first_slice_target_response_generation_plan/default`.
 3. Bind the mounted Qwen2.5-7B-Instruct snapshot at `/mnt/sda3/lh/models/qwen2p5-7b-instruct` into the configured execution path, or explicitly configure the successor task to use that mounted path.
-4. Restore working GPU visibility for the selected execution environment.
+4. Re-run GPU visibility for the selected execution environment immediately before generation.
 5. Re-run readiness checks for the exact model path, tokenizer path, GPU visibility, dependency availability, and first-slice artifact schema.
 6. Only then run the successor `dualscope-qwen2p5-7b-first-slice-response-generation` task.
 
@@ -100,7 +100,7 @@ This planning package is acceptable when:
 
 Current verdict: `Partially validated`.
 
-PR workflow status: blocked in this session. Local `git add` failed because the shared worktree metadata is read-only and Git could not create the worktree `index.lock`; the GitHub connector branch-creation fallback was cancelled before any remote write occurred. No auto merge, force push, branch deletion, or remote rewrite has been performed.
+PR workflow status: blocked in this session. Local `git add` failed because the shared worktree metadata is read-only and Git could not create the worktree `index.lock`. `gh auth status` also reports an invalid GitHub CLI token. No remote write, auto merge, force push, branch deletion, remote rewrite, benchmark-truth change, gate change, response fabrication, or metric fabrication has been performed.
 
 ## Idempotence and Recovery
 
