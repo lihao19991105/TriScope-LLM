@@ -707,6 +707,8 @@ def render_prompt(selection: dict[str, Any], tasks: list[dict[str, Any]], pr_sta
             "- Do not modify benchmark truth.",
             "- Do not modify gates.",
             "- Do not continue old route_c / 199+ planning.",
+            "- Do not fake model responses, labels, logprobs, or detection metrics.",
+            "- Do not present projected or placeholder metrics as real full-paper performance.",
             "",
         ]
     )

@@ -140,6 +140,8 @@
 
 最新状态是：本地 Qwen2.5-1.5B 最小生成 probe validated，本地 logits-softmax probability evidence validated，clean/poisoned labeled slice plan 已 validated，labeled rerun repair/compression package 已 validated，并产出 condition-level rerun input slice；但 Stage 1 / Stage 2 / Stage 3 仍需 row_id-keyed condition-level rerun outputs，且 ASR / clean utility 仍需真实 model responses。唯一下一步是 `dualscope-minimal-first-slice-condition-level-rerun`，不是扩展完整矩阵。
 
+当前自动化闭环与上一段 first-slice 队列已收口。下一阶段是 `dualscope-first-slice-real-experiment`：在 Stanford Alpaca first-slice、clean/poisoned labeled pairs、冻结 Stage 1 / Stage 2 / Stage 3 协议、当前小模型路径、`lexical_trigger_v1` / `cftrigger` 与 `fixed_response_v1` 范围内，逐步执行真实或明确 fallback 的 response generation、label-aligned metric computation、first-slice result package 和 next-experiment readiness。该阶段只报告 first-slice 结果，不声明完整论文性能。
+
 ### Current Submission Positioning
 
 当前论文目标应保持**稳妥、不夸大**：
