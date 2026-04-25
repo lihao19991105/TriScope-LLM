@@ -1,0 +1,29 @@
+{
+  "schema_version": "dualscope/qwen2p5-7b-response-plan-summary/v1",
+  "task_id": "dualscope-qwen2p5-7b-first-slice-response-generation-plan",
+  "generated_at": "2026-04-26T01:47:49+08:00",
+  "summary_status": "PARTIAL",
+  "final_verdict": "Partially validated",
+  "dataset": "stanford_alpaca_first_slice",
+  "main_model": "Qwen2.5-7B-Instruct",
+  "trigger_text": "cftrigger",
+  "target_text": "I have completed the requested instruction.",
+  "stage_protocol": "frozen Stage 1/2/3 DualScope protocol",
+  "planning_artifacts_written": true,
+  "response_generation_executed": false,
+  "model_responses_generated": false,
+  "model_responses_fabricated": false,
+  "logprobs_generated": false,
+  "metrics_reported": false,
+  "full_matrix_executed": false,
+  "training_executed": false,
+  "benchmark_truth_changed": false,
+  "gates_changed": false,
+  "route_c_199_plus_generated": false,
+  "execution_blockers": [
+    "missing_qwen2p5_7b_local_model",
+    "missing_labeled_pairs",
+    "missing_target_response_plan"
+  ],
+  "recommended_next_step": "dualscope-qwen2p5-7b-first-slice-response-generation-plan-repair"
+}
