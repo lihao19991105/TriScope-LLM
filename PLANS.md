@@ -86,7 +86,7 @@
 
 当前 minimal first-slice real run 已执行并产出完整 artifact chain；verdict 为 `Partially validated`。原因不是链路断裂，而是 Stage 1 / Stage 2 仍处于 protocol-compatible deterministic no-model-execution 模式，Stage 2 记录为 `without_logprobs` fallback，evaluation 仅生成 metric placeholders。下一步应进入 `dualscope-minimal-first-slice-real-run-compression`，而不是扩展完整矩阵。
 
-当前 minimal first-slice real run 的 long compression / enablement 链已完成。模型最小生成 probe 与本地 logits-softmax 概率 probe 已 validated；label materialization、rerun、artifact validation 均诚实保留 partial 状态，因为 Stage 1 / Stage 2 入口尚未 full model-aware 集成，且 clean/poisoned/backdoor performance labels 尚未合法物化。当前唯一推荐下一步是 `dualscope-first-slice-clean-poisoned-labeled-slice-plan`，用于在同一 dataset/model/trigger/target/budget 范围内解锁真实性能指标。
+当前 minimal first-slice real run 的 long compression / enablement 链已完成。模型最小生成 probe 与本地 logits-softmax 概率 probe 已 validated；clean/poisoned labeled slice plan 已 validated；labeled rerun 诚实保留 `Partially validated`，因为 Stage 3 仍是 source-example level prediction；其 repair/compression package 已 validated，并产出 row_id-keyed condition-level rerun input slice。当前唯一推荐下一步是 `dualscope-minimal-first-slice-condition-level-rerun`，用于在同一 dataset/model/trigger/target/budget 范围内补齐 condition-level Stage 1/2/3 outputs 与后续真实性能指标前置条件。
 
 ---
 

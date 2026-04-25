@@ -569,6 +569,10 @@ def choose_next_task(
             continue
         if status == "partially_validated":
             repair_id = task.get("next_task_if_partially_validated") or task_id
+            repair_task = task_by_id(tasks, repair_id)
+            repair_status = scan_by_id.get(repair_id, {"status": "not_started"})
+            if repair_task and repair_status.get("status") == "validated":
+                continue
             return {
                 "selection_type": "partial_repair",
                 "next_task": repair_id,
@@ -576,11 +580,15 @@ def choose_next_task(
                 "source_task_id": task_id,
                 "reason": f"Task {task_id} is partially validated; selecting its configured repair/compression next step.",
                 "task_status": row,
-                "task": task if task_by_id(tasks, repair_id) else None,
+                "task": repair_task,
                 "blockers": [],
             }
         if status == "not_validated":
             repair_id = task.get("next_task_if_not_validated") or task_id
+            repair_task = task_by_id(tasks, repair_id)
+            repair_status = scan_by_id.get(repair_id, {"status": "not_started"})
+            if repair_task and repair_status.get("status") == "validated":
+                continue
             return {
                 "selection_type": "not_validated_repair",
                 "next_task": repair_id,
@@ -588,7 +596,7 @@ def choose_next_task(
                 "source_task_id": task_id,
                 "reason": f"Task {task_id} is not validated; selecting its configured blocker-closure next step.",
                 "task_status": row,
-                "task": task if task_by_id(tasks, repair_id) else None,
+                "task": repair_task,
                 "blockers": [],
             }
         return {

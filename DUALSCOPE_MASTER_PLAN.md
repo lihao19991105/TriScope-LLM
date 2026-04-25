@@ -138,7 +138,7 @@
 - [.plans/dualscope-first-slice-result-package.md](/home/lh/TriScope-LLM/.plans/dualscope-first-slice-result-package.md)
 - [.plans/dualscope-next-experiment-readiness-package.md](/home/lh/TriScope-LLM/.plans/dualscope-next-experiment-readiness-package.md)
 
-最新状态是：本地 Qwen2.5-1.5B 最小生成 probe validated，本地 logits-softmax probability evidence validated，first-slice artifact/result packages 已收口；但 Stage 1 / Stage 2 入口仍需 full model-aware per-sample integration，且真实性能指标仍缺少 clean/poisoned/backdoor labels。唯一下一步是 `dualscope-first-slice-clean-poisoned-labeled-slice-plan`，不是扩展完整矩阵。
+最新状态是：本地 Qwen2.5-1.5B 最小生成 probe validated，本地 logits-softmax probability evidence validated，clean/poisoned labeled slice plan 已 validated，labeled rerun repair/compression package 已 validated，并产出 condition-level rerun input slice；但 Stage 1 / Stage 2 / Stage 3 仍需 row_id-keyed condition-level rerun outputs，且 ASR / clean utility 仍需真实 model responses。唯一下一步是 `dualscope-minimal-first-slice-condition-level-rerun`，不是扩展完整矩阵。
 
 ### Current Submission Positioning
 
