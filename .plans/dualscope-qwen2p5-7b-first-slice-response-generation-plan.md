@@ -57,7 +57,7 @@ Historical TriScope / route_c artifacts are not used by this plan except as back
 - [x] M2: Audit expected inputs and local Qwen2.5-7B resource availability.
 - [x] M3: Write Qwen2.5-7B first-slice response-generation plan doc and readiness artifacts.
 - [x] M4: Validate that the package is planning-only and records blockers honestly.
-- [ ] M5: Complete PR workflow without auto merge, force push, branch deletion, or remote rewrite.
+- [x] M5: Complete PR workflow without auto merge, force push, branch deletion, or remote rewrite.
 
 ## Surprises & Discoveries
 
@@ -95,6 +95,8 @@ This planning package is acceptable when:
 - Its final verdict is one of the task-approved verdicts.
 
 Current verdict: `Partially validated`.
+
+PR workflow status: local git staging was blocked by read-only worktree metadata, so the GitHub API / `gh` fallback opened PR #28 and posted `@codex review`. No auto merge, force push, branch deletion, or remote rewrite was performed.
 
 ## Idempotence and Recovery
 
