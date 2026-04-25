@@ -19,6 +19,7 @@ from src.eval.dualscope_autorun_loop_common import (  # noqa: E402
     DEFAULT_PR_STATUS_OUTPUT_DIR,
     DEFAULT_QUEUE_FILE,
     DEFAULT_TASK_ORCHESTRATOR_OUTPUT_DIR,
+    DEFAULT_WORKTREE_ROOT,
     AutorunLoopArgs,
     run_autorun_loop,
 )
@@ -59,6 +60,46 @@ def build_parser() -> argparse.ArgumentParser:
         action=argparse.BooleanOptionalAction,
         default=True,
         help="Allow task selection to continue when dirty paths are limited to known autorun runtime artifacts. Default: enabled.",
+    )
+    parser.add_argument("--use-worktrees", action="store_true", help="Run each selected task in an isolated git worktree.")
+    parser.add_argument("--worktree-root", type=Path, default=DEFAULT_WORKTREE_ROOT, help=f"Task worktree root. Default: {DEFAULT_WORKTREE_ROOT}")
+    parser.add_argument(
+        "--enable-safe-auto-merge",
+        action="store_true",
+        help="Allow the safe merge gate to squash-merge the current task PR when all checks pass. Default: disabled.",
+    )
+    parser.add_argument(
+        "--safe-merge-current-task-pr",
+        action="store_true",
+        help="Limit safe auto-merge to the PR created by the current autorun task.",
+    )
+    parser.add_argument(
+        "--require-codex-review-before-merge",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Require Codex review evidence before merge gate approval. Default: enabled.",
+    )
+    parser.add_argument("--max-review-wait-minutes", type=int, default=0, help="Maximum minutes to wait for current task PR review before merge gate stops. Default: 0")
+    parser.add_argument("--review-poll-interval-seconds", type=int, default=60, help="Review polling interval. Default: 60")
+    parser.add_argument("--cleanup-merged-worktrees", action=argparse.BooleanOptionalAction, default=True, help="Remove task worktrees after successful merge. Default: enabled.")
+    parser.add_argument("--keep-failed-worktrees", action="store_true", help="Keep failed task worktrees for inspection.")
+    parser.add_argument(
+        "--task-result-pr-packager",
+        type=Path,
+        default=Path("scripts/dualscope_task_worktree_runner.py"),
+        help="Task worktree runner script.",
+    )
+    parser.add_argument(
+        "--safe-pr-merge-gate",
+        type=Path,
+        default=Path("scripts/dualscope_safe_pr_merge_gate.py"),
+        help="Safe PR merge gate script.",
+    )
+    parser.add_argument(
+        "--main-worktree-only-scheduler",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Keep main checkout as scheduler only and stop worktree tasks on dirty scheduler state. Default: enabled.",
     )
     parser.add_argument("--stop-on-review-pending", action="store_true", help="Stop when checked PR review is pending.")
     parser.add_argument(
@@ -104,6 +145,18 @@ def main() -> int:
         allow_review_pending_continue=parsed.allow_review_pending_continue,
         stop_on_requested_changes=parsed.stop_on_requested_changes,
         stop_on_failing_checks=parsed.stop_on_failing_checks,
+        use_worktrees=parsed.use_worktrees,
+        worktree_root=parsed.worktree_root,
+        enable_safe_auto_merge=parsed.enable_safe_auto_merge,
+        safe_merge_current_task_pr=parsed.safe_merge_current_task_pr,
+        require_codex_review_before_merge=parsed.require_codex_review_before_merge,
+        max_review_wait_minutes=parsed.max_review_wait_minutes,
+        review_poll_interval_seconds=parsed.review_poll_interval_seconds,
+        cleanup_merged_worktrees=parsed.cleanup_merged_worktrees,
+        keep_failed_worktrees=parsed.keep_failed_worktrees,
+        task_result_pr_packager=parsed.task_result_pr_packager,
+        safe_pr_merge_gate=parsed.safe_pr_merge_gate,
+        main_worktree_only_scheduler=parsed.main_worktree_only_scheduler,
     )
     exit_code, summary = run_autorun_loop(args)
     print(json.dumps(summary, indent=2, ensure_ascii=True))
