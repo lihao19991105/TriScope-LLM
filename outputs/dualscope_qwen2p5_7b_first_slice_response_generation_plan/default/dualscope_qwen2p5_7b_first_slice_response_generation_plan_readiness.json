@@ -1,63 +1,54 @@
 {
-  "schema_version": "dualscope/qwen2p5-7b-response-plan-readiness/v1",
+  "schema_version": "dualscope/qwen2p5-7b-first-slice-response-generation-plan-readiness/v1",
   "task_id": "dualscope-qwen2p5-7b-first-slice-response-generation-plan",
-  "generated_at": "2026-04-26T01:47:49+08:00",
-  "overall_status": "blocked_for_execution",
-  "checks": [
+  "generated_at": "2026-04-26T03:35:11+08:00",
+  "readiness": [
     {
-      "name": "qwen2p5_7b_local_path_absolute",
-      "path": "/home/lh/TriScope-LLM/local_models/Qwen2.5-7B-Instruct",
-      "status": "missing"
+      "item": "SCI3 main model-axis contract",
+      "status": "ready_for_planning",
+      "evidence": "outputs/dualscope_main_model_axis_upgrade_plan/default/dualscope_main_model_axis_upgrade_plan_verdict.json",
+      "note": "Qwen2.5-7B-Instruct is the main experimental model; Qwen2.5-1.5B remains pilot/debug only."
     },
     {
-      "name": "qwen2p5_7b_local_path_relative",
-      "path": "local_models/Qwen2.5-7B-Instruct",
-      "status": "missing"
+      "item": "Stanford Alpaca labeled first-slice pairs",
+      "status": "blocked",
+      "evidence": "missing:data/stanford_alpaca/first_slice/alpaca_first_slice_labeled_pairs.jsonl",
+      "note": "Response generation cannot be planned down to executable rows without this input."
     },
     {
-      "name": "qwen2p5_1p5b_pilot_path",
-      "path": "/home/lh/TriScope-LLM/local_models/Qwen2.5-1.5B-Instruct",
-      "status": "present_pilot_only"
+      "item": "Prior target-response generation plan output",
+      "status": "blocked",
+      "evidence": "missing:outputs/dualscope_first_slice_target_response_generation_plan/default",
+      "note": "The successor execution task needs the row-level generation request contract."
     },
     {
-      "name": "gpu_visibility",
-      "status": "visible",
-      "observed_gpus": [
-        {
-          "name": "NVIDIA GeForce RTX 2080 Ti",
-          "memory_mib": 11264
-        },
-        {
-          "name": "NVIDIA GeForce RTX 2080 Ti",
-          "memory_mib": 11264
-        },
-        {
-          "name": "NVIDIA GeForce RTX 3090",
-          "memory_mib": 24576
-        },
-        {
-          "name": "NVIDIA GeForce RTX 3090",
-          "memory_mib": 24576
-        }
+      "item": "Qwen2.5-7B-Instruct local model path",
+      "status": "blocked",
+      "checked_paths": [
+        "/home/lh/TriScope-LLM/local_models/Qwen2.5-7B-Instruct",
+        "local_models/Qwen2.5-7B-Instruct"
       ],
-      "note": "GPU visibility only; no Qwen2.5-7B inference was run."
+      "note": "No real local 7B path is confirmed; external resource remains required."
     },
     {
-      "name": "labeled_pairs_input",
-      "path": "data/stanford_alpaca/first_slice/alpaca_first_slice_labeled_pairs.jsonl",
-      "status": "missing"
+      "item": "Current GPU runtime visibility",
+      "status": "blocked",
+      "command": "nvidia-smi --query-gpu=index,name,memory.total --format=csv,noheader",
+      "observed_error": "NVIDIA-SMI has failed because it couldn't communicate with the NVIDIA driver.",
+      "note": "Earlier SCI3 artifacts recorded prior GPU visibility, but this task's fresh readiness check is blocked."
     },
     {
-      "name": "target_response_generation_plan_input",
-      "path": "outputs/dualscope_first_slice_target_response_generation_plan/default",
-      "status": "missing"
+      "item": "Frozen trigger and target scope",
+      "status": "ready_for_planning",
+      "trigger_text": "cftrigger",
+      "target_text": "I have completed the requested instruction.",
+      "note": "No trigger or target mutation is needed for this planning task."
     },
     {
-      "name": "stage_protocol_scope",
-      "status": "ready_as_frozen_contract",
-      "note": "Stage 1/2/3 protocol is referenced as frozen; this task does not modify or rerun it."
+      "item": "Frozen Stage 1/2/3 protocol",
+      "status": "ready_for_planning",
+      "note": "This plan consumes the existing DualScope protocol contract and does not modify it."
     }
   ],
-  "response_generation_ready": false,
-  "metric_computation_ready": false
+  "overall_readiness": "partially_validated_planning_blocked_for_execution"
 }
