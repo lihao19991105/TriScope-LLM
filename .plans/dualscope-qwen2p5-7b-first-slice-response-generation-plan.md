@@ -96,7 +96,7 @@ This planning package is acceptable when:
 
 Current verdict: `Partially validated`.
 
-PR workflow status: local git staging was blocked by read-only worktree metadata, so the GitHub API / `gh` fallback opened PR #28 and posted `@codex review`. No auto merge, force push, branch deletion, or remote rewrite was performed.
+PR workflow status: local git staging was blocked by read-only worktree metadata. Reused the existing GitHub fallback PR #28 and posted `@codex review` at `https://github.com/lihao19991105/TriScope-LLM/pull/28#issuecomment-4320392745`. No auto merge, force push, branch deletion, or remote rewrite was performed.
 
 ## Idempotence and Recovery
 
