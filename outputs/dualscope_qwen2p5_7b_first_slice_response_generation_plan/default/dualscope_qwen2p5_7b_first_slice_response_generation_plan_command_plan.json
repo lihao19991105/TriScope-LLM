@@ -1,0 +1,33 @@
+{
+  "schema_version": "dualscope/qwen2p5-7b-response-plan-command/v1",
+  "task_id": "dualscope-qwen2p5-7b-first-slice-response-generation-plan",
+  "generated_at": "2026-04-26T01:47:49+08:00",
+  "command_status": "planned_not_executed",
+  "successor_task": "dualscope-qwen2p5-7b-first-slice-response-generation",
+  "planned_command_shape": "python3 scripts/build_dualscope_qwen2p5_7b_first_slice_response_generation.py --labeled-pairs data/stanford_alpaca/first_slice/alpaca_first_slice_labeled_pairs.jsonl --target-response-plan-dir outputs/dualscope_first_slice_target_response_generation_plan/default --model-path /path/to/Qwen2.5-7B-Instruct --output-dir outputs/dualscope_qwen2p5_7b_first_slice_response_generation/default --seed 2025 --trigger-text cftrigger --target-text \"I have completed the requested instruction.\" --no-full-matrix",
+  "required_before_execution": [
+    "real Qwen2.5-7B-Instruct model path or approved external resource",
+    "data/stanford_alpaca/first_slice/alpaca_first_slice_labeled_pairs.jsonl",
+    "outputs/dualscope_first_slice_target_response_generation_plan/default"
+  ],
+  "generation_config_plan": {
+    "seed": 2025,
+    "batch_size": 1,
+    "max_new_tokens": 128,
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "do_sample": false,
+    "dtype_preference": "bfloat16_or_float16",
+    "device_map": "auto"
+  },
+  "forbidden_claims": [
+    "model_responses_exist",
+    "logprobs_exist",
+    "AUROC",
+    "F1",
+    "ASR",
+    "clean_utility",
+    "latency",
+    "full_paper_performance"
+  ]
+}
