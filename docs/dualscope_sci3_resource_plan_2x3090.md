@@ -28,7 +28,7 @@ This document is a planning and readiness note. It does not certify that GPU exe
 | Qwen2.5-7B-Instruct local path | external-resource-required | No real local path is confirmed for this planning task |
 | Llama-3.1-8B-Instruct local path | external-resource-required | Planned cross-model validation only |
 | Mistral-7B-Instruct-v0.3 local path | external-resource-required | Planned cross-model validation only |
-| 2x3090 runtime visibility in this session | not runtime-confirmed | `nvidia-smi` could not communicate with the driver in this session |
+| 2x3090 runtime visibility in this session | runtime-confirmed | `nvidia-smi` reported two RTX 3090 GPUs; no model execution was run |
 
 ## Current Worktree Checks
 
@@ -36,7 +36,7 @@ This document is a planning and readiness note. It does not certify that GPU exe
 - Missing Qwen2.5-7B checked paths: `/home/lh/TriScope-LLM/local_models/Qwen2.5-7B-Instruct`, `local_models/Qwen2.5-7B-Instruct`.
 - Missing Llama-3.1-8B checked paths: `/home/lh/TriScope-LLM/local_models/Llama-3.1-8B-Instruct`, `local_models/Llama-3.1-8B-Instruct`.
 - Missing Mistral-7B checked paths: `/home/lh/TriScope-LLM/local_models/Mistral-7B-Instruct-v0.3`, `local_models/Mistral-7B-Instruct-v0.3`.
-- GPU command result: `nvidia-smi` failed to communicate with the NVIDIA driver, so 2x3090 execution is not confirmed in this session.
+- GPU command result: `nvidia-smi --query-gpu=name,memory.total --format=csv,noheader` reported two NVIDIA GeForce RTX 3090 GPUs with 24576 MiB each, plus two NVIDIA GeForce RTX 2080 Ti GPUs with 11264 MiB each. This confirms GPU visibility only; it does not certify Qwen2.5-7B, Llama-3.1-8B, or Mistral-7B execution.
 
 ## Inference-Only Guidance
 

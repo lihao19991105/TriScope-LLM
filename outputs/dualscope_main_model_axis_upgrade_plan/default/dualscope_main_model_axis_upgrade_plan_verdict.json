@@ -1,0 +1,19 @@
+{
+  "schema_version": "dualscope/main-model-axis-upgrade-verdict/v1",
+  "task_id": "dualscope-main-model-axis-upgrade-plan",
+  "generated_at": "2026-04-26T01:20:00+08:00",
+  "verdict": "SCI3 main model axis upgrade plan validated",
+  "validated": true,
+  "reasons": [
+    "SCI3 model roles are explicit: 1.5B pilot/debug/automation/ablation only, 7B main model, and Llama/Mistral cross-model validation.",
+    "Missing 7B/8B local paths are marked planned/external-resource-required.",
+    "2x3090 visibility was checked and recorded without running model execution.",
+    "The task produced planning artifacts without changing benchmark truth, gates, route_c chains, or experiment metrics."
+  ],
+  "limitations": [
+    "Qwen2.5-7B-Instruct response generation has not run.",
+    "Cross-model validation has not run.",
+    "No model responses, logprobs, AUROC, F1, ASR, clean utility, or cost metrics are reported."
+  ],
+  "next_task": "dualscope-qwen2p5-7b-first-slice-response-generation-plan"
+}
