@@ -33,6 +33,17 @@ DEFAULT_ALLOWED_PATTERNS = [
     "PLANS.md",
     "README.md",
 ]
+DEFAULT_ALLOWED_OUTPUT_ARTIFACT_PATTERNS = [
+    "outputs/dualscope_main_model_axis_upgrade_plan/default/*",
+    "outputs/dualscope_main_model_axis_upgrade_plan_analysis/default/*",
+    "outputs/dualscope_qwen2p5_7b_first_slice_response_generation_plan/default/*",
+    "outputs/dualscope_qwen2p5_7b_first_slice_response_generation/default/*",
+    "outputs/dualscope_qwen2p5_7b_label_aligned_metric_computation/default/*",
+    "outputs/dualscope_qwen2p5_7b_first_slice_result_package/default/*",
+    "outputs/dualscope_sci3_main_experiment_expansion_plan/default/*",
+    "outputs/dualscope_cross_model_validation_plan/default/*",
+]
+DEFAULT_ALLOWED_PATTERNS.extend(DEFAULT_ALLOWED_OUTPUT_ARTIFACT_PATTERNS)
 DEFAULT_FORBIDDEN_PATTERNS = [
     ".env",
     ".env.*",
@@ -47,6 +58,12 @@ DEFAULT_FORBIDDEN_PATTERNS = [
     ".gitmodules",
     ".ssh/*",
 ]
+CODEX_ACTOR_MARKERS = ("codex", "chatgpt-codex", "openai-codex")
+CODEX_REVIEW_PHRASES = (
+    "didn't find any major issues",
+    "did not find any major issues",
+    "no major issues",
+)
 
 
 def utc_now() -> str:
@@ -126,32 +143,81 @@ def actor_login(item: dict[str, Any]) -> str:
     return str(author.get("login") or "") if isinstance(author, dict) else ""
 
 
-def has_codex_review(pr: dict[str, Any]) -> bool:
+def short_excerpt(value: str | None, limit: int = 240) -> str:
+    text = " ".join((value or "").split())
+    return text if len(text) <= limit else text[:limit] + "..."
+
+
+def is_codex_actor(login: str) -> bool:
+    lowered = login.lower()
+    return any(marker in lowered for marker in CODEX_ACTOR_MARKERS)
+
+
+def is_pure_codex_review_request(body: str) -> bool:
+    normalized = " ".join(body.strip().lower().split())
+    return normalized == "@codex review"
+
+
+def codex_review_evidence_from_text(body: str) -> bool:
+    lowered = body.lower()
+    return any(phrase in lowered for phrase in CODEX_REVIEW_PHRASES)
+
+
+def analyze_codex_review(pr: dict[str, Any]) -> dict[str, Any]:
+    requested = False
+    evidence_source = ""
+    evidence_excerpt = ""
+
     for review in pr.get("reviews") or []:
         if not isinstance(review, dict):
             continue
-        author = actor_login(review).lower()
-        body = str(review.get("body") or "").lower()
-        if "codex" in author or "codex review" in body:
-            return True
-    for comment in pr.get("comments") or []:
-        if not isinstance(comment, dict):
-            continue
-        author = actor_login(comment).lower()
-        body = str(comment.get("body") or "").lower()
-        is_request = "@codex review" in body
-        if not is_request and ("codex" in author or "codex review" in body):
-            return True
-    return False
+        author = actor_login(review)
+        body = str(review.get("body") or "")
+        if is_codex_actor(author) or codex_review_evidence_from_text(body) or "codex review" in body.lower():
+            evidence_source = f"review:{author or 'unknown'}"
+            evidence_excerpt = short_excerpt(body)
+            break
+
+    if not evidence_source:
+        for comment in pr.get("comments") or []:
+            if not isinstance(comment, dict):
+                continue
+            author = actor_login(comment)
+            body = str(comment.get("body") or "")
+            lowered = body.lower()
+            if "@codex review" in lowered:
+                requested = True
+            if is_pure_codex_review_request(body):
+                continue
+            if is_codex_actor(author) or codex_review_evidence_from_text(body) or "codex review" in lowered:
+                evidence_source = f"comment:{author or 'unknown'}"
+                evidence_excerpt = short_excerpt(body)
+                break
+
+    return {
+        "codex_review_requested": requested,
+        "codex_review_present": bool(evidence_source),
+        "codex_review_evidence_source": evidence_source,
+        "codex_review_evidence_excerpt": evidence_excerpt,
+    }
+
+
+def has_codex_review(pr: dict[str, Any]) -> bool:
+    return bool(analyze_codex_review(pr)["codex_review_present"])
+
+
+def count_requested_changes(pr: dict[str, Any]) -> int:
+    count = 0
+    if str(pr.get("reviewDecision") or "").upper() == "CHANGES_REQUESTED":
+        count += 1
+    for review in pr.get("reviews") or []:
+        if isinstance(review, dict) and str(review.get("state") or "").upper() == "CHANGES_REQUESTED":
+            count += 1
+    return count
 
 
 def has_requested_changes(pr: dict[str, Any]) -> bool:
-    if str(pr.get("reviewDecision") or "").upper() == "CHANGES_REQUESTED":
-        return True
-    for review in pr.get("reviews") or []:
-        if isinstance(review, dict) and str(review.get("state") or "").upper() == "CHANGES_REQUESTED":
-            return True
-    return False
+    return count_requested_changes(pr) > 0
 
 
 def summarize_checks(pr: dict[str, Any]) -> dict[str, Any]:
@@ -184,22 +250,31 @@ def check_file_scope(pr: dict[str, Any], allowed_patterns: list[str], forbidden_
     rows = []
     forbidden = []
     not_allowed = []
+    allowed_outputs_artifacts = []
     for path in files:
         allowed = any(fnmatch.fnmatch(path, pattern) for pattern in allowed_patterns)
         matched_forbidden = [pattern for pattern in forbidden_patterns if fnmatch.fnmatch(path, pattern)]
         row = {"path": path, "allowed": allowed, "forbidden_patterns": matched_forbidden}
         rows.append(row)
+        if allowed and path.startswith("outputs/"):
+            allowed_outputs_artifacts.append(path)
         if matched_forbidden:
             forbidden.append(row)
         if not allowed:
             not_allowed.append(row)
+    blocked_files = sorted({row["path"] for row in forbidden + not_allowed})
+    file_scope_allowed = not forbidden and not not_allowed
     return {
-        "summary_status": "PASS" if not forbidden and not not_allowed else "FAIL",
+        "summary_status": "PASS" if file_scope_allowed else "FAIL",
+        "file_scope_allowed": file_scope_allowed,
         "allowed_patterns": allowed_patterns,
+        "allowed_outputs_artifact_patterns": DEFAULT_ALLOWED_OUTPUT_ARTIFACT_PATTERNS,
+        "allowed_outputs_artifacts": allowed_outputs_artifacts,
         "forbidden_patterns": forbidden_patterns,
         "files": rows,
         "forbidden_files": forbidden,
         "not_allowed_files": not_allowed,
+        "blocked_files": blocked_files,
     }
 
 
@@ -284,12 +359,16 @@ def main() -> int:
     write_json(args.output_dir / "dualscope_safe_pr_merge_gate_pr_status.json", pr_status)
     file_scope = check_file_scope(pr_status, allowed_patterns, forbidden_patterns) if "files" in pr_status else {"summary_status": "FAIL"}
     ci_check = summarize_checks(pr_status) if "statusCheckRollup" in pr_status else {"summary_status": "FAIL", "failing_checks": []}
-    codex_review_present = has_codex_review(pr_status)
+    codex_review_analysis = analyze_codex_review(pr_status)
+    codex_review_present = bool(codex_review_analysis["codex_review_present"])
     requested_changes = has_requested_changes(pr_status)
+    requested_changes_count = count_requested_changes(pr_status)
     review_check = {
         "summary_status": "PASS" if codex_review_present and not requested_changes else "WARN",
+        **codex_review_analysis,
         "codex_review_present": codex_review_present,
         "requested_changes": requested_changes,
+        "requested_changes_count": requested_changes_count,
         "review_decision": pr_status.get("reviewDecision"),
     }
     write_json(args.output_dir / "dualscope_safe_pr_merge_gate_file_scope_check.json", file_scope)
@@ -334,11 +413,20 @@ def main() -> int:
         "url": pr_status.get("url"),
         "decision": "merge_allowed" if can_merge else "blocked",
         "can_merge": can_merge,
+        "merge_allowed": can_merge,
         "check_only": args.check_only,
         "merge_requested": args.merge,
         "merged": bool(args.merge and can_merge and merge_result and merge_result.get("returncode") == 0),
         "merge_result": merge_result,
         "blockers": blockers,
+        "merge_blockers": blockers,
+        "codex_review_requested": review_check.get("codex_review_requested"),
+        "codex_review_present": review_check.get("codex_review_present"),
+        "codex_review_evidence_source": review_check.get("codex_review_evidence_source"),
+        "codex_review_evidence_excerpt": review_check.get("codex_review_evidence_excerpt"),
+        "file_scope_allowed": file_scope.get("file_scope_allowed"),
+        "blocked_files": file_scope.get("blocked_files", []),
+        "allowed_outputs_artifacts": file_scope.get("allowed_outputs_artifacts", []),
         "dangerous_actions": {
             "auto_merge_default": False,
             "force_push": False,
