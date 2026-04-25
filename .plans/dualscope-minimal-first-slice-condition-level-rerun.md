@@ -53,6 +53,8 @@ It writes to:
 
 ## Surprises & Discoveries
 
+- 2026-04-25 continuation: the expected condition-level rerun code and artifacts were already present on `main`, and a local validation rerun still produced `Condition-level rerun validated` with 24/24 joined row-id keyed predictions.
+- The suggested remote branch `codex/dualscope-condition-level-rerun` already exists and is associated with merged PR #12, so any new PR must use a non-conflicting branch name and must not force-push or delete the existing branch.
 - Local `.git` refs are mounted read-only, so local branch creation failed before edits. If local commit remains blocked, use a GitHub API fallback for branch/commit/PR creation and report the local filesystem blocker explicitly.
 - The condition-level rerun produced 24 joined row-id keyed predictions, matching the 24-row repair manifest.
 - The stage entrypoints still run in protocol-compatible deterministic mode, so AUROC/F1 are recorded only as condition-level detection previews and not as paper performance.
