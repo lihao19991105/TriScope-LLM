@@ -58,7 +58,7 @@ Historical TriScope / route_c artifacts are not used by this plan except as back
 - [x] M3: Check obvious local model paths and GPU visibility without running models.
 - [x] M4: Update model matrix and 2x3090 resource docs.
 - [x] M5: Produce default output artifacts and final verdict.
-- [ ] M6: Commit, open PR, trigger `@codex review`, and report PR/review status.
+- [x] M6: Commit, open PR, trigger `@codex review`, and report PR/review status.
 
 ## Surprises & Discoveries
 
@@ -98,7 +98,7 @@ This plan is accepted when:
 
 Current verdict: `SCI3 main model axis upgrade plan validated`.
 
-PR workflow status: pending until the current changes are committed and `./scripts/codex-pr.sh` is run. No auto merge, force push, branch deletion, or remote rewrite is part of this plan.
+PR workflow status: local git commit was blocked by read-only worktree metadata, so GitHub API fallback opened PR #26 and posted `@codex review`. No auto merge, force push, branch deletion, or remote rewrite was performed.
 
 ## Idempotence and Recovery
 
