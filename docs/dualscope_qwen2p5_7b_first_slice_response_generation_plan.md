@@ -22,7 +22,8 @@ This document is the handoff plan for Qwen2.5-7B-Instruct first-slice response g
 | Alpaca labeled pairs | blocked | `data/stanford_alpaca/first_slice/alpaca_first_slice_labeled_pairs.jsonl` is missing in this worktree |
 | Target-response plan | blocked | `outputs/dualscope_first_slice_target_response_generation_plan/default` is missing in this worktree |
 | Qwen2.5-7B local path | blocked | No real local path is confirmed |
-| GPU visibility | ready for planning checks | Fresh `nvidia-smi` check reports two RTX 3090 GPUs and two RTX 2080 Ti GPUs; no Qwen2.5-7B model load was attempted |
+| GPU visibility | blocked | Fresh `nvidia-smi` check failed to communicate with the NVIDIA driver; prior SCI3 artifacts record earlier visibility but do not make this session executable |
+| Disk for fresh 7B materialization | blocked | Current filesystem has about 19 GB free, below the conservative resource-materialization threshold |
 
 ## Execution Guardrails
 
@@ -54,4 +55,4 @@ This command is a planned shape only. It has not been executed in this task.
 
 Final verdict: `Partially validated`.
 
-The plan is validated as a planning and blocker package, but actual Qwen2.5-7B first-slice response generation remains blocked by missing first-slice inputs and missing local Qwen2.5-7B resources.
+The plan is validated as a planning and blocker package, but actual Qwen2.5-7B first-slice response generation remains blocked by missing first-slice inputs, missing target-response plan outputs, missing local Qwen2.5-7B resources, insufficient free disk for a fresh materialization, and failed current GPU visibility.
