@@ -152,7 +152,8 @@ The Markdown text is for humans; the fenced JSON block is the source of truth.
       "prompt_template": "Continue DualScope-LLM task `{task_id}`. Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, and the labeled-rerun repair artifacts first. Scope the work to a minimal condition-level rerun over the existing clean/poisoned first-slice input slice. Preserve the dataset/model/trigger/target/budget scope. Do not modify benchmark truth, labels, gates, or full-matrix scope, and do not continue route_c. Follow AGENTS.md GitHub PR Workflow: create a feature branch from main, make minimal changes, run validation, commit, run ./scripts/codex-pr.sh, trigger @codex review, and report PR/review status.",
       "completion_verdicts": {
         "validated": [
-          "Condition-level first-slice rerun validated"
+          "Condition-level first-slice rerun validated",
+          "Condition-level rerun validated"
         ],
         "partially_validated": [
           "Partially validated"
