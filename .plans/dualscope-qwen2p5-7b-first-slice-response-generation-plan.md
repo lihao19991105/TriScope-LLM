@@ -35,7 +35,7 @@ This is a planning and readiness task only. It does not run Qwen2.5-7B, generate
 - `outputs/dualscope_main_model_axis_upgrade_plan/default` exists and records that Qwen2.5-7B is planned / external-resource-required.
 - `data/stanford_alpaca/first_slice/alpaca_first_slice_labeled_pairs.jsonl` is expected but missing in this isolated worktree.
 - `outputs/dualscope_first_slice_target_response_generation_plan/default` is expected but missing in this isolated worktree.
-- The current task-level `nvidia-smi` readiness check failed to communicate with the NVIDIA driver. This supersedes earlier planning-only GPU visibility evidence for execution readiness in this worktree session.
+- The current task-level `nvidia-smi` readiness check reports two RTX 3090 GPUs and two RTX 2080 Ti GPUs. This confirms runtime GPU visibility only; no Qwen2.5-7B model load or generation was attempted.
 
 Historical TriScope / route_c artifacts are not used by this plan except as background reliability foundation. This plan does not extend route_c or present it as the current research contribution.
 
@@ -65,11 +65,11 @@ Historical TriScope / route_c artifacts are not used by this plan except as back
 - The isolated worktree contains only the Alpaca first-slice source manifest, not `data/stanford_alpaca/first_slice/alpaca_first_slice_labeled_pairs.jsonl`.
 - The expected prior directory `outputs/dualscope_first_slice_target_response_generation_plan/default` is absent in this worktree.
 - Obvious local Qwen2.5-7B paths are absent: `/home/lh/TriScope-LLM/local_models/Qwen2.5-7B-Instruct` and `local_models/Qwen2.5-7B-Instruct`.
-- Earlier SCI3 model-axis artifacts recorded GPU visibility in a prior run, but this task's fresh `nvidia-smi` check failed with a driver communication error. Current execution readiness must therefore treat GPU runtime as blocked until rechecked successfully.
+- Earlier SCI3 model-axis artifacts recorded GPU visibility in a prior run, and this task's fresh `nvidia-smi` check also reports two RTX 3090 GPUs. Current execution readiness is still blocked by missing first-slice inputs and the missing Qwen2.5-7B local model path.
 
 ## Decision Log
 
-- The final verdict is `Partially validated` because the plan and blocker package are complete, but required execution inputs, current GPU runtime visibility, and the real 7B local path are missing.
+- The final verdict is `Partially validated` because the plan and blocker package are complete, but required execution inputs and the real 7B local path are missing.
 - No fallback to Qwen2.5-1.5B is used for this task because 1.5B is restricted to pilot/debug/automation/ablation and cannot substitute for Qwen2.5-7B main-model evidence.
 - The next executable task must remain blocked until a real Qwen2.5-7B path and the expected first-slice input artifacts are available.
 
@@ -97,7 +97,7 @@ This planning package is acceptable when:
 
 Current verdict: `Partially validated`.
 
-PR workflow status: local git staging was blocked by read-only worktree metadata, so the GitHub fallback updated existing PR #28 and requested `@codex review`. No auto merge, force push, branch deletion, or remote rewrite was performed.
+PR workflow status: pending. No auto merge, force push, branch deletion, or remote rewrite has been performed.
 
 ## Idempotence and Recovery
 
