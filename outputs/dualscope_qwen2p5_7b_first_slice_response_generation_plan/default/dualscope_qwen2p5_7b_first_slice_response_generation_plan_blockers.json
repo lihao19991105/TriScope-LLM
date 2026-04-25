@@ -1,0 +1,35 @@
+{
+  "schema_version": "dualscope/qwen2p5-7b-response-plan-blockers/v1",
+  "task_id": "dualscope-qwen2p5-7b-first-slice-response-generation-plan",
+  "generated_at": "2026-04-26T01:47:49+08:00",
+  "blockers": [
+    {
+      "blocker_id": "missing_qwen2p5_7b_local_model",
+      "severity": "execution_blocker",
+      "description": "No real local Qwen2.5-7B-Instruct path is confirmed.",
+      "required_resolution": "Provide a real local model/tokenizer path or explicitly authorize an external resource for the successor execution task."
+    },
+    {
+      "blocker_id": "missing_labeled_pairs",
+      "severity": "execution_blocker",
+      "description": "The expected Stanford Alpaca first-slice labeled pairs JSONL is missing.",
+      "required_resolution": "Restore or regenerate data/stanford_alpaca/first_slice/alpaca_first_slice_labeled_pairs.jsonl from the frozen first-slice label materialization chain."
+    },
+    {
+      "blocker_id": "missing_target_response_plan",
+      "severity": "execution_blocker",
+      "description": "The expected prior target-response-generation plan directory is missing.",
+      "required_resolution": "Restore or regenerate outputs/dualscope_first_slice_target_response_generation_plan/default before Qwen2.5-7B response generation."
+    }
+  ],
+  "non_blocking_observations": [
+    {
+      "observation_id": "gpu_visibility_present",
+      "description": "Two RTX 3090 GPUs are visible, but no model inference readiness is certified."
+    },
+    {
+      "observation_id": "pilot_1p5b_path_present",
+      "description": "A Qwen2.5-1.5B local path exists, but it is pilot/debug only and is not a substitute for 7B main-model evidence."
+    }
+  ]
+}
