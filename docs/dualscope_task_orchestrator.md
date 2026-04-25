@@ -93,11 +93,14 @@ The required queue order is:
 6. `dualscope-first-slice-real-run-artifact-validation-repair`
 7. `dualscope-first-slice-result-package`
 8. `dualscope-next-experiment-readiness-package`
-9. `dualscope-first-slice-real-response-generation`
-10. `dualscope-first-slice-label-aligned-metric-computation`
-11. `dualscope-first-slice-experiment-result-package`
-12. `dualscope-first-slice-next-experiment-readiness`
+9. `dualscope-main-model-axis-upgrade-plan`
+10. `dualscope-qwen2p5-7b-first-slice-response-generation-plan`
+11. `dualscope-qwen2p5-7b-first-slice-response-generation`
+12. `dualscope-qwen2p5-7b-label-aligned-metric-computation`
+13. `dualscope-qwen2p5-7b-first-slice-result-package`
+14. `dualscope-sci3-main-experiment-expansion-plan`
+15. `dualscope-cross-model-validation-plan`
 
-The post-automation first-slice experiment chain starts only after the closed-loop queue has completed. It stays limited to Stanford Alpaca first-slice labeled pairs, the frozen Stage 1 / Stage 2 / Stage 3 protocols, the current local Qwen2.5-1.5B-Instruct model path, `lexical_trigger_v1` / `cftrigger`, and `fixed_response_v1`. Direct prompts must explicitly distinguish real responses and metrics from fallbacks, blockers, projections, and placeholders.
+The post-automation SCI3 chain starts only after the closed-loop queue has completed. It treats Qwen2.5-1.5B-Instruct as pilot/debug/automation/ablation, Qwen2.5-7B-Instruct as the main experimental model, and Llama-3.1-8B-Instruct or Mistral-7B-Instruct-v0.3 as cross-model validation. Direct prompts must explicitly distinguish real responses and metrics from fallbacks, blockers, projections, and placeholders.
 
 The current DualScope mainline remains the two-stage illumination + confidence pipeline with budget-aware fusion. The scheduler must not resume old route_c chains by default.

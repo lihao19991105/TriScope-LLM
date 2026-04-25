@@ -90,6 +90,8 @@
 
 当前 autorun worktree / safe merge gate 自动化闭环已 validated，上一段 first-slice 队列已完成。下一阶段进入 `dualscope-first-slice-real-experiment`，先新增并执行最小 Stanford Alpaca first-slice 实验链：真实或明确 fallback 的 response generation、label-aligned metrics、result package、next-experiment readiness。该阶段仍不得扩完整矩阵、模型轴、budget、trigger family、target family，不得伪造模型响应或指标。
 
+当前用户已要求按 SCI 三区实验标准升级 DualScope 实验主线。`Qwen2.5-1.5B-Instruct` 降级为 pilot / debug / automation / ablation；`Qwen2.5-7B-Instruct` 升级为 main experimental model；`Llama-3.1-8B-Instruct` 或 `Mistral-7B-Instruct-v0.3` 作为 cross-model validation。下一步队列入口是 `dualscope-main-model-axis-upgrade-plan`，然后才进入 Qwen2.5-7B first-slice response generation，不直接运行完整大矩阵。
+
 ---
 
 ## 1. What an ExecPlan Is

@@ -337,36 +337,30 @@ The Markdown text is for humans; the fenced JSON block is the source of truth.
         "outputs/dualscope_next_experiment_readiness_package/default/dualscope_next_experiment_readiness_verdict.json",
         "outputs/dualscope_next_experiment_readiness_package_analysis/default/dualscope_next_experiment_readiness_verdict.json"
       ],
-      "next_task_if_validated": "dualscope-first-slice-real-response-generation",
+      "next_task_if_validated": "dualscope-main-model-axis-upgrade-plan",
       "next_task_if_partially_validated": "dualscope-next-experiment-readiness-package-repair",
       "next_task_if_not_validated": "dualscope-next-experiment-readiness-package-blocker-closure"
     },
     {
-      "task_id": "dualscope-first-slice-real-response-generation",
-      "purpose": "Generate or collect minimal first-slice model responses for clean and poisoned labeled rows, without training or expanding the matrix.",
+      "task_id": "dualscope-main-model-axis-upgrade-plan",
+      "purpose": "Upgrade DualScope from 1.5B-only pilot to SCI3 model matrix, with Qwen2.5-7B as main model and Llama/Mistral 7B/8B as cross-model validation.",
       "expected_inputs": [
-        "data/stanford_alpaca/first_slice/alpaca_first_slice_labeled_pairs.jsonl",
-        "outputs/dualscope_first_slice_target_response_generation_plan/default",
-        "outputs/dualscope_minimal_first_slice_condition_level_rerun/default",
-        "outputs/dualscope_illumination_screening_freeze/default",
-        "outputs/dualscope_confidence_verification_with_without_logprobs/default",
-        "outputs/dualscope_budget_aware_two_stage_fusion_design/default"
+        "DUALSCOPE_MASTER_PLAN.md",
+        "DUALSCOPE_TASK_QUEUE.md",
+        "docs/dualscope_sci3_experimental_track.md",
+        "docs/dualscope_sci3_model_matrix.md"
       ],
       "expected_outputs": [
-        ".plans/dualscope-first-slice-real-response-generation.md",
-        "src/eval/dualscope_first_slice_real_response_generation.py",
-        "src/eval/post_dualscope_first_slice_real_response_generation_analysis.py",
-        "scripts/build_dualscope_first_slice_real_response_generation.py",
-        "scripts/build_post_dualscope_first_slice_real_response_generation_analysis.py",
-        "docs/dualscope_first_slice_real_response_generation.md",
-        "outputs/dualscope_first_slice_real_response_generation/default",
-        "outputs/dualscope_first_slice_real_response_generation_analysis/default"
+        ".plans/dualscope-main-model-axis-upgrade-plan.md",
+        "docs/dualscope_sci3_model_matrix.md",
+        "docs/dualscope_sci3_resource_plan_2x3090.md",
+        "outputs/dualscope_main_model_axis_upgrade_plan/default"
       ],
-      "branch_name_suggestion": "codex/dualscope-first-slice-real-response-generation",
-      "prompt_template": "Continue DualScope-LLM task `{task_id}`. Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, DUALSCOPE_TASK_QUEUE.md, and the first-slice target-response-generation plan artifacts first. Scope this task to the minimal Stanford Alpaca first-slice only: use data/stanford_alpaca/first_slice/alpaca_first_slice_labeled_pairs.jsonl, clean/poisoned labeled pairs, lexical_trigger_v1 with trigger_text=cftrigger, fixed_response_v1 with target_text=I have completed the requested instruction., and the currently frozen local Qwen2.5-1.5B-Instruct path from the real-run plan. Do not train, do not full finetune, do not LoRA/QLoRA train, do not expand datasets/models/triggers/targets/budgets, do not run the full matrix, do not change benchmark truth, do not change gates, do not continue route_c, and do not generate 199+. Generate or collect minimal clean and poisoned model responses when real model execution is available. Prefer with-logprobs or logits-derived confidence; if unavailable, explicitly fallback to without-logprobs and record capability_mode, response_generation_mode, model_response availability flags, and blockers. Do not fake responses, do not fake logprobs, do not fake labels, do not fake AUROC/F1/ASR/utility, and do not write projected or placeholder metrics as real performance. Produce the ExecPlan, implementation, build CLI, post-analysis CLI, docs, response artifacts, analysis artifacts, report, and a single final verdict: First-slice real response generation validated, Partially validated, or Not validated. Run py_compile for changed Python files, run the response generation build CLI, and run the post-analysis CLI. Follow AGENTS.md GitHub PR Workflow: create a feature branch from main, make minimal changes, run validation, commit, run ./scripts/codex-pr.sh, trigger @codex review, and report PR/review/CI status. Do not auto merge, force push, delete branches, rewrite remotes, fake model outputs, or fake metrics.",
+      "branch_name_suggestion": "codex/dualscope-main-model-axis-upgrade",
+      "prompt_template": "Continue DualScope-LLM task `{task_id}`. Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, DUALSCOPE_TASK_QUEUE.md, and the SCI3 experimental track docs first. Scope this task to planning the SCI3 model axis only. Explicitly set Qwen2.5-1.5B-Instruct as pilot/debug/automation/ablation only, Qwen2.5-7B-Instruct as the main experimental model for main tables, ablations, and cost analysis, and Llama-3.1-8B-Instruct or Mistral-7B-Instruct-v0.3 as cross-model validation. If local 7B/8B paths are missing, mark planned/external-resource-required; do not fake model paths or claim experiments are complete. Do not run the full matrix, do not train, do not full finetune, do not LoRA/QLoRA train, do not change benchmark truth, do not change gates, do not continue route_c, and do not generate 199+. Produce a model-axis upgrade ExecPlan, resource readiness notes for 2x3090, outputs under outputs/dualscope_main_model_axis_upgrade_plan/default, and a final verdict: SCI3 main model axis upgrade plan validated, Partially validated, or Not validated. Follow AGENTS.md GitHub PR Workflow and do not auto merge, force push, delete branches, rewrite remotes, fake responses, or fake metrics.",
       "completion_verdicts": {
         "validated": [
-          "First-slice real response generation validated"
+          "SCI3 main model axis upgrade plan validated"
         ],
         "partially_validated": [
           "Partially validated"
@@ -376,78 +370,31 @@ The Markdown text is for humans; the fenced JSON block is the source of truth.
         ]
       },
       "verdict_artifacts": [
-        "outputs/dualscope_first_slice_real_response_generation/default/dualscope_first_slice_real_response_generation_verdict.json",
-        "outputs/dualscope_first_slice_real_response_generation_analysis/default/dualscope_first_slice_real_response_generation_verdict.json"
+        "outputs/dualscope_main_model_axis_upgrade_plan/default/dualscope_main_model_axis_upgrade_plan_verdict.json",
+        "outputs/dualscope_main_model_axis_upgrade_plan_analysis/default/dualscope_main_model_axis_upgrade_plan_verdict.json"
       ],
-      "next_task_if_validated": "dualscope-first-slice-label-aligned-metric-computation",
-      "next_task_if_partially_validated": "dualscope-first-slice-response-generation-repair",
-      "next_task_if_not_validated": "dualscope-first-slice-response-generation-blocker-closure"
+      "next_task_if_validated": "dualscope-qwen2p5-7b-first-slice-response-generation-plan",
+      "next_task_if_partially_validated": "dualscope-main-model-axis-upgrade-plan-repair",
+      "next_task_if_not_validated": "dualscope-main-model-axis-upgrade-plan-blocker-closure"
     },
     {
-      "task_id": "dualscope-first-slice-label-aligned-metric-computation",
-      "purpose": "Compute label-aligned detection / ASR / utility readiness and available metrics using first-slice labels, Stage 3 scores, and available model responses.",
+      "task_id": "dualscope-qwen2p5-7b-first-slice-response-generation-plan",
+      "purpose": "Prepare Qwen2.5-7B first-slice response generation plan, without running full matrix.",
       "expected_inputs": [
         "data/stanford_alpaca/first_slice/alpaca_first_slice_labeled_pairs.jsonl",
-        "outputs/dualscope_first_slice_real_response_generation/default",
-        "outputs/dualscope_minimal_first_slice_condition_level_rerun/default",
-        "outputs/dualscope_first_slice_condition_row_level_fusion_alignment/default",
-        "outputs/dualscope_minimal_first_slice_real_run_rerun_with_labels/default"
-      ],
-      "expected_outputs": [
-        ".plans/dualscope-first-slice-label-aligned-metric-computation.md",
-        "src/eval/dualscope_first_slice_label_aligned_metric_computation.py",
-        "src/eval/post_dualscope_first_slice_label_aligned_metric_computation_analysis.py",
-        "scripts/build_dualscope_first_slice_label_aligned_metric_computation.py",
-        "scripts/build_post_dualscope_first_slice_label_aligned_metric_computation_analysis.py",
-        "docs/dualscope_first_slice_label_aligned_metric_computation.md",
-        "outputs/dualscope_first_slice_label_aligned_metric_computation/default",
-        "outputs/dualscope_first_slice_label_aligned_metric_computation_analysis/default"
-      ],
-      "branch_name_suggestion": "codex/dualscope-first-slice-label-aligned-metrics",
-      "prompt_template": "Continue DualScope-LLM task `{task_id}`. Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, DUALSCOPE_TASK_QUEUE.md, first-slice labels, real-response-generation artifacts, condition-level rerun artifacts, and fusion-alignment artifacts first. Scope this task to first-slice label-aligned metric computation only. Compute AUROC, AUPRC, F1, and Accuracy only when detection_label and final_risk_score align at the same row/condition granularity. Compute ASR only for asr_eligible rows that have real model_response and target_text. Compute clean utility only for utility_eligible rows that have real clean model_response and reference_response. If any metric cannot be computed, output an explicit blocker and metric availability matrix. Distinguish projected metrics, placeholders, readiness checks, and real first-slice metrics. Do not fake responses, logprobs, labels, AUROC, F1, ASR, utility, or full-paper performance. Do not change benchmark truth, gates, dataset/model/trigger/target/budget scope, route_c, or 199+. Produce the ExecPlan, implementation, build CLI, post-analysis CLI, docs, metric artifacts, analysis artifacts, report, and a single final verdict: First-slice label-aligned metrics validated, Partially validated, or Not validated. Run py_compile for changed Python files, run the metric build CLI, and run the post-analysis CLI. Follow AGENTS.md GitHub PR Workflow and do not auto merge, force push, delete branches, or rewrite remotes.",
-      "completion_verdicts": {
-        "validated": [
-          "First-slice label-aligned metrics validated"
-        ],
-        "partially_validated": [
-          "Partially validated"
-        ],
-        "not_validated": [
-          "Not validated"
-        ]
-      },
-      "verdict_artifacts": [
-        "outputs/dualscope_first_slice_label_aligned_metric_computation/default/dualscope_first_slice_label_aligned_metric_computation_verdict.json",
-        "outputs/dualscope_first_slice_label_aligned_metric_computation_analysis/default/dualscope_first_slice_label_aligned_metric_computation_verdict.json"
-      ],
-      "next_task_if_validated": "dualscope-first-slice-experiment-result-package",
-      "next_task_if_partially_validated": "dualscope-first-slice-metric-computation-repair",
-      "next_task_if_not_validated": "dualscope-first-slice-metric-blocker-closure"
-    },
-    {
-      "task_id": "dualscope-first-slice-experiment-result-package",
-      "purpose": "Package first-slice experiment results, clearly separating real metrics, projected metrics, placeholders, blockers, and next experiment actions.",
-      "expected_inputs": [
-        "outputs/dualscope_first_slice_label_aligned_metric_computation/default",
-        "outputs/dualscope_first_slice_real_response_generation/default",
-        "outputs/dualscope_minimal_first_slice_condition_level_rerun/default",
+        "outputs/dualscope_main_model_axis_upgrade_plan/default",
         "outputs/dualscope_first_slice_target_response_generation_plan/default"
       ],
       "expected_outputs": [
-        ".plans/dualscope-first-slice-experiment-result-package.md",
-        "src/eval/dualscope_first_slice_experiment_result_package.py",
-        "src/eval/post_dualscope_first_slice_experiment_result_package_analysis.py",
-        "scripts/build_dualscope_first_slice_experiment_result_package.py",
-        "scripts/build_post_dualscope_first_slice_experiment_result_package_analysis.py",
-        "docs/dualscope_first_slice_experiment_result_package.md",
-        "outputs/dualscope_first_slice_experiment_result_package/default",
-        "outputs/dualscope_first_slice_experiment_result_package_analysis/default"
+        ".plans/dualscope-qwen2p5-7b-first-slice-response-generation-plan.md",
+        "docs/dualscope_qwen2p5_7b_first_slice_response_generation_plan.md",
+        "outputs/dualscope_qwen2p5_7b_first_slice_response_generation_plan/default"
       ],
-      "branch_name_suggestion": "codex/dualscope-first-slice-experiment-result-package",
-      "prompt_template": "Continue DualScope-LLM task `{task_id}`. Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, DUALSCOPE_TASK_QUEUE.md, label-aligned metric artifacts, real-response-generation artifacts, condition-level rerun artifacts, and target-response-generation plan artifacts first. Package only the first-slice experiment results. Produce a result summary, table skeleton, metric availability matrix, limitations, blockers, and one next experiment recommendation. Clearly separate real metrics, projected metrics, placeholders, unavailable metrics, and blockers. Do not claim full paper performance, do not hide fallback/projection limitations, do not fake AUROC/F1/ASR/utility, do not fake model responses, and do not change benchmark truth, gates, dataset/model/trigger/target/budget scope, route_c, or 199+. Produce the ExecPlan, implementation, build CLI, post-analysis CLI, docs, package artifacts, analysis artifacts, report, and a single final verdict: First-slice experiment result package validated, Partially validated, or Not validated. Run py_compile for changed Python files, run the package build CLI, and run the post-analysis CLI. Follow AGENTS.md GitHub PR Workflow and do not auto merge, force push, delete branches, or rewrite remotes.",
+      "branch_name_suggestion": "codex/dualscope-qwen2p5-7b-response-plan",
+      "prompt_template": "Continue DualScope-LLM task `{task_id}`. Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, DUALSCOPE_TASK_QUEUE.md, and the SCI3 model-axis upgrade artifacts first. Prepare a Qwen2.5-7B-Instruct first-slice response generation plan only. Use Stanford Alpaca first-slice, lexical trigger cftrigger, fixed target text, frozen Stage 1/2/3 protocol, and Qwen2.5-7B as the main experimental model. Do not execute the full matrix, do not claim responses exist, and do not fake paths, responses, logprobs, AUROC/F1/ASR/utility, benchmark truth, or gates. If 7B local resources are missing, write blockers and readiness checks. Final verdicts: Qwen2.5-7B first-slice response generation plan validated, Partially validated, or Not validated. Follow AGENTS.md PR workflow without auto merge, force push, branch deletion, or remote rewrite.",
       "completion_verdicts": {
         "validated": [
-          "First-slice experiment result package validated"
+          "Qwen2.5-7B first-slice response generation plan validated"
         ],
         "partially_validated": [
           "Partially validated"
@@ -457,36 +404,33 @@ The Markdown text is for humans; the fenced JSON block is the source of truth.
         ]
       },
       "verdict_artifacts": [
-        "outputs/dualscope_first_slice_experiment_result_package/default/dualscope_first_slice_experiment_result_package_verdict.json",
-        "outputs/dualscope_first_slice_experiment_result_package_analysis/default/dualscope_first_slice_experiment_result_package_verdict.json"
+        "outputs/dualscope_qwen2p5_7b_first_slice_response_generation_plan/default/dualscope_qwen2p5_7b_first_slice_response_generation_plan_verdict.json",
+        "outputs/dualscope_qwen2p5_7b_first_slice_response_generation_plan_analysis/default/dualscope_qwen2p5_7b_first_slice_response_generation_plan_verdict.json"
       ],
-      "next_task_if_validated": "dualscope-first-slice-next-experiment-readiness",
-      "next_task_if_partially_validated": "dualscope-first-slice-result-package-repair",
-      "next_task_if_not_validated": "dualscope-first-slice-result-package-blocker-closure"
+      "next_task_if_validated": "dualscope-qwen2p5-7b-first-slice-response-generation",
+      "next_task_if_partially_validated": "dualscope-qwen2p5-7b-first-slice-response-generation-plan-repair",
+      "next_task_if_not_validated": "dualscope-qwen2p5-7b-first-slice-response-generation-plan-blocker-closure"
     },
     {
-      "task_id": "dualscope-first-slice-next-experiment-readiness",
-      "purpose": "Prepare the next minimal experiment after first-slice results, without executing it.",
+      "task_id": "dualscope-qwen2p5-7b-first-slice-response-generation",
+      "purpose": "Run or prepare minimal Qwen2.5-7B response generation on Stanford Alpaca first-slice, lexical trigger, fixed target.",
       "expected_inputs": [
-        "outputs/dualscope_first_slice_experiment_result_package/default",
-        "DUALSCOPE_MASTER_PLAN.md",
-        "DUALSCOPE_TASK_QUEUE.md"
+        "data/stanford_alpaca/first_slice/alpaca_first_slice_labeled_pairs.jsonl",
+        "outputs/dualscope_qwen2p5_7b_first_slice_response_generation_plan/default",
+        "outputs/dualscope_main_model_axis_upgrade_plan/default"
       ],
       "expected_outputs": [
-        ".plans/dualscope-first-slice-next-experiment-readiness.md",
-        "src/eval/dualscope_first_slice_next_experiment_readiness.py",
-        "src/eval/post_dualscope_first_slice_next_experiment_readiness_analysis.py",
-        "scripts/build_dualscope_first_slice_next_experiment_readiness.py",
-        "scripts/build_post_dualscope_first_slice_next_experiment_readiness_analysis.py",
-        "docs/dualscope_first_slice_next_experiment_readiness.md",
-        "outputs/dualscope_first_slice_next_experiment_readiness/default",
-        "outputs/dualscope_first_slice_next_experiment_readiness_analysis/default"
+        ".plans/dualscope-qwen2p5-7b-first-slice-response-generation.md",
+        "src/eval/dualscope_qwen2p5_7b_first_slice_response_generation.py",
+        "scripts/build_dualscope_qwen2p5_7b_first_slice_response_generation.py",
+        "docs/dualscope_qwen2p5_7b_first_slice_response_generation.md",
+        "outputs/dualscope_qwen2p5_7b_first_slice_response_generation/default"
       ],
-      "branch_name_suggestion": "codex/dualscope-first-slice-next-experiment-readiness",
-      "prompt_template": "Continue DualScope-LLM task `{task_id}`. Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, DUALSCOPE_TASK_QUEUE.md, and the first-slice experiment result package first. Prepare exactly one next minimal experiment direction without executing it. Choose one of: second trigger same model, second dataset smoke, with-logprobs improvement, ASR / utility response completion, or small-scale clean/backdoor model pair construction. Do not execute the next experiment, do not expand the matrix, do not add multiple directions, do not train, do not modify benchmark truth, do not modify gates, do not continue route_c, and do not generate 199+. Produce the readiness ExecPlan, implementation, build CLI, post-analysis CLI, docs, readiness artifacts, analysis artifacts, report, and a single final verdict: First-slice next experiment readiness validated, Partially validated, or Not validated. Run py_compile for changed Python files, run the readiness build CLI, and run the post-analysis CLI. Follow AGENTS.md GitHub PR Workflow and do not auto merge, force push, delete branches, or rewrite remotes.",
+      "branch_name_suggestion": "codex/dualscope-qwen2p5-7b-response-generation",
+      "prompt_template": "Continue DualScope-LLM task `{task_id}`. Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, DUALSCOPE_TASK_QUEUE.md, and the Qwen2.5-7B response generation plan first. Run or prepare minimal Qwen2.5-7B-Instruct response generation on Stanford Alpaca first-slice only. Use lexical trigger cftrigger and fixed target text. Prefer real local model execution if available and within 2x3090 constraints; otherwise record external-resource-required or blocker. Do not train, do not full finetune, do not LoRA/QLoRA train, do not run the full matrix, do not fake model paths, responses, logprobs, AUROC/F1/ASR/utility, benchmark truth, or gates. Output response artifacts, capability mode, fallback flags, blockers, and a final verdict: Qwen2.5-7B first-slice response generation validated, Partially validated, or Not validated. Follow AGENTS.md PR workflow without auto merge, force push, branch deletion, or remote rewrite.",
       "completion_verdicts": {
         "validated": [
-          "First-slice next experiment readiness validated"
+          "Qwen2.5-7B first-slice response generation validated"
         ],
         "partially_validated": [
           "Partially validated"
@@ -496,12 +440,148 @@ The Markdown text is for humans; the fenced JSON block is the source of truth.
         ]
       },
       "verdict_artifacts": [
-        "outputs/dualscope_first_slice_next_experiment_readiness/default/dualscope_first_slice_next_experiment_readiness_verdict.json",
-        "outputs/dualscope_first_slice_next_experiment_readiness_analysis/default/dualscope_first_slice_next_experiment_readiness_verdict.json"
+        "outputs/dualscope_qwen2p5_7b_first_slice_response_generation/default/dualscope_qwen2p5_7b_first_slice_response_generation_verdict.json",
+        "outputs/dualscope_qwen2p5_7b_first_slice_response_generation_analysis/default/dualscope_qwen2p5_7b_first_slice_response_generation_verdict.json"
+      ],
+      "next_task_if_validated": "dualscope-qwen2p5-7b-label-aligned-metric-computation",
+      "next_task_if_partially_validated": "dualscope-qwen2p5-7b-response-generation-repair",
+      "next_task_if_not_validated": "dualscope-qwen2p5-7b-response-generation-blocker-closure"
+    },
+    {
+      "task_id": "dualscope-qwen2p5-7b-label-aligned-metric-computation",
+      "purpose": "Compute label-aligned metrics for Qwen2.5-7B first-slice if responses and scores are available.",
+      "expected_inputs": [
+        "data/stanford_alpaca/first_slice/alpaca_first_slice_labeled_pairs.jsonl",
+        "outputs/dualscope_qwen2p5_7b_first_slice_response_generation/default",
+        "outputs/dualscope_minimal_first_slice_condition_level_rerun/default"
+      ],
+      "expected_outputs": [
+        ".plans/dualscope-qwen2p5-7b-label-aligned-metric-computation.md",
+        "src/eval/dualscope_qwen2p5_7b_label_aligned_metric_computation.py",
+        "scripts/build_dualscope_qwen2p5_7b_label_aligned_metric_computation.py",
+        "docs/dualscope_qwen2p5_7b_label_aligned_metric_computation.md",
+        "outputs/dualscope_qwen2p5_7b_label_aligned_metric_computation/default"
+      ],
+      "branch_name_suggestion": "codex/dualscope-qwen2p5-7b-label-metrics",
+      "prompt_template": "Continue DualScope-LLM task `{task_id}`. Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, DUALSCOPE_TASK_QUEUE.md, Qwen2.5-7B response artifacts, first-slice labels, and condition-level score artifacts first. Compute Qwen2.5-7B first-slice metrics only when labels, scores, and real responses align. Compute AUROC/AUPRC/F1/Accuracy only for aligned detection_label and final_risk_score. Compute ASR and clean utility only from real model responses and eligible rows. If unavailable, output explicit blockers and availability matrices. Do not fake metrics, responses, logprobs, benchmark truth, gates, route_c, or 199+. Final verdicts: Qwen2.5-7B label-aligned metrics validated, Partially validated, or Not validated. Follow AGENTS.md PR workflow without auto merge, force push, branch deletion, or remote rewrite.",
+      "completion_verdicts": {
+        "validated": [
+          "Qwen2.5-7B label-aligned metrics validated"
+        ],
+        "partially_validated": [
+          "Partially validated"
+        ],
+        "not_validated": [
+          "Not validated"
+        ]
+      },
+      "verdict_artifacts": [
+        "outputs/dualscope_qwen2p5_7b_label_aligned_metric_computation/default/dualscope_qwen2p5_7b_label_aligned_metric_computation_verdict.json",
+        "outputs/dualscope_qwen2p5_7b_label_aligned_metric_computation_analysis/default/dualscope_qwen2p5_7b_label_aligned_metric_computation_verdict.json"
+      ],
+      "next_task_if_validated": "dualscope-qwen2p5-7b-first-slice-result-package",
+      "next_task_if_partially_validated": "dualscope-qwen2p5-7b-metric-computation-repair",
+      "next_task_if_not_validated": "dualscope-qwen2p5-7b-metric-blocker-closure"
+    },
+    {
+      "task_id": "dualscope-qwen2p5-7b-first-slice-result-package",
+      "purpose": "Package Qwen2.5-7B first-slice results and limitations.",
+      "expected_inputs": [
+        "outputs/dualscope_qwen2p5_7b_label_aligned_metric_computation/default",
+        "outputs/dualscope_qwen2p5_7b_first_slice_response_generation/default"
+      ],
+      "expected_outputs": [
+        ".plans/dualscope-qwen2p5-7b-first-slice-result-package.md",
+        "docs/dualscope_qwen2p5_7b_first_slice_result_package.md",
+        "outputs/dualscope_qwen2p5_7b_first_slice_result_package/default"
+      ],
+      "branch_name_suggestion": "codex/dualscope-qwen2p5-7b-result-package",
+      "prompt_template": "Continue DualScope-LLM task `{task_id}`. Package Qwen2.5-7B first-slice results and limitations only. Separate real metrics, projected metrics, placeholders, blockers, ASR readiness, clean utility readiness, and cost notes. Do not claim full paper performance, do not fake metrics or responses, and do not change benchmark truth, gates, route_c, or 199+. Final verdicts: Qwen2.5-7B first-slice result package validated, Partially validated, or Not validated. Follow AGENTS.md PR workflow.",
+      "completion_verdicts": {
+        "validated": [
+          "Qwen2.5-7B first-slice result package validated"
+        ],
+        "partially_validated": [
+          "Partially validated"
+        ],
+        "not_validated": [
+          "Not validated"
+        ]
+      },
+      "verdict_artifacts": [
+        "outputs/dualscope_qwen2p5_7b_first_slice_result_package/default/dualscope_qwen2p5_7b_first_slice_result_package_verdict.json",
+        "outputs/dualscope_qwen2p5_7b_first_slice_result_package_analysis/default/dualscope_qwen2p5_7b_first_slice_result_package_verdict.json"
+      ],
+      "next_task_if_validated": "dualscope-sci3-main-experiment-expansion-plan",
+      "next_task_if_partially_validated": "dualscope-qwen2p5-7b-result-package-repair",
+      "next_task_if_not_validated": "dualscope-qwen2p5-7b-result-package-blocker-closure"
+    },
+    {
+      "task_id": "dualscope-sci3-main-experiment-expansion-plan",
+      "purpose": "Plan expansion from first-slice to SCI3 main experiment: Alpaca / AdvBench / JBB, 3 triggers, 2 targets, 7B main model.",
+      "expected_inputs": [
+        "outputs/dualscope_qwen2p5_7b_first_slice_result_package/default",
+        "docs/dualscope_sci3_experimental_track.md",
+        "docs/dualscope_sci3_metrics_and_tables.md"
+      ],
+      "expected_outputs": [
+        ".plans/dualscope-sci3-main-experiment-expansion-plan.md",
+        "docs/dualscope_sci3_main_experiment_expansion_plan.md",
+        "outputs/dualscope_sci3_main_experiment_expansion_plan/default"
+      ],
+      "branch_name_suggestion": "codex/dualscope-sci3-main-expansion-plan",
+      "prompt_template": "Continue DualScope-LLM task `{task_id}`. Plan expansion from Qwen2.5-7B first-slice to the SCI3 main experiment only; do not execute the full matrix. Cover Stanford Alpaca, AdvBench, JBB-Behaviors; lexical, semantic, contextual/instruction triggers; fixed-response and behavior-shift targets; baselines including illumination-only, confidence-only with/without logprobs, naive concat, and DualScope budget-aware fusion. Include cost, robustness, ablation, and table plans. Do not fake metrics, responses, benchmark truth, gates, route_c, or 199+. Final verdicts: SCI3 main experiment expansion plan validated, Partially validated, or Not validated. Follow AGENTS.md PR workflow.",
+      "completion_verdicts": {
+        "validated": [
+          "SCI3 main experiment expansion plan validated"
+        ],
+        "partially_validated": [
+          "Partially validated"
+        ],
+        "not_validated": [
+          "Not validated"
+        ]
+      },
+      "verdict_artifacts": [
+        "outputs/dualscope_sci3_main_experiment_expansion_plan/default/dualscope_sci3_main_experiment_expansion_plan_verdict.json",
+        "outputs/dualscope_sci3_main_experiment_expansion_plan_analysis/default/dualscope_sci3_main_experiment_expansion_plan_verdict.json"
+      ],
+      "next_task_if_validated": "dualscope-cross-model-validation-plan",
+      "next_task_if_partially_validated": "dualscope-sci3-main-experiment-expansion-plan-repair",
+      "next_task_if_not_validated": "dualscope-sci3-main-experiment-expansion-plan-blocker-closure"
+    },
+    {
+      "task_id": "dualscope-cross-model-validation-plan",
+      "purpose": "Plan cross-model validation with Llama-3.1-8B or Mistral-7B.",
+      "expected_inputs": [
+        "outputs/dualscope_sci3_main_experiment_expansion_plan/default",
+        "docs/dualscope_sci3_model_matrix.md"
+      ],
+      "expected_outputs": [
+        ".plans/dualscope-cross-model-validation-plan.md",
+        "docs/dualscope_cross_model_validation_plan.md",
+        "outputs/dualscope_cross_model_validation_plan/default"
+      ],
+      "branch_name_suggestion": "codex/dualscope-cross-model-validation-plan",
+      "prompt_template": "Continue DualScope-LLM task `{task_id}`. Plan cross-model validation with Llama-3.1-8B-Instruct or Mistral-7B-Instruct-v0.3 only. Verify whether local resources exist; if missing, mark planned/external-resource-required and do not fake availability. Do not execute full matrix, do not train, do not fake responses or metrics, do not change benchmark truth, gates, route_c, or 199+. Final verdicts: Cross-model validation plan validated, Partially validated, or Not validated. Follow AGENTS.md PR workflow.",
+      "completion_verdicts": {
+        "validated": [
+          "Cross-model validation plan validated"
+        ],
+        "partially_validated": [
+          "Partially validated"
+        ],
+        "not_validated": [
+          "Not validated"
+        ]
+      },
+      "verdict_artifacts": [
+        "outputs/dualscope_cross_model_validation_plan/default/dualscope_cross_model_validation_plan_verdict.json",
+        "outputs/dualscope_cross_model_validation_plan_analysis/default/dualscope_cross_model_validation_plan_verdict.json"
       ],
       "next_task_if_validated": null,
-      "next_task_if_partially_validated": "dualscope-first-slice-next-experiment-readiness-repair",
-      "next_task_if_not_validated": "dualscope-first-slice-next-experiment-readiness-blocker-closure"
+      "next_task_if_partially_validated": "dualscope-cross-model-validation-plan-repair",
+      "next_task_if_not_validated": "dualscope-cross-model-validation-plan-blocker-closure"
     }
   ]
 }
