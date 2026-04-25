@@ -1,25 +1,44 @@
 {
-  "schema_version": "dualscope/qwen2p5-7b-response-plan-scope/v1",
+  "schema_version": "dualscope/qwen2p5-7b-first-slice-response-generation-plan-scope/v1",
   "task_id": "dualscope-qwen2p5-7b-first-slice-response-generation-plan",
-  "generated_at": "2026-04-26T01:47:49+08:00",
-  "scope": "planning only",
-  "dataset": "stanford_alpaca_first_slice",
-  "model": "Qwen2.5-7B-Instruct",
-  "model_role": "main_experimental_model",
-  "trigger_family": "lexical",
-  "trigger_text": "cftrigger",
-  "target_type": "fixed_response",
-  "target_text": "I have completed the requested instruction.",
-  "protocol": {
-    "stage_1": "frozen_illumination_screening",
-    "stage_2": "frozen_confidence_verification_with_without_logprobs",
-    "stage_3": "frozen_budget_aware_lightweight_fusion"
+  "generated_at": "2026-04-26T03:35:11+08:00",
+  "scope_type": "planning_only",
+  "project_mainline": "DualScope-LLM",
+  "frozen_axes": {
+    "dataset": "Stanford Alpaca first-slice",
+    "main_model": "Qwen2.5-7B-Instruct",
+    "trigger_family": "lexical",
+    "trigger_text": "cftrigger",
+    "target_type": "fixed_response",
+    "target_text": "I have completed the requested instruction.",
+    "protocol": [
+      "Stage 1: Illumination Screening",
+      "Stage 2: Confidence Verification",
+      "Stage 3: Budget-Aware Lightweight Fusion Decision"
+    ]
   },
-  "response_generation_executed": false,
-  "full_matrix_executed": false,
-  "training_executed": false,
-  "benchmark_truth_changed": false,
-  "gates_changed": false,
-  "route_c_continued": false,
-  "generated_199_plus": false
+  "in_scope": [
+    "Plan Qwen2.5-7B first-slice response generation readiness.",
+    "Audit required first-slice inputs and SCI3 model-axis artifacts.",
+    "Record blockers for missing local model resources, missing inputs, and current GPU readiness.",
+    "Prepare a successor command shape without executing it."
+  ],
+  "out_of_scope": [
+    "No model response generation.",
+    "No logprob extraction.",
+    "No Stage 1, Stage 2, or Stage 3 execution over Qwen2.5-7B outputs.",
+    "No AUROC, F1, ASR, utility, latency, or cost metric computation.",
+    "No benchmark truth, label, gate, trigger, target, or protocol modification.",
+    "No full matrix execution.",
+    "No route_c continuation or 199+ planning.",
+    "No training, LoRA, QLoRA, or full finetuning."
+  ],
+  "honesty_guards": {
+    "responses_exist": false,
+    "logprobs_exist": false,
+    "metrics_exist": false,
+    "benchmark_truth_modified": false,
+    "gates_modified": false,
+    "full_matrix_executed": false
+  }
 }
