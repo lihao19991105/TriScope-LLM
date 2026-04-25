@@ -16,6 +16,16 @@ from typing import Any
 DEFAULT_QUEUE_FILE = Path("DUALSCOPE_TASK_QUEUE.md")
 DEFAULT_OUTPUT_DIR = Path("outputs/dualscope_task_orchestrator/default")
 DEFAULT_PR_STATUS_SUBDIR = "pr_review_status"
+RUNTIME_DIRTY_PREFIXES = (
+    "outputs/dualscope_autorun_loop/",
+    "outputs/dualscope_task_orchestrator/",
+    "outputs/dualscope_pr_review_status/",
+    "outputs/dualscope_first_slice_real_run_long_compression_status/",
+)
+RUNTIME_DIRTY_EXACT = {
+    "docs/dualscope_autorun_loop_log.md",
+    "scripts/codex_exec_full_auto_wrapper.sh",
+}
 
 
 @dataclass
@@ -212,13 +222,78 @@ def git_status() -> dict[str, Any]:
     status_result = run_command(["git", "status", "--porcelain"])
     root_result = run_command(["git", "rev-parse", "--show-toplevel"])
     changed = [line for line in status_result.stdout.splitlines() if line.strip()]
+    ignore_runtime_dirty_paths = os.environ.get("DUALSCOPE_IGNORE_RUNTIME_DIRTY_PATHS") == "1"
+    dirty_rows = classify_dirty_paths(changed)
+    business_dirty = [
+        row
+        for row in dirty_rows
+        if row["classification"] not in {"runtime_artifact", "generated_output", "temporary_wrapper"}
+    ]
+    runtime_only_dirty = bool(dirty_rows) and not business_dirty
+    effective_clean = status_result.returncode == 0 and (
+        not changed or (ignore_runtime_dirty_paths and runtime_only_dirty)
+    )
     return {
         "branch": branch_result.stdout.strip() if branch_result.returncode == 0 else None,
         "repo_root": root_result.stdout.strip() if root_result.returncode == 0 else None,
-        "is_clean": status_result.returncode == 0 and not changed,
+        "is_clean": effective_clean,
+        "is_git_clean": status_result.returncode == 0 and not changed,
+        "ignore_runtime_dirty_paths": ignore_runtime_dirty_paths,
+        "runtime_only_dirty_paths": runtime_only_dirty,
+        "dirty_path_classification": dirty_rows,
         "changed_paths": changed,
         "status_error": status_result.stderr.strip() if status_result.returncode != 0 else None,
     }
+
+
+def parse_porcelain_path(line: str) -> str:
+    raw_path = line[3:] if len(line) > 3 else line.strip()
+    if " -> " in raw_path:
+        raw_path = raw_path.rsplit(" -> ", 1)[-1]
+    return raw_path.strip().strip('"')
+
+
+def is_runtime_dirty_path(path: str) -> bool:
+    normalized = path.replace("\\", "/")
+    if normalized in RUNTIME_DIRTY_EXACT:
+        return True
+    if normalized.endswith(".pyc"):
+        return True
+    if "__pycache__/" in normalized or normalized.endswith("__pycache__"):
+        return True
+    return any(normalized.startswith(prefix) for prefix in RUNTIME_DIRTY_PREFIXES)
+
+
+def classify_dirty_paths(changed: list[str]) -> list[dict[str, str]]:
+    rows = []
+    for line in changed:
+        path = parse_porcelain_path(line)
+        if is_runtime_dirty_path(path):
+            if path == "scripts/codex_exec_full_auto_wrapper.sh":
+                classification = "temporary_wrapper"
+            elif path.startswith("outputs/"):
+                classification = "generated_output"
+            else:
+                classification = "runtime_artifact"
+        elif (
+            path.startswith(".plans/")
+            or path.startswith("src/")
+            or path.startswith("scripts/")
+            or path.startswith("docs/")
+            or path
+            in {
+                "README.md",
+                "AGENTS.md",
+                "PLANS.md",
+                "DUALSCOPE_MASTER_PLAN.md",
+                "DUALSCOPE_TASK_QUEUE.md",
+            }
+        ):
+            classification = "business_change"
+        else:
+            classification = "unknown_change"
+        rows.append({"raw": line, "path": path, "classification": classification})
+    return rows
 
 
 def infer_previous_pr_from_codex_state() -> int | None:
@@ -479,6 +554,7 @@ def choose_next_task(
             "reason": "Current working tree is not clean; handle local changes before selecting a new task.",
             "blockers": ["working_tree_not_clean"],
             "changed_paths": worktree.get("changed_paths", []),
+            "dirty_path_classification": worktree.get("dirty_path_classification", []),
         }
 
     scan_by_id = {row["task_id"]: row for row in completed_scan.get("tasks", [])}
@@ -701,6 +777,10 @@ def run_task_orchestrator(args: TaskOrchestratorArgs) -> tuple[int, dict[str, An
         "task_ids": [task["task_id"] for task in tasks],
         "current_branch": worktree.get("branch"),
         "working_tree_clean": worktree.get("is_clean"),
+        "git_working_tree_clean": worktree.get("is_git_clean"),
+        "ignore_runtime_dirty_paths": worktree.get("ignore_runtime_dirty_paths"),
+        "runtime_only_dirty_paths": worktree.get("runtime_only_dirty_paths"),
+        "dirty_path_classification": worktree.get("dirty_path_classification", []),
         "dry_run": args.dry_run,
     }
     summary = {

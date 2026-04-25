@@ -46,6 +46,17 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--dry-run", action="store_true", help="Plan one or more loop iterations without calling codex exec.")
     parser.add_argument("--execute", action="store_true", help="Call codex exec for selected prompts.")
     parser.add_argument("--codex-bin", default="codex", help="Codex CLI binary. Default: codex")
+    parser.add_argument(
+        "--codex-extra-args",
+        default="",
+        help='Extra arguments inserted after "codex exec", parsed with shlex.split. Example: "--cd /home/lh/TriScope-LLM --full-auto".',
+    )
+    parser.add_argument(
+        "--ignore-runtime-dirty-paths",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Allow task selection to continue when dirty paths are limited to known autorun runtime artifacts. Default: enabled.",
+    )
     parser.add_argument("--stop-on-review-pending", action="store_true", help="Stop when checked PR review is pending.")
     parser.add_argument(
         "--allow-review-pending-continue",
@@ -82,6 +93,8 @@ def main() -> int:
         dry_run=dry_run,
         execute=parsed.execute,
         codex_bin=parsed.codex_bin,
+        codex_extra_args=parsed.codex_extra_args,
+        ignore_runtime_dirty_paths=parsed.ignore_runtime_dirty_paths,
         stop_on_review_pending=parsed.stop_on_review_pending,
         allow_review_pending_continue=parsed.allow_review_pending_continue,
         stop_on_requested_changes=parsed.stop_on_requested_changes,

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import shlex
 import shutil
 import subprocess
 import time
@@ -19,9 +20,19 @@ DEFAULT_TASK_ORCHESTRATOR_OUTPUT_DIR = Path("outputs/dualscope_task_orchestrator
 DEFAULT_PR_STATUS_OUTPUT_DIR = Path("outputs/dualscope_pr_review_status/default")
 DEFAULT_PROXY = "http://127.0.0.1:18080"
 FINAL_VERDICTS = {
-    "validated": "Autorun loop validated",
+    "validated": "Autorun execute hardening validated",
     "partial": "Partially validated",
     "not_validated": "Not validated",
+}
+RUNTIME_DIRTY_PREFIXES = (
+    "outputs/dualscope_autorun_loop/",
+    "outputs/dualscope_task_orchestrator/",
+    "outputs/dualscope_pr_review_status/",
+    "outputs/dualscope_first_slice_real_run_long_compression_status/",
+)
+RUNTIME_DIRTY_EXACT = {
+    "docs/dualscope_autorun_loop_log.md",
+    "scripts/codex_exec_full_auto_wrapper.sh",
 }
 
 
@@ -44,6 +55,8 @@ class AutorunLoopArgs:
     dry_run: bool
     execute: bool
     codex_bin: str
+    codex_extra_args: str
+    ignore_runtime_dirty_paths: bool
     stop_on_review_pending: bool
     allow_review_pending_continue: bool
     stop_on_requested_changes: bool
@@ -88,7 +101,120 @@ def truncate_text(value: str, limit: int = 4000) -> str:
     return value[-limit:]
 
 
-def run_command(command: list[str], timeout: int = 120) -> CommandResult:
+def parse_porcelain_path(line: str) -> str:
+    raw_path = line[3:] if len(line) > 3 else line.strip()
+    if " -> " in raw_path:
+        raw_path = raw_path.rsplit(" -> ", 1)[-1]
+    return raw_path.strip().strip('"')
+
+
+def is_runtime_dirty_path(path: str) -> bool:
+    normalized = path.replace("\\", "/")
+    if normalized in RUNTIME_DIRTY_EXACT:
+        return True
+    if normalized.endswith(".pyc"):
+        return True
+    if "__pycache__/" in normalized or normalized.endswith("__pycache__"):
+        return True
+    return any(normalized.startswith(prefix) for prefix in RUNTIME_DIRTY_PREFIXES)
+
+
+def classify_dirty_path(path: str) -> str:
+    normalized = path.replace("\\", "/")
+    if is_runtime_dirty_path(normalized):
+        if normalized == "scripts/codex_exec_full_auto_wrapper.sh":
+            return "temporary_wrapper"
+        if normalized.startswith("outputs/"):
+            return "generated_output"
+        return "runtime_artifact"
+    if (
+        normalized.startswith(".plans/")
+        or normalized.startswith("src/")
+        or normalized.startswith("scripts/")
+        or normalized.startswith("docs/")
+        or normalized in {
+            "README.md",
+            "AGENTS.md",
+            "PLANS.md",
+            "DUALSCOPE_MASTER_PLAN.md",
+            "DUALSCOPE_TASK_QUEUE.md",
+        }
+    ):
+        return "business_change"
+    return "unknown_change"
+
+
+def dirty_worktree_check(ignore_runtime_dirty_paths: bool) -> dict[str, Any]:
+    result = run_command(["git", "status", "--porcelain"], timeout=60)
+    rows: list[dict[str, Any]] = []
+    runtime_rows: list[dict[str, Any]] = []
+    business_rows: list[dict[str, Any]] = []
+    wrapper_warning = False
+    for line in result.stdout.splitlines():
+        if not line.strip():
+            continue
+        path = parse_porcelain_path(line)
+        classification = classify_dirty_path(path)
+        row = {"raw": line, "path": path, "classification": classification}
+        rows.append(row)
+        if classification in {"runtime_artifact", "generated_output", "temporary_wrapper"}:
+            runtime_rows.append(row)
+        else:
+            business_rows.append(row)
+        if path == "scripts/codex_exec_full_auto_wrapper.sh":
+            wrapper_warning = True
+
+    has_dirty = bool(rows)
+    only_runtime_dirty = has_dirty and not business_rows and bool(runtime_rows)
+    can_continue = (
+        result.returncode == 0
+        and (
+            not has_dirty
+            or (ignore_runtime_dirty_paths and only_runtime_dirty)
+        )
+    )
+    blockers = []
+    if result.returncode != 0:
+        blockers.append({"kind": "git_status_failed", "message": result.stderr.strip() or "git status failed"})
+    elif has_dirty and not can_continue:
+        blockers.append(
+            {
+                "kind": "true_dirty_worktree",
+                "message": "Working tree contains real business or unknown changes; task selection is blocked.",
+                "changed_paths": [row["raw"] for row in rows],
+                "business_or_unknown_paths": [row["raw"] for row in business_rows],
+            }
+        )
+    warnings = []
+    if wrapper_warning:
+        warnings.append(
+            {
+                "kind": "repo_local_codex_wrapper",
+                "message": "scripts/codex_exec_full_auto_wrapper.sh is a temporary wrapper path; delete it or move wrapper usage to /tmp/codex_exec_full_auto_wrapper.sh.",
+            }
+        )
+    return {
+        "summary_status": "PASS" if can_continue else "WARN",
+        "schema_version": "dualscope/autorun-loop-dirty-worktree-check/v1",
+        "ignore_runtime_dirty_paths": ignore_runtime_dirty_paths,
+        "git_status_returncode": result.returncode,
+        "is_clean": result.returncode == 0 and not has_dirty,
+        "has_dirty_paths": has_dirty,
+        "only_runtime_dirty_paths": only_runtime_dirty,
+        "can_continue_task_selection": can_continue,
+        "dirty_paths": rows,
+        "runtime_dirty_paths": runtime_rows,
+        "business_dirty_paths": business_rows,
+        "warnings": warnings,
+        "blockers": blockers,
+        "stderr": truncate_text(result.stderr),
+    }
+
+
+def run_command(command: list[str], timeout: int = 120, extra_env: dict[str, str] | None = None) -> CommandResult:
+    env = proxy_env()
+    if extra_env:
+        env.update(extra_env)
     try:
         completed = subprocess.run(
             command,
@@ -97,7 +223,7 @@ def run_command(command: list[str], timeout: int = 120) -> CommandResult:
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             timeout=timeout,
-            env=proxy_env(),
+            env=env,
         )
         return CommandResult(command=command, returncode=completed.returncode, stdout=completed.stdout, stderr=completed.stderr)
     except FileNotFoundError as exc:
@@ -252,7 +378,8 @@ def run_task_orchestrator(args: AutorunLoopArgs, iteration: int) -> dict[str, An
         "--output-dir",
         str(args.task_orchestrator_output_dir),
     ]
-    result = run_command(command, timeout=180)
+    extra_env = {"DUALSCOPE_IGNORE_RUNTIME_DIRTY_PATHS": "1"} if args.ignore_runtime_dirty_paths else {}
+    result = run_command(command, timeout=180, extra_env=extra_env)
     selection_path = args.task_orchestrator_output_dir / "dualscope_next_task_selection.json"
     prompt_path = args.task_orchestrator_output_dir / "dualscope_next_task_prompt.md"
     summary_path = args.task_orchestrator_output_dir / "dualscope_task_orchestrator_summary.json"
@@ -278,8 +405,46 @@ def codex_exec_available(codex_bin: str) -> bool:
     return shutil.which(codex_bin) is not None
 
 
-def run_codex_exec(args: AutorunLoopArgs, prompt_text: str, iteration: int) -> dict[str, Any]:
-    command = [args.codex_bin, "exec", prompt_text]
+def codex_extra_args_list(args: AutorunLoopArgs) -> list[str]:
+    if not args.codex_extra_args.strip():
+        return []
+    return shlex.split(args.codex_extra_args)
+
+
+def build_codex_exec_command(args: AutorunLoopArgs, prompt_text: str) -> list[str]:
+    return [args.codex_bin, "exec", *codex_extra_args_list(args), prompt_text]
+
+
+def redacted_codex_exec_command(args: AutorunLoopArgs) -> list[str]:
+    return [args.codex_bin, "exec", *codex_extra_args_list(args), "<prompt text>"]
+
+
+def codex_command_preview(args: AutorunLoopArgs, selected_task: str | None, prompt_path: str | None) -> dict[str, Any]:
+    command = redacted_codex_exec_command(args)
+    return {
+        "summary_status": "PASS",
+        "schema_version": "dualscope/autorun-loop-codex-command-preview/v1",
+        "mode": "execute" if args.execute else "dry-run",
+        "codex_bin": args.codex_bin,
+        "codex_extra_args": args.codex_extra_args,
+        "codex_extra_args_list": codex_extra_args_list(args),
+        "command": command,
+        "command_display": shlex.join(command),
+        "selected_task": selected_task,
+        "prompt_path": prompt_path,
+        "dry_run_only": args.dry_run,
+    }
+
+
+def run_codex_exec(
+    args: AutorunLoopArgs,
+    prompt_text: str,
+    iteration: int,
+    selected_task: str | None,
+    prompt_path: str | None,
+) -> dict[str, Any]:
+    command = build_codex_exec_command(args, prompt_text)
+    preview_command = redacted_codex_exec_command(args)
     started = utc_now()
     if not codex_exec_available(args.codex_bin):
         return {
@@ -287,9 +452,11 @@ def run_codex_exec(args: AutorunLoopArgs, prompt_text: str, iteration: int) -> d
             "iteration": iteration,
             "started_at": started,
             "completed_at": utc_now(),
-            "command": command,
+            "command": preview_command,
             "returncode": 127,
             "codex_exec_available": False,
+            "selected_task": selected_task,
+            "prompt_path": prompt_path,
             "stdout": "",
             "stderr": f"`{args.codex_bin}` is not available on PATH. Install/login to Codex CLI before execute mode.",
         }
@@ -299,9 +466,11 @@ def run_codex_exec(args: AutorunLoopArgs, prompt_text: str, iteration: int) -> d
         "iteration": iteration,
         "started_at": started,
         "completed_at": utc_now(),
-        "command": command[:2] + ["<prompt text>"],
+        "command": preview_command,
         "returncode": result.returncode,
         "codex_exec_available": True,
+        "selected_task": selected_task,
+        "prompt_path": prompt_path,
         "stdout": truncate_text(result.stdout, 12000),
         "stderr": truncate_text(result.stderr, 12000),
     }
@@ -362,10 +531,10 @@ def decide_final_verdict(
 
 def recommendation_for_verdict(verdict: str) -> str:
     if verdict == FINAL_VERDICTS["validated"]:
-        return "Run autorun loop in execute mode with max-iterations 2 after confirming current PR review state."
+        return "Run autorun loop with --execute --max-iterations 2."
     if verdict == FINAL_VERDICTS["partial"]:
-        return "Repair autorun loop environment blocker, then rerun dry-run."
-    return "Fix autorun loop implementation before using automated execution."
+        return "Repair remaining autorun execute blocker and rerun smoke."
+    return "Do not use autorun execute mode until blocker is fixed."
 
 
 def render_report(summary: dict[str, Any], blockers: list[dict[str, Any]], selected_tasks: list[dict[str, Any]]) -> str:
@@ -378,6 +547,7 @@ def render_report(summary: dict[str, Any], blockers: list[dict[str, Any]], selec
         f"- Iterations completed: {summary['iterations_completed']}",
         f"- Stop reason: {summary['stop_reason']}",
         f"- Codex exec available: {summary['codex_exec_available']}",
+        f"- Ignore runtime dirty paths: {summary['ignore_runtime_dirty_paths']}",
         "",
         "## Selected Tasks",
     ]
@@ -401,6 +571,8 @@ def render_report(summary: dict[str, Any], blockers: list[dict[str, Any]], selec
             "- delete_branch: false",
             "- remote_rewrite: false",
             "- ssh_remote_rewrite: false",
+            "- stop_on_requested_changes: true",
+            "- stop_on_failing_checks: true",
             "",
         ]
     )
@@ -414,6 +586,7 @@ def render_dry_run_plan(selected_tasks: list[dict[str, Any]], args: AutorunLoopA
         f"- max iterations: {args.max_iterations}",
         f"- max minutes: {args.max_minutes}",
         f"- task orchestrator output: `{args.task_orchestrator_output_dir}`",
+        f"- codex command preview: `{shlex.join(redacted_codex_exec_command(args))}`",
         "",
     ]
     for row in selected_tasks:
@@ -433,11 +606,13 @@ def run_autorun_loop(args: AutorunLoopArgs) -> tuple[int, dict[str, Any]]:
     started_at = utc_now()
     start_monotonic = time.monotonic()
     args.output_dir.mkdir(parents=True, exist_ok=True)
-    log_path = Path("docs/dualscope_autorun_loop_log.md")
+    log_path = args.output_dir / "dualscope_autorun_loop_log.md"
     iterations_path = args.output_dir / "dualscope_autorun_loop_iterations.jsonl"
     selected_tasks_path = args.output_dir / "dualscope_autorun_loop_selected_tasks.jsonl"
     exec_results_path = args.output_dir / "dualscope_autorun_loop_codex_exec_results.jsonl"
     pr_history_path = args.output_dir / "dualscope_autorun_loop_pr_status_history.jsonl"
+    dirty_check_path = args.output_dir / "dualscope_autorun_loop_dirty_worktree_check.json"
+    command_preview_path = args.output_dir / "dualscope_autorun_loop_codex_command_preview.json"
     for path in [iterations_path, selected_tasks_path, exec_results_path, pr_history_path]:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text("", encoding="utf-8")
@@ -462,6 +637,9 @@ def run_autorun_loop(args: AutorunLoopArgs) -> tuple[int, dict[str, Any]]:
         "pr_status_output_dir": str(args.pr_status_output_dir),
         "mode": mode,
         "codex_bin": args.codex_bin,
+        "codex_extra_args": args.codex_extra_args,
+        "codex_extra_args_list": codex_extra_args_list(args),
+        "ignore_runtime_dirty_paths": args.ignore_runtime_dirty_paths,
         "stop_on_review_pending": args.stop_on_review_pending,
         "allow_review_pending_continue": args.allow_review_pending_continue,
         "stop_on_requested_changes": args.stop_on_requested_changes,
@@ -472,6 +650,9 @@ def run_autorun_loop(args: AutorunLoopArgs) -> tuple[int, dict[str, Any]]:
 
     preflight = run_preflight()
     write_json(args.output_dir / "dualscope_autorun_loop_preflight.json", preflight)
+    initial_dirty_check = dirty_worktree_check(args.ignore_runtime_dirty_paths)
+    write_json(dirty_check_path, initial_dirty_check)
+    write_json(command_preview_path, codex_command_preview(args, None, None))
     codex_available = codex_exec_available(args.codex_bin)
     blockers: list[dict[str, Any]] = []
     selected_tasks: list[dict[str, Any]] = []
@@ -514,9 +695,41 @@ def run_autorun_loop(args: AutorunLoopArgs) -> tuple[int, dict[str, Any]]:
             )
             break
 
+        dirty_check = dirty_worktree_check(args.ignore_runtime_dirty_paths)
+        write_json(dirty_check_path, dirty_check)
+        if not dirty_check.get("can_continue_task_selection"):
+            blockers.extend(dirty_check.get("blockers") or [])
+            stop_reason = "true_dirty_worktree_blocker"
+            iteration_row = {
+                "iteration": iteration,
+                "started_at": iteration_started,
+                "completed_at": utc_now(),
+                "status": "blocked_before_task_selection",
+                "dirty_worktree_check": dirty_check,
+                "blockers": dirty_check.get("blockers") or [],
+            }
+            write_jsonl(iterations_path, [iteration_row], append=True)
+            append_run_log(
+                log_path,
+                {
+                    "iteration": iteration,
+                    "timestamp": iteration_started,
+                    "selected_task": None,
+                    "pr_status_before": pr_before.get("summary_status"),
+                    "codex_exec_command": "not_run",
+                    "codex_exec_exit_code": None,
+                    "pr_status_after": "not_run",
+                    "blocker": stop_reason,
+                    "next_action": "stop",
+                },
+            )
+            break
+
         task_result = run_task_orchestrator(args, iteration)
         selection = task_result.get("selection", {})
         selected_task = selection.get("selected_task_id") or selection.get("next_task")
+        preview = codex_command_preview(args, selected_task, task_result.get("prompt_path"))
+        write_json(command_preview_path, preview)
         selected_row = {
             "iteration": iteration,
             "selected_task": selected_task,
@@ -552,14 +765,23 @@ def run_autorun_loop(args: AutorunLoopArgs) -> tuple[int, dict[str, Any]]:
             exec_result = {
                 "summary_status": "SKIPPED",
                 "iteration": iteration,
-                "command": [args.codex_bin, "exec", "<prompt text>"],
+                "command": redacted_codex_exec_command(args),
+                "command_display": preview["command_display"],
                 "returncode": None,
                 "reason": "dry_run",
                 "codex_exec_available": codex_available,
+                "selected_task": selected_task,
+                "prompt_path": task_result.get("prompt_path"),
             }
             stop_reason = "dry_run_completed"
         else:
-            exec_result = run_codex_exec(args, task_result.get("prompt_text", ""), iteration)
+            exec_result = run_codex_exec(
+                args,
+                task_result.get("prompt_text", ""),
+                iteration,
+                selected_task,
+                task_result.get("prompt_path"),
+            )
             if exec_result.get("returncode") != 0:
                 blockers.append({"kind": "codex_exec_failure", "message": exec_result.get("stderr", "codex exec failed")})
                 stop_reason = "codex_exec_failure"
@@ -576,6 +798,8 @@ def run_autorun_loop(args: AutorunLoopArgs) -> tuple[int, dict[str, Any]]:
             "status": "completed",
             "selected_task": selected_task,
             "task_selection": selection,
+            "dirty_worktree_check": dirty_check,
+            "codex_command_preview": preview,
             "codex_exec": exec_result,
             "git_changed_files_after": changed,
             "pr_status_before_summary": pr_before.get("summary_status"),
@@ -608,6 +832,8 @@ def run_autorun_loop(args: AutorunLoopArgs) -> tuple[int, dict[str, Any]]:
         for name in [
             "dualscope_autorun_loop_config.json",
             "dualscope_autorun_loop_preflight.json",
+            "dualscope_autorun_loop_dirty_worktree_check.json",
+            "dualscope_autorun_loop_codex_command_preview.json",
         ]
     )
     dry_run_passed = bool(
@@ -628,6 +854,7 @@ def run_autorun_loop(args: AutorunLoopArgs) -> tuple[int, dict[str, Any]]:
         "iterations_completed": len(selected_tasks),
         "stop_reason": stop_reason,
         "codex_exec_available": codex_available,
+        "ignore_runtime_dirty_paths": args.ignore_runtime_dirty_paths,
         "final_verdict": verdict,
         "recommendation": recommendation,
         "dangerous_actions": dangerous_actions,
@@ -638,8 +865,38 @@ def run_autorun_loop(args: AutorunLoopArgs) -> tuple[int, dict[str, Any]]:
         args.output_dir / "dualscope_autorun_loop_next_recommendation.json",
         {"summary_status": summary["summary_status"], "final_verdict": verdict, "recommendation": recommendation},
     )
+    hardening_summary = {
+        "summary_status": summary["summary_status"],
+        "schema_version": "dualscope/autorun-loop-execute-hardening-summary/v1",
+        "final_verdict": verdict,
+        "recommendation": recommendation,
+        "mode": mode,
+        "stop_reason": stop_reason,
+        "codex_exec_available": codex_available,
+        "codex_command_preview_path": str(command_preview_path),
+        "dirty_worktree_check_path": str(dirty_check_path),
+        "log_path": str(log_path),
+        "safe_constraints": {
+            "auto_merge": False,
+            "force_push": False,
+            "delete_branch": False,
+            "remote_rewrite": False,
+            "ssh_remote_rewrite": False,
+            "stop_on_requested_changes": args.stop_on_requested_changes,
+            "stop_on_failing_checks": args.stop_on_failing_checks,
+        },
+    }
+    write_json(args.output_dir / "dualscope_autorun_loop_execute_hardening_summary.json", hardening_summary)
     (args.output_dir / "dualscope_autorun_loop_report.md").write_text(
         render_report(summary, blockers, selected_tasks),
+        encoding="utf-8",
+    )
+    (args.output_dir / "dualscope_autorun_loop_execute_hardening_report.md").write_text(
+        render_report(summary, blockers, selected_tasks)
+        + "\n## Execute Hardening\n"
+        + f"- Dirty worktree check: `{dirty_check_path}`\n"
+        + f"- Codex command preview: `{command_preview_path}`\n"
+        + f"- Rolling log: `{log_path}`\n",
         encoding="utf-8",
     )
     if args.dry_run:
@@ -648,9 +905,34 @@ def run_autorun_loop(args: AutorunLoopArgs) -> tuple[int, dict[str, Any]]:
             encoding="utf-8",
         )
     if any(result.get("summary_status") == "FAIL" for result in exec_results):
+        failure_rows = [row for row in exec_results if row.get("summary_status") == "FAIL"]
+        write_json(
+            args.output_dir / "dualscope_autorun_loop_codex_failure_details.json",
+            {
+                "summary_status": "FAIL",
+                "schema_version": "dualscope/autorun-loop-codex-failure-details/v1",
+                "failures": failure_rows,
+            },
+        )
         (args.output_dir / "dualscope_autorun_loop_codex_failure_report.md").write_text(
             "# DualScope Autorun Loop Codex Failure\n\n"
-            + "\n".join(f"- iteration {row.get('iteration')}: {row.get('stderr')}" for row in exec_results if row.get("summary_status") == "FAIL")
+            + "\n".join(
+                [
+                    "\n".join(
+                        [
+                            f"## Iteration {row.get('iteration')}",
+                            "",
+                            f"- exit code: `{row.get('returncode')}`",
+                            f"- selected task: `{row.get('selected_task')}`",
+                            f"- prompt path: `{row.get('prompt_path')}`",
+                            f"- command: `{shlex.join(row.get('command') or []) if isinstance(row.get('command'), list) else row.get('command')}`",
+                            f"- stderr: `{truncate_text(row.get('stderr', ''), 1000)}`",
+                            "",
+                        ]
+                    )
+                    for row in failure_rows
+                ]
+            )
             + "\n",
             encoding="utf-8",
         )
