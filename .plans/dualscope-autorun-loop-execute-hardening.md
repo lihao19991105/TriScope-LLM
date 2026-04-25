@@ -59,13 +59,15 @@ The task orchestrator currently blocks on any dirty working tree. Because autoru
 
 - [x] M1: Read repository instructions and existing autorun/task-orchestrator implementation.
 - [x] M2: Implement execute hardening.
-- [ ] M3: Run required compile/help/dry-run/execute-smoke validation.
+- [x] M3: Run required compile/help/dry-run/execute-smoke validation.
 - [ ] M4: Commit, open PR, trigger Codex review, and record PR/review status.
 
 ## Surprises & Discoveries
 
 - Local `main` did not yet contain the autorun loop files. The hardening branch was created from `main` in a separate worktree, then the existing task-orchestrator and autorun-loop commits were cherry-picked before applying this task.
 - The original working tree had unrelated first-slice/rerun changes. This plan uses the separate worktree to avoid reverting or overwriting them.
+- Dry-run validated command construction and runtime dirty handling. Execute smoke reached `codex exec` with `codex exec --cd /home/lh/TriScope-LLM --full-auto <prompt>`, then failed before task work because Codex could not create a session under the sandbox read-only filesystem.
+- A sandbox-escalated rerun was requested and rejected because the requested Codex target directory `/home/lh/TriScope-LLM` has unrelated uncommitted business changes. The safe outcome is `Partially validated`.
 
 ## Decision Log
 
