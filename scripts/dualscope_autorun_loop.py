@@ -14,6 +14,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from src.eval.dualscope_autorun_loop_common import (  # noqa: E402
+    DEFAULT_CODEX_TMPDIR,
     DEFAULT_OUTPUT_DIR,
     DEFAULT_PR_STATUS_OUTPUT_DIR,
     DEFAULT_QUEUE_FILE,
@@ -31,6 +32,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--max-minutes", type=int, default=120, help="Maximum wall-clock minutes. Default: 120")
     parser.add_argument("--queue-file", type=Path, default=DEFAULT_QUEUE_FILE, help=f"Task queue file. Default: {DEFAULT_QUEUE_FILE}")
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR, help=f"Output directory. Default: {DEFAULT_OUTPUT_DIR}")
+    parser.add_argument("--runtime-log-dir", type=Path, default=DEFAULT_OUTPUT_DIR, help=f"Runtime log directory. Default: {DEFAULT_OUTPUT_DIR}")
     parser.add_argument(
         "--task-orchestrator-output-dir",
         type=Path,
@@ -46,6 +48,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--dry-run", action="store_true", help="Plan one or more loop iterations without calling codex exec.")
     parser.add_argument("--execute", action="store_true", help="Call codex exec for selected prompts.")
     parser.add_argument("--codex-bin", default="codex", help="Codex CLI binary. Default: codex")
+    parser.add_argument("--codex-tmpdir", type=Path, default=DEFAULT_CODEX_TMPDIR, help=f"Writable Codex TMPDIR. Default: {DEFAULT_CODEX_TMPDIR}")
     parser.add_argument(
         "--codex-extra-args",
         default="",
@@ -88,11 +91,13 @@ def main() -> int:
         max_minutes=parsed.max_minutes,
         queue_file=parsed.queue_file,
         output_dir=parsed.output_dir,
+        runtime_log_dir=parsed.runtime_log_dir,
         task_orchestrator_output_dir=parsed.task_orchestrator_output_dir,
         pr_status_output_dir=parsed.pr_status_output_dir,
         dry_run=dry_run,
         execute=parsed.execute,
         codex_bin=parsed.codex_bin,
+        codex_tmpdir=parsed.codex_tmpdir,
         codex_extra_args=parsed.codex_extra_args,
         ignore_runtime_dirty_paths=parsed.ignore_runtime_dirty_paths,
         stop_on_review_pending=parsed.stop_on_review_pending,

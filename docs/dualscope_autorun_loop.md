@@ -21,6 +21,8 @@ The loop never auto-merges, force-pushes, deletes branches, rewrites remotes, sw
   --dry-run \
   --max-iterations 1 \
   --codex-extra-args "--cd /home/lh/TriScope-LLM --full-auto" \
+  --runtime-log-dir outputs/dualscope_autorun_loop/default \
+  --codex-tmpdir /home/lh/TriScope-LLM/.tmp/codex \
   --output-dir outputs/dualscope_autorun_loop/default
 ```
 
@@ -37,6 +39,8 @@ Dry-run checks PR state, classifies dirty worktree paths, calls the task orchest
   --stop-on-requested-changes \
   --stop-on-failing-checks \
   --codex-extra-args "--cd /home/lh/TriScope-LLM --full-auto" \
+  --runtime-log-dir outputs/dualscope_autorun_loop/default \
+  --codex-tmpdir /home/lh/TriScope-LLM/.tmp/codex \
   --output-dir outputs/dualscope_autorun_loop/default
 ```
 
@@ -54,6 +58,17 @@ codex exec "<prompt text>"
 
 If `codex` is unavailable or returns non-zero, the loop stops and writes failure artifacts with exit code, stdout, stderr, command, selected task, and prompt path.
 
+`codex exec` is launched with:
+
+- cwd: `/home/lh/TriScope-LLM`
+- `HOME=/home/lh`
+- `TMPDIR=/home/lh/TriScope-LLM/.tmp/codex`
+- `HTTP_PROXY=http://127.0.0.1:18080`
+- `HTTPS_PROXY=http://127.0.0.1:18080`
+- `ALL_PROXY=http://127.0.0.1:18080`
+
+Before execute mode calls Codex, the loop creates the TMPDIR and verifies it is writable. If the check fails, execution stops with a blocker and writes diagnostics.
+
 ## Main Options
 
 - `--max-iterations`: maximum loop iterations, default `5`.
@@ -63,6 +78,8 @@ If `codex` is unavailable or returns non-zero, the loop stops and writes failure
 - `--pr-status-output-dir`: default `outputs/dualscope_pr_review_status/default`.
 - `--codex-bin`: default `codex`.
 - `--codex-extra-args`: optional string parsed with `shlex.split` and inserted after `codex exec`.
+- `--runtime-log-dir`: default `outputs/dualscope_autorun_loop/default`.
+- `--codex-tmpdir`: default `/home/lh/TriScope-LLM/.tmp/codex`.
 - `--ignore-runtime-dirty-paths` / `--no-ignore-runtime-dirty-paths`: default enabled. Allows task selection to continue only when dirty paths are limited to known runtime artifacts.
 - `--stop-on-review-pending`: stop if checked PR review is still pending.
 - `--allow-review-pending-continue`: allow continuation when review is pending.
@@ -78,6 +95,7 @@ When runtime dirty ignoring is enabled, the loop may continue task selection onl
 - `outputs/dualscope_task_orchestrator/`
 - `outputs/dualscope_pr_review_status/`
 - `outputs/dualscope_first_slice_real_run_long_compression_status/`
+- `.tmp/`
 - any `__pycache__`
 - any `*.pyc`
 - `scripts/codex_exec_full_auto_wrapper.sh` as a legacy temporary wrapper path
@@ -99,8 +117,9 @@ Required artifacts:
 - `dualscope_autorun_loop_iterations.jsonl`
 - `dualscope_autorun_loop_selected_tasks.jsonl`
 - `dualscope_autorun_loop_codex_exec_results.jsonl`
-- `dualscope_autorun_loop_dirty_worktree_check.json`
+- `dualscope_autorun_loop_dirty_worktree_classification.json`
 - `dualscope_autorun_loop_codex_command_preview.json`
+- `dualscope_autorun_loop_exec_environment.json`
 - `dualscope_autorun_loop_pr_status_history.jsonl`
 - `dualscope_autorun_loop_blockers.json`
 - `dualscope_autorun_loop_summary.json`
@@ -109,6 +128,7 @@ Required artifacts:
 - `dualscope_autorun_loop_execute_hardening_report.md`
 - `dualscope_autorun_loop_next_recommendation.json`
 - `dualscope_autorun_loop_dry_run_plan.md` in dry-run mode
+- `dualscope_autorun_loop_exec_failure_diagnostics.json` if `codex exec` fails
 - `dualscope_autorun_loop_codex_failure_report.md` if `codex exec` fails
 
 The human-readable rolling log is:

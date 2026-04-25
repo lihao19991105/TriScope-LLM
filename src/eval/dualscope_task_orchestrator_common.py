@@ -21,6 +21,7 @@ RUNTIME_DIRTY_PREFIXES = (
     "outputs/dualscope_task_orchestrator/",
     "outputs/dualscope_pr_review_status/",
     "outputs/dualscope_first_slice_real_run_long_compression_status/",
+    ".tmp/",
 )
 RUNTIME_DIRTY_EXACT = {
     "docs/dualscope_autorun_loop_log.md",
@@ -227,7 +228,7 @@ def git_status() -> dict[str, Any]:
     business_dirty = [
         row
         for row in dirty_rows
-        if row["classification"] not in {"runtime_artifact", "generated_output", "temporary_wrapper"}
+        if row["classification"] not in {"runtime_artifact", "runtime_tmp", "generated_output", "temporary_wrapper"}
     ]
     runtime_only_dirty = bool(dirty_rows) and not business_dirty
     effective_clean = status_result.returncode == 0 and (
@@ -271,6 +272,8 @@ def classify_dirty_paths(changed: list[str]) -> list[dict[str, str]]:
         if is_runtime_dirty_path(path):
             if path == "scripts/codex_exec_full_auto_wrapper.sh":
                 classification = "temporary_wrapper"
+            elif path.startswith(".tmp/"):
+                classification = "runtime_tmp"
             elif path.startswith("outputs/"):
                 classification = "generated_output"
             else:
