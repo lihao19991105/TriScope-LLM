@@ -234,6 +234,50 @@ The Markdown text is for humans; the fenced JSON block is the source of truth.
       "next_task_if_not_validated": "dualscope-first-slice-real-run-artifact-validation-blocker-closure"
     },
     {
+      "task_id": "dualscope-first-slice-real-run-artifact-validation-repair",
+      "purpose": "Repair the partially validated first-slice real-run artifact validation stage by identifying missing or incompatible artifacts, regenerating only the minimum required validation artifacts, and producing a validated or clearly blocked artifact-validation state.",
+      "expected_inputs": [
+        "outputs/dualscope_first_slice_real_run_artifact_validation/default",
+        "outputs/dualscope_first_slice_real_run_artifact_validation_analysis/default",
+        "outputs/dualscope_minimal_first_slice_real_run_rerun_with_labels/default",
+        "outputs/dualscope_minimal_first_slice_condition_level_rerun/default",
+        "outputs/dualscope_first_slice_condition_row_level_fusion_alignment/default",
+        "outputs/dualscope_illumination_screening_freeze/default",
+        "outputs/dualscope_confidence_verification_with_without_logprobs/default",
+        "outputs/dualscope_budget_aware_two_stage_fusion_design/default"
+      ],
+      "expected_outputs": [
+        ".plans/dualscope-first-slice-real-run-artifact-validation-repair.md",
+        "src/eval/dualscope_first_slice_real_run_artifact_validation_repair.py",
+        "src/eval/post_dualscope_first_slice_real_run_artifact_validation_repair_analysis.py",
+        "scripts/build_dualscope_first_slice_real_run_artifact_validation_repair.py",
+        "scripts/build_post_dualscope_first_slice_real_run_artifact_validation_repair_analysis.py",
+        "docs/dualscope_first_slice_real_run_artifact_validation_repair.md",
+        "outputs/dualscope_first_slice_real_run_artifact_validation_repair/default",
+        "outputs/dualscope_first_slice_real_run_artifact_validation_repair_analysis/default"
+      ],
+      "branch_name_suggestion": "codex/dualscope-artifact-validation-repair",
+      "prompt_template": "Continue DualScope-LLM task `{task_id}`. Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, DUALSCOPE_TASK_QUEUE.md, the previous artifact-validation partial verdict, and the latest first-slice target-response-generation artifacts first. Determine why artifact validation is only Partially validated, explicitly separating missing artifacts, schema mismatch, granularity mismatch, projected metric versus full metric confusion, missing capability-mode or fallback flags, and missing report, verdict, or recommendation artifacts. Scope the work to the minimum necessary repair artifacts only: do not rerun the full matrix, do not expand dataset/model/trigger/target/budget scope, do not fabricate AUROC/F1/ASR/utility, do not write projected metrics as full model performance, do not fake labels, do not fake model outputs, do not modify benchmark truth, do not modify gates, do not continue old route_c, and do not generate 199+. Create or update the repair ExecPlan, implement the repair builder and post-analysis builder, generate repair artifacts, run py_compile, run the repair build CLI, run the repair post-analysis CLI, and output exactly one final verdict: First-slice real-run artifact validation repair validated, Partially validated, or Not validated. Follow AGENTS.md GitHub PR Workflow: create a feature branch from main, make minimal changes, run validation, commit, run ./scripts/codex-pr.sh, trigger @codex review, and report PR/review/CI status. Do not auto merge, force push, delete branches, change remotes, fake performance, fake labels, or fake model outputs.",
+      "completion_verdicts": {
+        "validated": [
+          "First-slice real-run artifact validation repair validated"
+        ],
+        "partially_validated": [
+          "Partially validated"
+        ],
+        "not_validated": [
+          "Not validated"
+        ]
+      },
+      "verdict_artifacts": [
+        "outputs/dualscope_first_slice_real_run_artifact_validation_repair/default/dualscope_first_slice_real_run_artifact_validation_repair_verdict.json",
+        "outputs/dualscope_first_slice_real_run_artifact_validation_repair_analysis/default/dualscope_first_slice_real_run_artifact_validation_repair_verdict.json"
+      ],
+      "next_task_if_validated": "dualscope-first-slice-result-package",
+      "next_task_if_partially_validated": "dualscope-first-slice-artifact-validation-repair-compression",
+      "next_task_if_not_validated": "dualscope-first-slice-artifact-validation-blocker-closure"
+    },
+    {
       "task_id": "dualscope-first-slice-result-package",
       "purpose": "Package first-slice results, limitations, and reportable items for paper-ready analysis without overstating metric validity.",
       "expected_inputs": [

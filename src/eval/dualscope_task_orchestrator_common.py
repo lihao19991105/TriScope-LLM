@@ -779,6 +779,11 @@ def run_task_orchestrator(args: TaskOrchestratorArgs) -> tuple[int, dict[str, An
     )
     prompt_path = args.output_dir / "dualscope_next_task_prompt.md"
     prompt = render_prompt(selection, tasks, pr_status) if args.write_next_prompt else "# DualScope Next Task Prompt\n\nPrompt generation was not requested.\n"
+    prompt_available = bool(prompt.strip()) and "No direct queue task prompt is available" not in prompt
+    if not args.write_next_prompt:
+        prompt_available = False
+    selection["prompt_available"] = prompt_available
+    selection["prompt_path"] = str(prompt_path)
 
     queue_status = {
         "summary_status": "PASS",
