@@ -1,0 +1,31 @@
+{
+  "schema_version": "dualscope/qwen2p5-7b-response-plan-source-audit/v1",
+  "task_id": "dualscope-qwen2p5-7b-first-slice-response-generation-plan",
+  "generated_at": "2026-04-26T01:47:49+08:00",
+  "required_inputs": [
+    {
+      "path": "data/stanford_alpaca/first_slice/alpaca_first_slice_labeled_pairs.jsonl",
+      "status": "missing",
+      "required_for": "row-level clean/poisoned response-generation requests"
+    },
+    {
+      "path": "outputs/dualscope_main_model_axis_upgrade_plan/default",
+      "status": "present",
+      "required_for": "SCI3 model-axis role and resource-readiness contract"
+    },
+    {
+      "path": "outputs/dualscope_first_slice_target_response_generation_plan/default",
+      "status": "missing",
+      "required_for": "prior target-response generation request manifest and schema"
+    }
+  ],
+  "supporting_inputs": [
+    {
+      "path": "data/stanford_alpaca/first_slice/alpaca_first_slice_source.jsonl.manifest.json",
+      "status": "present",
+      "note": "Source manifest exists, but it is not a substitute for labeled clean/poisoned pairs."
+    }
+  ],
+  "model_axis_upgrade_verdict": "SCI3 main model axis upgrade plan validated",
+  "model_axis_claim_boundary": "Model-axis role contract exists; Qwen2.5-7B response generation has not run."
+}
