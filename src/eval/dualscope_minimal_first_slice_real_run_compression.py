@@ -31,12 +31,23 @@ def _load_optional(path: Path) -> dict[str, Any]:
     return read_json(path) if path.exists() else {"missing": True, "path": str(path)}
 
 
-def _load_first_existing(paths: list[Path]) -> dict[str, Any]:
+def _load_probe_snapshot(paths: list[Path], readiness_key: str) -> dict[str, Any]:
+    first_available: dict[str, Any] | None = None
+    first_missing: dict[str, Any] | None = None
     for path in paths:
         if path.exists():
             payload = read_json(path)
             payload.setdefault("source_path", str(path))
-            return payload
+            if payload.get(readiness_key) is True:
+                return payload
+            if payload.get("missing") is True:
+                first_missing = first_missing or payload
+            else:
+                first_available = first_available or payload
+    if first_available is not None:
+        return first_available
+    if first_missing is not None:
+        return first_missing
     return {"missing": True, "searched_paths": [str(path) for path in paths]}
 
 
@@ -47,18 +58,18 @@ def build_dualscope_minimal_first_slice_real_run_compression(output_dir: Path) -
     compatibility = read_json(repo_root / "outputs/dualscope_minimal_first_slice_real_run/default/dualscope_minimal_first_slice_real_run_contract_compatibility_check.json")
     readiness = read_json(repo_root / "outputs/dualscope_minimal_first_slice_real_run_readiness_package_analysis/default/dualscope_minimal_real_run_readiness_verdict.json")
     preflight_capability = read_json(repo_root / "outputs/dualscope_first_slice_preflight_rerun/default/dualscope_first_slice_capability_mode_check.json")
-    model_probe = _load_first_existing([
+    model_probe = _load_probe_snapshot([
         output_dir / "dualscope_first_slice_model_execution_probe.json",
         output_dir / "model_probe/dualscope_first_slice_model_execution_probe.json",
         repo_root / "outputs/dualscope_first_slice_model_execution_enablement/default/dualscope_first_slice_model_execution_probe.json",
         repo_root / "outputs/dualscope_first_slice_model_execution_enablement/default/dualscope_first_slice_generation_probe.json",
-    ])
-    logprob_probe = _load_first_existing([
+    ], "model_execution_ready")
+    logprob_probe = _load_probe_snapshot([
         output_dir / "dualscope_first_slice_logprob_capability_probe.json",
         output_dir / "logprob_probe/dualscope_first_slice_logprob_capability_probe.json",
         repo_root / "outputs/dualscope_first_slice_logprob_capability_enablement/default/dualscope_first_slice_logprob_capability_probe.json",
         repo_root / "outputs/dualscope_first_slice_logprob_capability_enablement/default/dualscope_first_slice_logprob_capability_summary.json",
-    ])
+    ], "logprobs_available")
     label_materialization = _load_optional(repo_root / "outputs/dualscope_first_slice_label_materialization/default/dualscope_first_slice_label_materialization_summary.json")
 
     model_execution_ready = bool(model_probe.get("model_execution_ready"))
