@@ -59,6 +59,13 @@ The long compression / enablement chain after that partial run is now complete. 
 
 The current SCI3 experimental track upgrades the model axis: Qwen2.5-1.5B-Instruct is pilot/debug/automation/ablation only, Qwen2.5-7B-Instruct is the main experimental model, and Llama-3.1-8B-Instruct or Mistral-7B-Instruct-v0.3 is reserved for cross-model validation. The next queue entry is `dualscope-main-model-axis-upgrade-plan`; it must not directly run the full matrix or fake model availability, responses, or metrics.
 
+Before Qwen2.5-7B first-slice execution, the repository now uses a resource materialization gate:
+
+- [.plans/dualscope-qwen2p5-7b-resource-materialization-and-config.md](/home/lh/TriScope-LLM/.plans/dualscope-qwen2p5-7b-resource-materialization-and-config.md)
+- [docs/dualscope_qwen2p5_7b_resource_materialization.md](/home/lh/TriScope-LLM/docs/dualscope_qwen2p5_7b_resource_materialization.md)
+
+This gate checks or downloads `Qwen/Qwen2.5-7B-Instruct`, verifies tokenizer/config readiness, records GPU/disk state, checks labeled pairs and target-response plan outputs, and writes explicit blockers if resources are missing. It does not fake model availability or metrics.
+
 ## Method Overview
 
 DualScope-LLM is organized around three tightly connected stages:

@@ -37,6 +37,7 @@ data/raw/
 data/stanford_alpaca/first_slice/*.jsonl
 
 # Local model weights and checkpoints
+models/
 local_models/
 *.safetensors
 *.pt
