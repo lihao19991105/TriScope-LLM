@@ -18,6 +18,17 @@ This document is the role contract for the SCI3 model axis. It is a planning art
 - Do not present 1.5B pilot results as the SCI3 main model-axis result.
 - Do not report projected or placeholder detection metrics as real AUROC, F1, ASR, clean utility, or cost-effectiveness evidence.
 
+## Current Worktree Readiness Evidence
+
+Checked during `dualscope-main-model-axis-upgrade-plan`:
+
+| Model | Checked local path | Observed status | Planning consequence |
+| --- | --- | --- | --- |
+| Qwen2.5-1.5B-Instruct | `/home/lh/TriScope-LLM/local_models/Qwen2.5-1.5B-Instruct` | exists | Pilot/debug/automation/ablation only |
+| Qwen2.5-7B-Instruct | `/home/lh/TriScope-LLM/local_models/Qwen2.5-7B-Instruct` and `local_models/Qwen2.5-7B-Instruct` | missing | Main model is planned / external-resource-required before execution |
+| Llama-3.1-8B-Instruct | `/home/lh/TriScope-LLM/local_models/Llama-3.1-8B-Instruct` and `local_models/Llama-3.1-8B-Instruct` | missing | Cross-model validation is planned / external-resource-required |
+| Mistral-7B-Instruct-v0.3 | `/home/lh/TriScope-LLM/local_models/Mistral-7B-Instruct-v0.3` and `local_models/Mistral-7B-Instruct-v0.3` | missing | Cross-model validation is planned / external-resource-required |
+
 ## Main-Table Eligibility
 
 | Evidence type | Eligible model axis |
