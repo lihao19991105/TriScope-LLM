@@ -3,7 +3,7 @@ set -Eeuo pipefail
 
 BASE="${BASE:-main}"
 REVIEW_PROMPT="${REVIEW_PROMPT:-@codex review}"
-STATE_FILE_REL=".git/codex-pr-state.json"
+STATE_FILE_REL="codex-pr-state.json"
 
 die() {
   printf 'codex-pr: error: %s\n' "$*" >&2
@@ -135,7 +135,8 @@ main() {
     die "working tree has uncommitted changes; commit or stash them before running this script"
   fi
 
-  local state_file="${repo_root}/${STATE_FILE_REL}"
+  local state_file
+  state_file="$(git rev-parse --git-path "$STATE_FILE_REL")"
   check_previous_pr "$state_file"
 
   local repo
