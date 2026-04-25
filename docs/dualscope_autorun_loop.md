@@ -62,12 +62,13 @@ If `codex` is unavailable or returns non-zero, the loop stops and writes failure
 
 - cwd: `/home/lh/TriScope-LLM`
 - `HOME=/home/lh`
+- `CODEX_HOME=/home/lh/TriScope-LLM/.tmp/codex_home`
 - `TMPDIR=/home/lh/TriScope-LLM/.tmp/codex`
 - `HTTP_PROXY=http://127.0.0.1:18080`
 - `HTTPS_PROXY=http://127.0.0.1:18080`
 - `ALL_PROXY=http://127.0.0.1:18080`
 
-Before execute mode calls Codex, the loop creates the TMPDIR and verifies it is writable. If the check fails, execution stops with a blocker and writes diagnostics.
+Before execute mode calls Codex, the loop creates the TMPDIR and a writable `CODEX_HOME` under `.tmp/`, copies the minimal local Codex auth/config files into that runtime-only directory, and verifies both locations are writable. If the check fails, execution stops with a blocker and writes diagnostics.
 
 ## Main Options
 

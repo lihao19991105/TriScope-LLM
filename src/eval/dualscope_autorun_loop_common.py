@@ -21,6 +21,8 @@ DEFAULT_PR_STATUS_OUTPUT_DIR = Path("outputs/dualscope_pr_review_status/default"
 DEFAULT_CODEX_CWD = Path("/home/lh/TriScope-LLM")
 DEFAULT_CODEX_HOME = Path("/home/lh")
 DEFAULT_CODEX_TMPDIR = Path("/home/lh/TriScope-LLM/.tmp/codex")
+DEFAULT_CODEX_STATE_DIR = Path("/home/lh/TriScope-LLM/.tmp/codex_home")
+SOURCE_CODEX_HOME = Path("/home/lh/.codex")
 DEFAULT_PROXY = "http://127.0.0.1:18080"
 FINAL_VERDICTS = {
     "validated": "Autorun execute hardening validated",
@@ -456,11 +458,54 @@ def ensure_codex_tmpdir(args: AutorunLoopArgs) -> dict[str, Any]:
     }
 
 
+def ensure_codex_state_dir() -> dict[str, Any]:
+    copied_files: list[str] = []
+    errors: list[dict[str, str]] = []
+    writable = False
+    try:
+        DEFAULT_CODEX_STATE_DIR.mkdir(parents=True, exist_ok=True)
+        for name in ("auth.json", "config.toml", "version.json", "installation_id"):
+            source = SOURCE_CODEX_HOME / name
+            target = DEFAULT_CODEX_STATE_DIR / name
+            if source.exists():
+                try:
+                    shutil.copy2(source, target)
+                    copied_files.append(name)
+                except Exception as exc:  # noqa: BLE001
+                    errors.append({"path": name, "error": str(exc)})
+        for dirname in ("rules", "skills"):
+            source_dir = SOURCE_CODEX_HOME / dirname
+            target_dir = DEFAULT_CODEX_STATE_DIR / dirname
+            if source_dir.exists() and not target_dir.exists():
+                try:
+                    shutil.copytree(source_dir, target_dir)
+                    copied_files.append(f"{dirname}/")
+                except Exception as exc:  # noqa: BLE001
+                    errors.append({"path": dirname, "error": str(exc)})
+        probe = DEFAULT_CODEX_STATE_DIR / ".dualscope_codex_home_write_check"
+        probe.write_text("ok\n", encoding="utf-8")
+        probe.unlink(missing_ok=True)
+        writable = True
+    except Exception as exc:  # noqa: BLE001
+        errors.append({"path": str(DEFAULT_CODEX_STATE_DIR), "error": str(exc)})
+    return {
+        "codex_home": str(DEFAULT_CODEX_STATE_DIR),
+        "source_codex_home": str(SOURCE_CODEX_HOME),
+        "exists": DEFAULT_CODEX_STATE_DIR.exists(),
+        "is_dir": DEFAULT_CODEX_STATE_DIR.is_dir(),
+        "writable": writable,
+        "copied_files": copied_files,
+        "errors": errors,
+    }
+
+
 def codex_exec_environment(args: AutorunLoopArgs, tmpdir_check: dict[str, Any] | None = None) -> dict[str, Any]:
     if tmpdir_check is None:
         tmpdir_check = ensure_codex_tmpdir(args)
+    codex_home_check = ensure_codex_state_dir()
+    summary_pass = bool(tmpdir_check.get("writable")) and bool(codex_home_check.get("writable")) and not codex_home_check.get("errors")
     return {
-        "summary_status": "PASS" if tmpdir_check.get("writable") else "FAIL",
+        "summary_status": "PASS" if summary_pass else "FAIL",
         "schema_version": "dualscope/autorun-loop-exec-environment/v1",
         "cwd": str(DEFAULT_CODEX_CWD),
         "cwd_exists": DEFAULT_CODEX_CWD.exists(),
@@ -469,8 +514,12 @@ def codex_exec_environment(args: AutorunLoopArgs, tmpdir_check: dict[str, Any] |
         "tmpdir": str(args.codex_tmpdir),
         "tmpdir_check": tmpdir_check,
         "tmpdir_writable": bool(tmpdir_check.get("writable")),
+        "codex_home": str(DEFAULT_CODEX_STATE_DIR),
+        "codex_home_check": codex_home_check,
+        "codex_home_writable": bool(codex_home_check.get("writable")),
         "env": {
             "HOME": str(DEFAULT_CODEX_HOME),
+            "CODEX_HOME": str(DEFAULT_CODEX_STATE_DIR),
             "TMPDIR": str(args.codex_tmpdir),
             "HTTP_PROXY": DEFAULT_PROXY,
             "HTTPS_PROXY": DEFAULT_PROXY,
@@ -482,6 +531,7 @@ def codex_exec_environment(args: AutorunLoopArgs, tmpdir_check: dict[str, Any] |
 def codex_process_env(args: AutorunLoopArgs) -> dict[str, str]:
     return {
         "HOME": str(DEFAULT_CODEX_HOME),
+        "CODEX_HOME": str(DEFAULT_CODEX_STATE_DIR),
         "TMPDIR": str(args.codex_tmpdir),
         "TMP": str(args.codex_tmpdir),
         "TEMP": str(args.codex_tmpdir),
@@ -504,6 +554,7 @@ def codex_command_preview(args: AutorunLoopArgs, selected_task: str | None, prom
         "command_display": shlex.join(command),
         "cwd": str(DEFAULT_CODEX_CWD),
         "home": str(DEFAULT_CODEX_HOME),
+        "codex_home": str(DEFAULT_CODEX_STATE_DIR),
         "tmpdir": str(args.codex_tmpdir),
         "selected_task": selected_task,
         "prompt_path": prompt_path,
@@ -523,7 +574,7 @@ def run_codex_exec(
     started = utc_now()
     tmpdir_check = ensure_codex_tmpdir(args)
     exec_env = codex_exec_environment(args, tmpdir_check)
-    if not tmpdir_check.get("writable"):
+    if not tmpdir_check.get("writable") or not exec_env.get("codex_home_writable") or exec_env.get("summary_status") != "PASS":
         return {
             "summary_status": "FAIL",
             "iteration": iteration,
@@ -541,7 +592,9 @@ def run_codex_exec(
             "selected_task": selected_task,
             "prompt_path": prompt_path,
             "stdout": "",
-            "stderr": tmpdir_check.get("error") or f"TMPDIR is not writable: {args.codex_tmpdir}",
+            "stderr": tmpdir_check.get("error")
+            or "; ".join(item.get("error", "") for item in exec_env.get("codex_home_check", {}).get("errors", []))
+            or f"Codex execution environment is not writable: TMPDIR={args.codex_tmpdir}, CODEX_HOME={DEFAULT_CODEX_STATE_DIR}",
         }
     if not codex_exec_available(args.codex_bin):
         return {
@@ -757,6 +810,7 @@ def run_autorun_loop(args: AutorunLoopArgs) -> tuple[int, dict[str, Any]]:
         "codex_bin": args.codex_bin,
         "codex_cwd": str(DEFAULT_CODEX_CWD),
         "codex_home": str(DEFAULT_CODEX_HOME),
+        "codex_state_dir": str(DEFAULT_CODEX_STATE_DIR),
         "codex_tmpdir": str(args.codex_tmpdir),
         "codex_extra_args": args.codex_extra_args,
         "codex_extra_args_list": codex_extra_args_list(args),
@@ -991,8 +1045,10 @@ def run_autorun_loop(args: AutorunLoopArgs) -> tuple[int, dict[str, Any]]:
         "runtime_log_dir": str(args.runtime_log_dir),
         "codex_cwd": str(DEFAULT_CODEX_CWD),
         "codex_home": str(DEFAULT_CODEX_HOME),
+        "codex_state_dir": str(DEFAULT_CODEX_STATE_DIR),
         "codex_tmpdir": str(args.codex_tmpdir),
         "tmpdir_writable": exec_environment.get("tmpdir_writable"),
+        "codex_home_writable": exec_environment.get("codex_home_writable"),
         "final_verdict": verdict,
         "recommendation": recommendation,
         "dangerous_actions": dangerous_actions,
