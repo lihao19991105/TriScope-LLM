@@ -20,13 +20,11 @@ DETAIL_FIELDS = "number,title,url,state,reviewDecision,statusCheckRollup,reviews
 FAIL_CONCLUSIONS = {"FAILURE", "ERROR", "CANCELLED", "TIMED_OUT", "ACTION_REQUIRED", "STARTUP_FAILURE"}
 PENDING_STATUSES = {"QUEUED", "IN_PROGRESS", "PENDING", "REQUESTED", "WAITING", "EXPECTED"}
 DEFAULT_ALLOWED_PATTERNS = [
-    ".gitignore",
     ".plans/dualscope-*",
     "src/eval/dualscope_*",
     "src/eval/post_dualscope_*",
     "scripts/build_dualscope_*",
     "scripts/build_post_dualscope_*",
-    "scripts/check_dualscope_*",
     "scripts/run_dualscope_*",
     "scripts/dualscope_*",
     "docs/dualscope_*",
