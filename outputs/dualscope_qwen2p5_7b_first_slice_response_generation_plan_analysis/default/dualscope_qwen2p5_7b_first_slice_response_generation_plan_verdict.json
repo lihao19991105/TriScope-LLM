@@ -1,0 +1,17 @@
+{
+  "schema_version": "dualscope/qwen2p5-7b-response-plan-analysis-verdict/v1",
+  "task_id": "dualscope-qwen2p5-7b-first-slice-response-generation-plan",
+  "generated_at": "2026-04-26T01:47:49+08:00",
+  "verdict": "Partially validated",
+  "analysis_summary": "Planning artifacts are present and honest, but execution readiness is blocked by missing Qwen2.5-7B resources and missing first-slice input artifacts.",
+  "must_not_claim": [
+    "Qwen2.5-7B responses",
+    "logprobs",
+    "AUROC",
+    "F1",
+    "ASR",
+    "clean utility",
+    "latency",
+    "full-paper performance"
+  ]
+}
