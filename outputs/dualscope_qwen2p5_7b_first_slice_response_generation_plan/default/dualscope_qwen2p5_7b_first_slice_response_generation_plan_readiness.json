@@ -1,0 +1,63 @@
+{
+  "schema_version": "dualscope/qwen2p5-7b-response-plan-readiness/v1",
+  "task_id": "dualscope-qwen2p5-7b-first-slice-response-generation-plan",
+  "generated_at": "2026-04-26T01:47:49+08:00",
+  "overall_status": "blocked_for_execution",
+  "checks": [
+    {
+      "name": "qwen2p5_7b_local_path_absolute",
+      "path": "/home/lh/TriScope-LLM/local_models/Qwen2.5-7B-Instruct",
+      "status": "missing"
+    },
+    {
+      "name": "qwen2p5_7b_local_path_relative",
+      "path": "local_models/Qwen2.5-7B-Instruct",
+      "status": "missing"
+    },
+    {
+      "name": "qwen2p5_1p5b_pilot_path",
+      "path": "/home/lh/TriScope-LLM/local_models/Qwen2.5-1.5B-Instruct",
+      "status": "present_pilot_only"
+    },
+    {
+      "name": "gpu_visibility",
+      "status": "visible",
+      "observed_gpus": [
+        {
+          "name": "NVIDIA GeForce RTX 2080 Ti",
+          "memory_mib": 11264
+        },
+        {
+          "name": "NVIDIA GeForce RTX 2080 Ti",
+          "memory_mib": 11264
+        },
+        {
+          "name": "NVIDIA GeForce RTX 3090",
+          "memory_mib": 24576
+        },
+        {
+          "name": "NVIDIA GeForce RTX 3090",
+          "memory_mib": 24576
+        }
+      ],
+      "note": "GPU visibility only; no Qwen2.5-7B inference was run."
+    },
+    {
+      "name": "labeled_pairs_input",
+      "path": "data/stanford_alpaca/first_slice/alpaca_first_slice_labeled_pairs.jsonl",
+      "status": "missing"
+    },
+    {
+      "name": "target_response_generation_plan_input",
+      "path": "outputs/dualscope_first_slice_target_response_generation_plan/default",
+      "status": "missing"
+    },
+    {
+      "name": "stage_protocol_scope",
+      "status": "ready_as_frozen_contract",
+      "note": "Stage 1/2/3 protocol is referenced as frozen; this task does not modify or rerun it."
+    }
+  ],
+  "response_generation_ready": false,
+  "metric_computation_ready": false
+}
