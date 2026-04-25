@@ -18,10 +18,13 @@ DEFAULT_QUEUE_FILE = Path("DUALSCOPE_TASK_QUEUE.md")
 DEFAULT_OUTPUT_DIR = Path("outputs/dualscope_autorun_loop/default")
 DEFAULT_TASK_ORCHESTRATOR_OUTPUT_DIR = Path("outputs/dualscope_task_orchestrator/default")
 DEFAULT_PR_STATUS_OUTPUT_DIR = Path("outputs/dualscope_pr_review_status/default")
+DEFAULT_TASK_WORKTREE_RUNNER_OUTPUT_DIR = Path("outputs/dualscope_task_worktree_runner/default")
+DEFAULT_SAFE_PR_MERGE_GATE_OUTPUT_DIR = Path("outputs/dualscope_safe_pr_merge_gate/default")
 DEFAULT_CODEX_CWD = Path("/home/lh/TriScope-LLM")
 DEFAULT_CODEX_HOME = Path("/home/lh")
 DEFAULT_CODEX_TMPDIR = Path("/home/lh/TriScope-LLM/.tmp/codex")
 DEFAULT_CODEX_STATE_DIR = Path("/home/lh/TriScope-LLM/.tmp/codex_home")
+DEFAULT_WORKTREE_ROOT = Path("/tmp/dualscope-worktrees")
 SOURCE_CODEX_HOME = Path("/home/lh/.codex")
 DEFAULT_PROXY = "http://127.0.0.1:18080"
 FINAL_VERDICTS = {
@@ -69,6 +72,18 @@ class AutorunLoopArgs:
     allow_review_pending_continue: bool
     stop_on_requested_changes: bool
     stop_on_failing_checks: bool
+    use_worktrees: bool
+    worktree_root: Path
+    enable_safe_auto_merge: bool
+    safe_merge_current_task_pr: bool
+    require_codex_review_before_merge: bool
+    max_review_wait_minutes: int
+    review_poll_interval_seconds: int
+    cleanup_merged_worktrees: bool
+    keep_failed_worktrees: bool
+    task_result_pr_packager: Path
+    safe_pr_merge_gate: Path
+    main_worktree_only_scheduler: bool
 
 
 def utc_now() -> str:
@@ -643,6 +658,122 @@ def run_codex_exec(
     }
 
 
+def run_task_worktree_runner(
+    args: AutorunLoopArgs,
+    iteration: int,
+    selected_task: str | None,
+    prompt_path: str | None,
+) -> dict[str, Any]:
+    if not selected_task or not prompt_path:
+        return {
+            "summary_status": "FAIL",
+            "iteration": iteration,
+            "reason": "missing_selected_task_or_prompt",
+            "selected_task": selected_task,
+            "prompt_path": prompt_path,
+        }
+    output_dir = DEFAULT_TASK_WORKTREE_RUNNER_OUTPUT_DIR
+    command = [
+        python_bin(),
+        str(args.task_result_pr_packager),
+        "--task-id",
+        selected_task,
+        "--prompt-file",
+        prompt_path,
+        "--base-branch",
+        "main",
+        "--worktree-root",
+        str(args.worktree_root),
+        "--branch-prefix",
+        "codex",
+        "--output-dir",
+        str(output_dir),
+        "--codex-bin",
+        args.codex_bin,
+        "--codex-extra-args",
+        args.codex_extra_args or "--cd {worktree_path} --full-auto",
+        "--max-minutes",
+        str(args.max_minutes),
+        "--cleanup-worktree",
+        "true" if args.cleanup_merged_worktrees else "false",
+        "--stop-on-dirty-main",
+        "true" if args.main_worktree_only_scheduler else "false",
+        "--proxy",
+        DEFAULT_PROXY,
+    ]
+    if args.ignore_runtime_dirty_paths:
+        command.append("--allow-runtime-dirty")
+    if args.dry_run:
+        command.append("--dry-run")
+    else:
+        command.append("--execute")
+    if args.keep_failed_worktrees:
+        command.append("--keep-worktree")
+    started = utc_now()
+    result = run_command(command, timeout=max(60, args.max_minutes * 60 + 300))
+    summary_path = output_dir / "dualscope_task_worktree_runner_summary.json"
+    pr_path = output_dir / "dualscope_task_worktree_runner_pr_creation_result.json"
+    manifest_path = output_dir / "dualscope_task_worktree_runner_worktree_manifest.json"
+    summary = read_json(summary_path) if summary_path.exists() else {}
+    pr_result = read_json(pr_path) if pr_path.exists() else {}
+    manifest = read_json(manifest_path) if manifest_path.exists() else {}
+    return {
+        "summary_status": "PASS" if result.returncode == 0 and summary.get("summary_status") in {"PASS", "WARN"} else "FAIL",
+        "iteration": iteration,
+        "started_at": started,
+        "completed_at": utc_now(),
+        "command": command,
+        "returncode": result.returncode,
+        "stdout": truncate_text(result.stdout, 12000),
+        "stderr": truncate_text(result.stderr, 12000),
+        "selected_task": selected_task,
+        "prompt_path": prompt_path,
+        "artifact_dir": str(output_dir),
+        "runner_summary": summary,
+        "pr_creation_result": pr_result,
+        "worktree_manifest": manifest,
+        "created_pr_number": summary.get("created_pr_number") or pr_result.get("created_pr_number"),
+        "created_pr_url": summary.get("created_pr_url") or pr_result.get("created_pr_url"),
+        "worktree_path": summary.get("worktree_path") or manifest.get("worktree_path"),
+        "branch": summary.get("branch") or manifest.get("branch"),
+    }
+
+
+def run_safe_pr_merge_gate(args: AutorunLoopArgs, pr_number: int, merge: bool) -> dict[str, Any]:
+    command = [
+        python_bin(),
+        str(args.safe_pr_merge_gate),
+        "--pr",
+        str(pr_number),
+        "--output-dir",
+        str(DEFAULT_SAFE_PR_MERGE_GATE_OUTPUT_DIR),
+        "--require-codex-review",
+        "true" if args.require_codex_review_before_merge else "false",
+        "--require-no-requested-changes",
+        "true" if args.stop_on_requested_changes else "false",
+        "--require-no-failing-checks",
+        "true" if args.stop_on_failing_checks else "false",
+        "--proxy",
+        DEFAULT_PROXY,
+    ]
+    command.append("--merge" if merge else "--check-only")
+    started = utc_now()
+    result = run_command(command, timeout=300)
+    decision_path = DEFAULT_SAFE_PR_MERGE_GATE_OUTPUT_DIR / "dualscope_safe_pr_merge_gate_decision.json"
+    decision = read_json(decision_path) if decision_path.exists() else {}
+    return {
+        "summary_status": "PASS" if result.returncode == 0 else "FAIL",
+        "started_at": started,
+        "completed_at": utc_now(),
+        "command": command,
+        "returncode": result.returncode,
+        "stdout": truncate_text(result.stdout, 12000),
+        "stderr": truncate_text(result.stderr, 12000),
+        "decision": decision,
+        "artifact_dir": str(DEFAULT_SAFE_PR_MERGE_GATE_OUTPUT_DIR),
+    }
+
+
 def git_changed_files() -> dict[str, Any]:
     result = run_command(["git", "status", "--porcelain"], timeout=60)
     return {
@@ -715,6 +846,8 @@ def render_report(summary: dict[str, Any], blockers: list[dict[str, Any]], selec
         f"- Stop reason: {summary['stop_reason']}",
         f"- Codex exec available: {summary['codex_exec_available']}",
         f"- Ignore runtime dirty paths: {summary['ignore_runtime_dirty_paths']}",
+        f"- Use worktrees: {summary.get('use_worktrees')}",
+        f"- Safe auto merge enabled: {summary.get('enable_safe_auto_merge')}",
         "",
         "## Selected Tasks",
     ]
@@ -754,6 +887,9 @@ def render_dry_run_plan(selected_tasks: list[dict[str, Any]], args: AutorunLoopA
         f"- max minutes: {args.max_minutes}",
         f"- task orchestrator output: `{args.task_orchestrator_output_dir}`",
         f"- codex command preview: `{shlex.join(redacted_codex_exec_command(args))}`",
+        f"- use worktrees: `{args.use_worktrees}`",
+        f"- worktree root: `{args.worktree_root}`",
+        f"- safe auto merge: `{args.enable_safe_auto_merge}`",
         "",
     ]
     for row in selected_tasks:
@@ -779,6 +915,10 @@ def run_autorun_loop(args: AutorunLoopArgs) -> tuple[int, dict[str, Any]]:
     selected_tasks_path = args.output_dir / "dualscope_autorun_loop_selected_tasks.jsonl"
     exec_results_path = args.output_dir / "dualscope_autorun_loop_codex_exec_results.jsonl"
     pr_history_path = args.output_dir / "dualscope_autorun_loop_pr_status_history.jsonl"
+    worktree_iterations_path = args.output_dir / "dualscope_autorun_loop_worktree_iterations.jsonl"
+    created_prs_path = args.output_dir / "dualscope_autorun_loop_created_prs.jsonl"
+    merge_decisions_path = args.output_dir / "dualscope_autorun_loop_merge_decisions.jsonl"
+    worktree_cleanup_path = args.output_dir / "dualscope_autorun_loop_worktree_cleanup.jsonl"
     dirty_check_path = args.output_dir / "dualscope_autorun_loop_dirty_worktree_classification.json"
     legacy_dirty_check_path = args.output_dir / "dualscope_autorun_loop_dirty_worktree_check.json"
     command_preview_path = args.output_dir / "dualscope_autorun_loop_codex_command_preview.json"
@@ -786,7 +926,16 @@ def run_autorun_loop(args: AutorunLoopArgs) -> tuple[int, dict[str, Any]]:
     failure_diagnostics_path = args.output_dir / "dualscope_autorun_loop_exec_failure_diagnostics.json"
     legacy_failure_details_path = args.output_dir / "dualscope_autorun_loop_codex_failure_details.json"
     failure_report_path = args.output_dir / "dualscope_autorun_loop_codex_failure_report.md"
-    for path in [iterations_path, selected_tasks_path, exec_results_path, pr_history_path]:
+    for path in [
+        iterations_path,
+        selected_tasks_path,
+        exec_results_path,
+        pr_history_path,
+        worktree_iterations_path,
+        created_prs_path,
+        merge_decisions_path,
+        worktree_cleanup_path,
+    ]:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text("", encoding="utf-8")
     for path in [failure_diagnostics_path, legacy_failure_details_path, failure_report_path]:
@@ -820,6 +969,18 @@ def run_autorun_loop(args: AutorunLoopArgs) -> tuple[int, dict[str, Any]]:
         "codex_extra_args": args.codex_extra_args,
         "codex_extra_args_list": codex_extra_args_list(args),
         "ignore_runtime_dirty_paths": args.ignore_runtime_dirty_paths,
+        "use_worktrees": args.use_worktrees,
+        "worktree_root": str(args.worktree_root),
+        "enable_safe_auto_merge": args.enable_safe_auto_merge,
+        "safe_merge_current_task_pr": args.safe_merge_current_task_pr,
+        "require_codex_review_before_merge": args.require_codex_review_before_merge,
+        "max_review_wait_minutes": args.max_review_wait_minutes,
+        "review_poll_interval_seconds": args.review_poll_interval_seconds,
+        "cleanup_merged_worktrees": args.cleanup_merged_worktrees,
+        "keep_failed_worktrees": args.keep_failed_worktrees,
+        "task_result_pr_packager": str(args.task_result_pr_packager),
+        "safe_pr_merge_gate": str(args.safe_pr_merge_gate),
+        "main_worktree_only_scheduler": args.main_worktree_only_scheduler,
         "stop_on_review_pending": args.stop_on_review_pending,
         "allow_review_pending_continue": args.allow_review_pending_continue,
         "stop_on_requested_changes": args.stop_on_requested_changes,
@@ -947,6 +1108,66 @@ def run_autorun_loop(args: AutorunLoopArgs) -> tuple[int, dict[str, Any]]:
                 "selected_task": selected_task,
                 "prompt_path": task_result.get("prompt_path"),
             }
+        elif args.use_worktrees:
+            exec_result = run_task_worktree_runner(
+                args,
+                iteration,
+                selected_task,
+                task_result.get("prompt_path"),
+            )
+            write_jsonl(worktree_iterations_path, [exec_result], append=True)
+            created_pr_number = exec_result.get("created_pr_number")
+            created_pr_url = exec_result.get("created_pr_url")
+            if created_pr_url:
+                created_row = {
+                    "iteration": iteration,
+                    "selected_task": selected_task,
+                    "created_pr_number": created_pr_number,
+                    "created_pr_url": created_pr_url,
+                    "worktree_path": exec_result.get("worktree_path"),
+                    "branch": exec_result.get("branch"),
+                    "created_at": utc_now(),
+                }
+                write_jsonl(created_prs_path, [created_row], append=True)
+            if exec_result.get("summary_status") != "PASS":
+                blockers.append({"kind": "task_worktree_runner_failure", "message": exec_result.get("stderr") or "task worktree runner failed"})
+                stop_reason = "task_worktree_runner_failure"
+            elif args.dry_run:
+                stop_reason = "dry_run_completed"
+            elif created_pr_number and args.enable_safe_auto_merge and args.safe_merge_current_task_pr:
+                deadline = time.monotonic() + max(0, args.max_review_wait_minutes) * 60
+                merge_decision = run_safe_pr_merge_gate(args, int(created_pr_number), merge=True)
+                while (
+                    merge_decision.get("decision", {}).get("decision") == "blocked"
+                    and any(item.get("kind") == "codex_review_missing" for item in merge_decision.get("decision", {}).get("blockers", []))
+                    and time.monotonic() < deadline
+                ):
+                    time.sleep(max(1, args.review_poll_interval_seconds))
+                    merge_decision = run_safe_pr_merge_gate(args, int(created_pr_number), merge=True)
+                write_jsonl(merge_decisions_path, [merge_decision], append=True)
+                if merge_decision.get("decision", {}).get("merged"):
+                    pull_result = run_command(["git", "pull", "origin", "main"], timeout=180)
+                    cleanup_row = {
+                        "iteration": iteration,
+                        "pr": created_pr_number,
+                        "worktree_path": exec_result.get("worktree_path"),
+                        "pull_after_merge": command_row("git_pull_origin_main", pull_result),
+                        "cleanup_attempted": False,
+                        "cleanup_result": None,
+                    }
+                    if args.cleanup_merged_worktrees and exec_result.get("worktree_path"):
+                        cleanup_result = run_command(["git", "worktree", "remove", str(exec_result["worktree_path"])], timeout=180)
+                        cleanup_row["cleanup_attempted"] = True
+                        cleanup_row["cleanup_result"] = command_row("git_worktree_remove", cleanup_result)
+                    write_jsonl(worktree_cleanup_path, [cleanup_row], append=True)
+                    stop_reason = "max_iterations"
+                else:
+                    blockers.extend(merge_decision.get("decision", {}).get("blockers") or [])
+                    stop_reason = "safe_merge_gate_blocker"
+            elif created_pr_number:
+                stop_reason = "task_pr_created_pending_merge"
+            else:
+                stop_reason = exec_result.get("runner_summary", {}).get("stop_reason") or "worktree_task_completed"
         elif args.dry_run:
             exec_result = {
                 "summary_status": "SKIPPED",
@@ -1054,6 +1275,12 @@ def run_autorun_loop(args: AutorunLoopArgs) -> tuple[int, dict[str, Any]]:
         "codex_tmpdir": str(args.codex_tmpdir),
         "tmpdir_writable": exec_environment.get("tmpdir_writable"),
         "codex_home_writable": exec_environment.get("codex_home_writable"),
+        "use_worktrees": args.use_worktrees,
+        "worktree_root": str(args.worktree_root),
+        "enable_safe_auto_merge": args.enable_safe_auto_merge,
+        "safe_merge_current_task_pr": args.safe_merge_current_task_pr,
+        "task_worktree_runner_output_dir": str(DEFAULT_TASK_WORKTREE_RUNNER_OUTPUT_DIR),
+        "safe_pr_merge_gate_output_dir": str(DEFAULT_SAFE_PR_MERGE_GATE_OUTPUT_DIR),
         "final_verdict": verdict,
         "recommendation": recommendation,
         "dangerous_actions": dangerous_actions,
@@ -1078,7 +1305,8 @@ def run_autorun_loop(args: AutorunLoopArgs) -> tuple[int, dict[str, Any]]:
         "log_path": str(log_path),
         "tmpdir_writable": exec_environment.get("tmpdir_writable"),
         "safe_constraints": {
-            "auto_merge": False,
+            "auto_merge_default": False,
+            "auto_merge_enabled": args.enable_safe_auto_merge,
             "force_push": False,
             "delete_branch": False,
             "remote_rewrite": False,
