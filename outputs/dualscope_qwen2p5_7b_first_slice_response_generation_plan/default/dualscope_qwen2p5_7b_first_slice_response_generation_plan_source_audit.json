@@ -1,31 +1,48 @@
 {
-  "schema_version": "dualscope/qwen2p5-7b-response-plan-source-audit/v1",
+  "schema_version": "dualscope/qwen2p5-7b-first-slice-response-generation-plan-source-audit/v1",
   "task_id": "dualscope-qwen2p5-7b-first-slice-response-generation-plan",
-  "generated_at": "2026-04-26T01:47:49+08:00",
-  "required_inputs": [
+  "generated_at": "2026-04-26T03:35:11+08:00",
+  "documents_read": [
+    "AGENTS.md",
+    "PLANS.md",
+    "DUALSCOPE_MASTER_PLAN.md",
+    "DUALSCOPE_TASK_QUEUE.md",
+    "docs/dualscope_sci3_model_matrix.md",
+    "docs/dualscope_sci3_resource_plan_2x3090.md",
+    "docs/dualscope_sci3_experimental_track.md",
+    "outputs/dualscope_main_model_axis_upgrade_plan/default/dualscope_main_model_axis_upgrade_plan_report.md",
+    "outputs/dualscope_main_model_axis_upgrade_plan/default/dualscope_main_model_axis_resource_readiness.json",
+    "outputs/dualscope_main_model_axis_upgrade_plan/default/dualscope_main_model_axis_upgrade_plan_verdict.json"
+  ],
+  "expected_inputs": [
     {
       "path": "data/stanford_alpaca/first_slice/alpaca_first_slice_labeled_pairs.jsonl",
-      "status": "missing",
-      "required_for": "row-level clean/poisoned response-generation requests"
+      "required": true,
+      "exists": false,
+      "status": "blocked",
+      "note": "Required labeled clean/poisoned first-slice pairs are absent in this isolated worktree."
     },
     {
       "path": "outputs/dualscope_main_model_axis_upgrade_plan/default",
-      "status": "present",
-      "required_for": "SCI3 model-axis role and resource-readiness contract"
+      "required": true,
+      "exists": true,
+      "status": "ready_for_planning",
+      "note": "SCI3 model-axis planning artifacts are present and identify Qwen2.5-7B as the main model."
     },
     {
       "path": "outputs/dualscope_first_slice_target_response_generation_plan/default",
-      "status": "missing",
-      "required_for": "prior target-response generation request manifest and schema"
+      "required": true,
+      "exists": false,
+      "status": "blocked",
+      "note": "Prior target-response generation planning output is absent in this isolated worktree."
     }
   ],
-  "supporting_inputs": [
+  "related_existing_artifacts": [
     {
       "path": "data/stanford_alpaca/first_slice/alpaca_first_slice_source.jsonl.manifest.json",
-      "status": "present",
-      "note": "Source manifest exists, but it is not a substitute for labeled clean/poisoned pairs."
+      "exists": true,
+      "note": "Source manifest exists, but it does not replace the required labeled pairs file."
     }
   ],
-  "model_axis_upgrade_verdict": "SCI3 main model axis upgrade plan validated",
-  "model_axis_claim_boundary": "Model-axis role contract exists; Qwen2.5-7B response generation has not run."
+  "source_audit_verdict": "source_inputs_partially_available"
 }
