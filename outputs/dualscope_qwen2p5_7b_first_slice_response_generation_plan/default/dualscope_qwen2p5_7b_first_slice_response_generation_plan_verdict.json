@@ -1,20 +1,31 @@
 {
-  "schema_version": "dualscope/qwen2p5-7b-response-plan-verdict/v1",
+  "schema_version": "dualscope/qwen2p5-7b-first-slice-response-generation-plan-verdict/v1",
   "task_id": "dualscope-qwen2p5-7b-first-slice-response-generation-plan",
-  "generated_at": "2026-04-26T01:47:49+08:00",
+  "generated_at": "2026-04-26T03:35:11+08:00",
   "verdict": "Partially validated",
   "validated": false,
   "partially_validated": true,
+  "not_validated": false,
   "reasons": [
-    "The Qwen2.5-7B first-slice response-generation plan and readiness artifacts were written.",
-    "The plan preserves Stanford Alpaca first-slice, lexical trigger cftrigger, fixed target text, and frozen Stage 1/2/3 protocol.",
-    "The SCI3 model-axis contract exists and keeps Qwen2.5-7B as the main experimental model."
+    "The planning scope, SCI3 model role, frozen dataset/trigger/target/protocol contract, successor command shape, and blocker register are documented.",
+    "The required labeled first-slice pairs JSONL is missing.",
+    "The required prior target-response generation planning directory is missing.",
+    "No real Qwen2.5-7B-Instruct local model path is confirmed.",
+    "The current GPU runtime readiness check failed to communicate with the NVIDIA driver."
   ],
-  "blockers": [
-    "No real local Qwen2.5-7B-Instruct path is confirmed.",
-    "data/stanford_alpaca/first_slice/alpaca_first_slice_labeled_pairs.jsonl is missing.",
-    "outputs/dualscope_first_slice_target_response_generation_plan/default is missing."
-  ],
-  "claim_boundary": "No Qwen2.5-7B responses, logprobs, AUROC, F1, ASR, clean utility, latency, benchmark truth changes, or gates are produced by this task.",
-  "next_task": "dualscope-qwen2p5-7b-first-slice-response-generation-plan-repair"
+  "honesty_checks": {
+    "model_responses_claimed": false,
+    "logprobs_claimed": false,
+    "auroc_f1_asr_utility_claimed": false,
+    "benchmark_truth_modified": false,
+    "gates_modified": false,
+    "full_matrix_executed": false,
+    "route_c_continued": false
+  },
+  "next_task": "Clear blockers, then run a separate Qwen2.5-7B first-slice response generation execution task.",
+  "approved_verdict_set": [
+    "Qwen2.5-7B first-slice response generation plan validated",
+    "Partially validated",
+    "Not validated"
+  ]
 }
