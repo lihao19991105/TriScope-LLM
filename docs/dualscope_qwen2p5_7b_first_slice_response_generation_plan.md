@@ -21,9 +21,9 @@ This document is the handoff plan for Qwen2.5-7B-Instruct first-slice response g
 | SCI3 model-axis plan | ready | `outputs/dualscope_main_model_axis_upgrade_plan/default` exists |
 | Alpaca labeled pairs | blocked | `data/stanford_alpaca/first_slice/alpaca_first_slice_labeled_pairs.jsonl` is missing in this worktree |
 | Target-response plan | blocked | `outputs/dualscope_first_slice_target_response_generation_plan/default` is missing in this worktree |
-| Qwen2.5-7B local path | blocked | No real local path is confirmed |
+| Qwen2.5-7B local path | partially ready | Mounted snapshot observed at `/mnt/sda3/lh/models/qwen2p5-7b-instruct`; repo-local `models/qwen2p5-7b-instruct` binding is absent |
 | GPU visibility | blocked | Fresh `nvidia-smi` check failed to communicate with the NVIDIA driver; prior SCI3 artifacts record earlier visibility but do not make this session executable |
-| Disk for fresh 7B materialization | blocked | Current filesystem has about 19 GB free, below the conservative resource-materialization threshold |
+| Disk for fresh 7B materialization | partially ready | `/mnt/sda3/lh` has sufficient space and already contains the mounted model snapshot; the worktree filesystem has about 19 GB free and should not be used for fresh materialization |
 
 ## Execution Guardrails
 
@@ -41,7 +41,7 @@ The successor execution task may add a real generation entrypoint after blockers
 python3 scripts/build_dualscope_qwen2p5_7b_first_slice_response_generation.py \
   --labeled-pairs data/stanford_alpaca/first_slice/alpaca_first_slice_labeled_pairs.jsonl \
   --target-response-plan-dir outputs/dualscope_first_slice_target_response_generation_plan/default \
-  --model-path /path/to/Qwen2.5-7B-Instruct \
+  --model-path /mnt/sda3/lh/models/qwen2p5-7b-instruct \
   --output-dir outputs/dualscope_qwen2p5_7b_first_slice_response_generation/default \
   --seed 2025 \
   --trigger-text cftrigger \
@@ -55,4 +55,4 @@ This command is a planned shape only. It has not been executed in this task.
 
 Final verdict: `Partially validated`.
 
-The plan is validated as a planning and blocker package, but actual Qwen2.5-7B first-slice response generation remains blocked by missing first-slice inputs, missing target-response plan outputs, missing local Qwen2.5-7B resources, insufficient free disk for a fresh materialization, and failed current GPU visibility.
+The plan is validated as a planning and blocker package, but actual Qwen2.5-7B first-slice response generation remains blocked by missing first-slice inputs, missing target-response plan outputs, absent repo-local model binding/config wiring, and failed current GPU visibility. A mounted Qwen2.5-7B snapshot exists at `/mnt/sda3/lh/models/qwen2p5-7b-instruct`, but this task did not load it or generate responses.

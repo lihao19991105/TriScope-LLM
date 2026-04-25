@@ -32,11 +32,12 @@ This is a planning and readiness task only. It does not run Qwen2.5-7B, generate
 - `AGENTS.md`, `PLANS.md`, and `DUALSCOPE_MASTER_PLAN.md` define the current DualScope mainline: Stage 1 illumination screening, Stage 2 confidence verification, and Stage 3 budget-aware lightweight fusion.
 - `DUALSCOPE_TASK_QUEUE.md` defines this task after `dualscope-main-model-axis-upgrade-plan`.
 - `docs/dualscope_sci3_model_matrix.md` and `docs/dualscope_sci3_resource_plan_2x3090.md` define Qwen2.5-7B as the main experimental model and require real local resources before execution.
-- `outputs/dualscope_main_model_axis_upgrade_plan/default` exists and records that Qwen2.5-7B is planned / external-resource-required.
+- `outputs/dualscope_main_model_axis_upgrade_plan/default` exists and records that Qwen2.5-7B is the SCI3 main experimental model.
 - `data/stanford_alpaca/first_slice/alpaca_first_slice_labeled_pairs.jsonl` is expected but missing in this isolated worktree. Only the source manifest is present.
 - `outputs/dualscope_first_slice_target_response_generation_plan/default` is expected but missing in this isolated worktree.
+- `/mnt/sda3/lh/models/qwen2p5-7b-instruct` contains a Qwen2.5-7B-Instruct-style local model snapshot with `config.json`, tokenizer files, four safetensor shards, and about 15 GB of model files. The repo-local `models/qwen2p5-7b-instruct` path is not present in this worktree.
 - The prior SCI3 model-axis artifact recorded GPU visibility, but the fresh check for this task failed with `NVIDIA-SMI has failed because it couldn't communicate with the NVIDIA driver`. Current GPU readiness is therefore blocked for execution.
-- Current free disk on the worktree filesystem is about 19 GB, below the conservative threshold needed for fresh Qwen2.5-7B materialization.
+- Current free disk on `/mnt/sda3/lh` is sufficient for the observed mounted model path, while the worktree filesystem itself has about 19 GB free and should not be used for fresh model materialization.
 
 Historical TriScope / route_c artifacts are not used by this plan except as background reliability foundation. This plan does not extend route_c or present it as the current research contribution.
 
@@ -65,14 +66,14 @@ Historical TriScope / route_c artifacts are not used by this plan except as back
 
 - The isolated worktree contains only the Alpaca first-slice source manifest, not `data/stanford_alpaca/first_slice/alpaca_first_slice_labeled_pairs.jsonl`.
 - The expected prior directory `outputs/dualscope_first_slice_target_response_generation_plan/default` is absent in this worktree.
-- Obvious local Qwen2.5-7B paths are absent: `/home/lh/TriScope-LLM/local_models/Qwen2.5-7B-Instruct` and `local_models/Qwen2.5-7B-Instruct`.
-- Earlier SCI3 model-axis artifacts recorded GPU visibility in a prior run, but this task's fresh `nvidia-smi` check failed. Current execution readiness is blocked by missing first-slice inputs, missing target-response plan outputs, missing Qwen2.5-7B local model path, insufficient disk for fresh materialization, and failed GPU visibility.
+- A mounted Qwen2.5-7B model directory exists at `/mnt/sda3/lh/models/qwen2p5-7b-instruct`; however, no repo-local model symlink/path exists, and this task did not load or run the model.
+- Earlier SCI3 model-axis artifacts recorded GPU visibility in a prior run, but this task's fresh `nvidia-smi` check failed. Current execution readiness is blocked by missing first-slice inputs, missing target-response plan outputs, missing repo-local model path binding, and failed GPU visibility.
 
 ## Decision Log
 
-- The final verdict is `Partially validated` because the plan and blocker package are complete, but required execution inputs and the real 7B local path are missing.
+- The final verdict is `Partially validated` because the plan and blocker package are complete, and a mounted 7B snapshot is visible, but required first-slice inputs, target-response plan outputs, repo-local model binding, and current GPU visibility are missing.
 - No fallback to Qwen2.5-1.5B is used for this task because 1.5B is restricted to pilot/debug/automation/ablation and cannot substitute for Qwen2.5-7B main-model evidence.
-- The next executable task must remain blocked until a real Qwen2.5-7B path, expected first-slice input artifacts, target-response plan outputs, sufficient disk, and working GPU visibility are available.
+- The next executable task must remain blocked until expected first-slice input artifacts, target-response plan outputs, a configured Qwen2.5-7B model path, and working GPU visibility are available.
 
 ## Plan of Work
 
@@ -82,8 +83,8 @@ The successor execution task should run only after the blocker register is clear
 
 1. Restore or regenerate `data/stanford_alpaca/first_slice/alpaca_first_slice_labeled_pairs.jsonl` from the frozen Alpaca first-slice materialization chain.
 2. Restore or regenerate `outputs/dualscope_first_slice_target_response_generation_plan/default`.
-3. Provide a real Qwen2.5-7B-Instruct local path, or explicitly mark the successor execution task as external-resource-required.
-4. Restore working GPU visibility and sufficient storage for the selected model path or cache location.
+3. Bind the mounted Qwen2.5-7B-Instruct snapshot at `/mnt/sda3/lh/models/qwen2p5-7b-instruct` into the configured execution path, or explicitly configure the successor task to use that mounted path.
+4. Restore working GPU visibility for the selected execution environment.
 5. Re-run readiness checks for the exact model path, tokenizer path, GPU visibility, dependency availability, and first-slice artifact schema.
 6. Only then run the successor `dualscope-qwen2p5-7b-first-slice-response-generation` task.
 
@@ -93,7 +94,7 @@ This planning package is acceptable when:
 
 - It names Qwen2.5-7B-Instruct as the main experimental model.
 - It preserves Stanford Alpaca first-slice, lexical trigger `cftrigger`, fixed target text, and frozen Stage 1 / Stage 2 / Stage 3 protocol.
-- It records that expected inputs and local 7B resources are missing when they are missing.
+- It records that expected inputs, repo-local model binding, and current GPU resources are missing when they are missing.
 - It does not create model responses, logprobs, AUROC, F1, ASR, utility, latency, benchmark truth, or gates.
 - Its final verdict is one of the task-approved verdicts.
 
@@ -103,4 +104,4 @@ PR workflow status: blocked in this session. Local `git add` failed because the 
 
 ## Idempotence and Recovery
 
-The output directory is planning-only and can be regenerated safely. Once the missing labeled pairs, target-response plan artifacts, and Qwen2.5-7B local path are supplied, update readiness artifacts or run the successor execution task. Do not retroactively mark this planning task as having produced responses or metrics.
+The output directory is planning-only and can be regenerated safely. Once the missing labeled pairs, target-response plan artifacts, configured Qwen2.5-7B path, and GPU visibility are supplied, update readiness artifacts or run the successor execution task. Do not retroactively mark this planning task as having produced responses or metrics.
