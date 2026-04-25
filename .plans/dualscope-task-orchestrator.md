@@ -51,12 +51,13 @@ This plan does not repurpose historical TriScope / route_c chains as a mainline 
 - [x] M2: Task queue and common logic implemented.
 - [x] M3: CLI, prompt generation, and docs completed.
 - [x] M4: Required tests run and results recorded.
-- [ ] M5: Commit, PR creation, Codex Review trigger, and previous PR status check completed.
+- [x] M5: Commit, PR creation, Codex Review trigger, and previous PR status check completed.
 
 ## Surprises & Discoveries
 
 - The current checkout started on PR #4 branch, while local `main` did not include `scripts/dualscope_pr_review_orchestrator.py`. The new orchestrator therefore keeps the required existing-orchestrator integration conditional and falls back to `gh` when the script is absent.
 - The first dry-run correctly selected no new task because the implementation files were still uncommitted and the working tree was dirty. The required artifacts were still written under the default output directory.
+- The first `scripts/codex-pr.sh` run created PR #5 but timed out while posting `@codex review`; rerunning the script reused PR #5 and successfully posted the review request.
 
 ## Decision Log
 
