@@ -1,35 +1,48 @@
 {
-  "schema_version": "dualscope/qwen2p5-7b-response-plan-blockers/v1",
+  "schema_version": "dualscope/qwen2p5-7b-first-slice-response-generation-plan-blockers/v1",
   "task_id": "dualscope-qwen2p5-7b-first-slice-response-generation-plan",
-  "generated_at": "2026-04-26T01:47:49+08:00",
+  "generated_at": "2026-04-26T03:35:11+08:00",
   "blockers": [
     {
-      "blocker_id": "missing_qwen2p5_7b_local_model",
-      "severity": "execution_blocker",
-      "description": "No real local Qwen2.5-7B-Instruct path is confirmed.",
-      "required_resolution": "Provide a real local model/tokenizer path or explicitly authorize an external resource for the successor execution task."
+      "id": "missing_labeled_pairs",
+      "severity": "hard",
+      "status": "open",
+      "path": "data/stanford_alpaca/first_slice/alpaca_first_slice_labeled_pairs.jsonl",
+      "required_to_execute": true,
+      "resolution": "Restore or regenerate the frozen Stanford Alpaca clean/poisoned first-slice labeled-pairs JSONL without modifying benchmark truth."
     },
     {
-      "blocker_id": "missing_labeled_pairs",
-      "severity": "execution_blocker",
-      "description": "The expected Stanford Alpaca first-slice labeled pairs JSONL is missing.",
-      "required_resolution": "Restore or regenerate data/stanford_alpaca/first_slice/alpaca_first_slice_labeled_pairs.jsonl from the frozen first-slice label materialization chain."
+      "id": "missing_target_response_generation_plan",
+      "severity": "hard",
+      "status": "open",
+      "path": "outputs/dualscope_first_slice_target_response_generation_plan/default",
+      "required_to_execute": true,
+      "resolution": "Restore or rerun the first-slice target-response generation planning package so row-level request contracts are available."
     },
     {
-      "blocker_id": "missing_target_response_plan",
-      "severity": "execution_blocker",
-      "description": "The expected prior target-response-generation plan directory is missing.",
-      "required_resolution": "Restore or regenerate outputs/dualscope_first_slice_target_response_generation_plan/default before Qwen2.5-7B response generation."
+      "id": "missing_qwen2p5_7b_local_path",
+      "severity": "hard",
+      "status": "open",
+      "checked_paths": [
+        "/home/lh/TriScope-LLM/local_models/Qwen2.5-7B-Instruct",
+        "local_models/Qwen2.5-7B-Instruct"
+      ],
+      "required_to_execute": true,
+      "resolution": "Provide a real local Qwen2.5-7B-Instruct model path or explicitly provision an approved external resource."
+    },
+    {
+      "id": "current_gpu_runtime_check_failed",
+      "severity": "hard",
+      "status": "open",
+      "command": "nvidia-smi --query-gpu=index,name,memory.total --format=csv,noheader",
+      "observed_error": "NVIDIA-SMI has failed because it couldn't communicate with the NVIDIA driver.",
+      "required_to_execute": true,
+      "resolution": "Restore NVIDIA driver/runtime visibility and rerun GPU readiness checks before any 7B inference task."
     }
   ],
-  "non_blocking_observations": [
-    {
-      "observation_id": "gpu_visibility_present",
-      "description": "Two RTX 3090 GPUs are visible, but no model inference readiness is certified."
-    },
-    {
-      "observation_id": "pilot_1p5b_path_present",
-      "description": "A Qwen2.5-1.5B local path exists, but it is pilot/debug only and is not a substitute for 7B main-model evidence."
-    }
-  ]
+  "non_blocker_notes": [
+    "Qwen2.5-1.5B-Instruct must not be used as a substitute for Qwen2.5-7B main-model evidence.",
+    "This task intentionally does not create response, logprob, or metric artifacts."
+  ],
+  "blocker_verdict": "execution_blocked"
 }
