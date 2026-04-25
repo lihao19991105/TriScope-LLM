@@ -88,6 +88,8 @@
 
 当前 minimal first-slice real run 的 long compression / enablement 链已完成。模型最小生成 probe 与本地 logits-softmax 概率 probe 已 validated；clean/poisoned labeled slice plan 已 validated；labeled rerun 诚实保留 `Partially validated`，因为 Stage 3 仍是 source-example level prediction；其 repair/compression package 已 validated，并产出 row_id-keyed condition-level rerun input slice。当前唯一推荐下一步是 `dualscope-minimal-first-slice-condition-level-rerun`，用于在同一 dataset/model/trigger/target/budget 范围内补齐 condition-level Stage 1/2/3 outputs 与后续真实性能指标前置条件。
 
+当前 autorun worktree / safe merge gate 自动化闭环已 validated，上一段 first-slice 队列已完成。下一阶段进入 `dualscope-first-slice-real-experiment`，先新增并执行最小 Stanford Alpaca first-slice 实验链：真实或明确 fallback 的 response generation、label-aligned metrics、result package、next-experiment readiness。该阶段仍不得扩完整矩阵、模型轴、budget、trigger family、target family，不得伪造模型响应或指标。
+
 ---
 
 ## 1. What an ExecPlan Is
