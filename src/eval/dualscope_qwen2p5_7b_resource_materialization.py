@@ -13,6 +13,7 @@ from src.eval.dualscope_qwen2p5_7b_resource_common import (
     DEFAULT_TARGET_TEXT,
     DEFAULT_TRIGGER_TEXT,
     QWEN_PLAN_VERDICT_PATH,
+    RESOURCE_REPAIR_VERDICT_PATH,
     check_model_load_readiness,
     check_transformers_config,
     check_transformers_tokenizer,
@@ -183,6 +184,27 @@ def build_resource_materialization(
     write_json(output_dir / "dualscope_qwen2p5_7b_resource_materialization_summary.json", summary)
     write_json(output_dir / "dualscope_qwen2p5_7b_resource_materialization_verdict.json", verdict)
     write_json(output_dir / "dualscope_qwen2p5_7b_resource_materialization_next_step_recommendation.json", recommendation)
+    repair_verdict = {
+        "schema_version": "dualscope/qwen2p5-7b-resource-materialization-repair-verdict/v1",
+        "task_id": "dualscope-qwen2p5-7b-resource-materialization-repair",
+        "verdict": (
+            "Qwen2.5-7B resource materialization repair validated"
+            if validated
+            else final_verdict
+        ),
+        "final_verdict": (
+            "Qwen2.5-7B resource materialization repair validated"
+            if validated
+            else final_verdict
+        ),
+        "source": "dualscope-qwen2p5-7b-resource-materialization-and-config",
+        "resource_verdict": final_verdict,
+        "validated": validated,
+        "partially_validated": final_verdict == "Partially validated",
+        "not_validated": final_verdict == "Not validated",
+        "blockers": blockers,
+    }
+    write_json(RESOURCE_REPAIR_VERDICT_PATH, repair_verdict)
     if blockers:
         write_json(output_dir / "dualscope_qwen2p5_7b_resource_blockers.json", {"blockers": blockers})
         write_manual_download_instructions(
@@ -192,17 +214,25 @@ def build_resource_materialization(
             blockers,
         )
 
-    qwen_plan_bridge_verdict = {
-        "schema_version": "dualscope/qwen2p5-7b-response-plan-bridge-verdict/v1",
-        "task_id": "dualscope-qwen2p5-7b-first-slice-response-generation-plan",
-        "verdict": "Partially validated" if not validated else "Qwen2.5-7B first-slice response generation plan validated",
-        "final_verdict": "Partially validated" if not validated else "Qwen2.5-7B first-slice response generation plan validated",
-        "source": "dualscope-qwen2p5-7b-resource-materialization-and-config",
-        "reason": "Resource materialization governs whether the response-generation plan can proceed.",
-        "resource_verdict": final_verdict,
-        "blockers": blockers,
-    }
-    write_json(QWEN_PLAN_VERDICT_PATH, qwen_plan_bridge_verdict)
+    if validated and QWEN_PLAN_VERDICT_PATH.exists():
+        try:
+            existing_bridge = QWEN_PLAN_VERDICT_PATH.read_text(encoding="utf-8")
+        except OSError:
+            existing_bridge = ""
+        if "qwen2p5-7b-response-plan-bridge-verdict" in existing_bridge:
+            QWEN_PLAN_VERDICT_PATH.unlink()
+    elif not validated:
+        qwen_plan_bridge_verdict = {
+            "schema_version": "dualscope/qwen2p5-7b-response-plan-bridge-verdict/v1",
+            "task_id": "dualscope-qwen2p5-7b-first-slice-response-generation-plan",
+            "verdict": "Partially validated",
+            "final_verdict": "Partially validated",
+            "source": "dualscope-qwen2p5-7b-resource-materialization-and-config",
+            "reason": "Resource materialization governs whether the response-generation plan can proceed.",
+            "resource_verdict": final_verdict,
+            "blockers": blockers,
+        }
+        write_json(QWEN_PLAN_VERDICT_PATH, qwen_plan_bridge_verdict)
 
     report = render_report(summary, blockers, manifest, disk, gpu, data_check, target_plan_check, cross_model_check)
     (output_dir / "dualscope_qwen2p5_7b_resource_materialization_report.md").write_text(report, encoding="utf-8")
@@ -269,4 +299,3 @@ def render_report(
         ]
     )
     return "\n".join(lines)
-
