@@ -79,8 +79,25 @@ def build_parser() -> argparse.ArgumentParser:
         default=True,
         help="Require Codex review evidence before merge gate approval. Default: enabled.",
     )
-    parser.add_argument("--max-review-wait-minutes", type=int, default=0, help="Maximum minutes to wait for current task PR review before merge gate stops. Default: 0")
+    parser.add_argument(
+        "--allow-auto-merge-without-review",
+        action="store_true",
+        help="Allow safe auto merge without Codex review evidence when hard safety checks pass. Default: disabled.",
+    )
+    parser.add_argument("--max-review-wait-minutes", type=int, default=60, help="Maximum minutes to wait for current task PR review before merge gate stops. Default: 60")
     parser.add_argument("--review-poll-interval-seconds", type=int, default=60, help="Review polling interval. Default: 60")
+    parser.add_argument(
+        "--wait-for-codex-review",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Wait for Codex review when the only safe merge blocker is missing review evidence. Default: enabled.",
+    )
+    parser.add_argument(
+        "--continue-after-review-merge",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Continue to the next autorun iteration after a waited review allows the task PR to merge. Default: enabled.",
+    )
     parser.add_argument("--cleanup-merged-worktrees", action=argparse.BooleanOptionalAction, default=True, help="Remove task worktrees after successful merge. Default: enabled.")
     parser.add_argument("--keep-failed-worktrees", action="store_true", help="Keep failed task worktrees for inspection.")
     parser.add_argument(
@@ -150,8 +167,11 @@ def main() -> int:
         enable_safe_auto_merge=parsed.enable_safe_auto_merge,
         safe_merge_current_task_pr=parsed.safe_merge_current_task_pr,
         require_codex_review_before_merge=parsed.require_codex_review_before_merge,
+        allow_auto_merge_without_review=parsed.allow_auto_merge_without_review,
         max_review_wait_minutes=parsed.max_review_wait_minutes,
         review_poll_interval_seconds=parsed.review_poll_interval_seconds,
+        wait_for_codex_review=parsed.wait_for_codex_review,
+        continue_after_review_merge=parsed.continue_after_review_merge,
         cleanup_merged_worktrees=parsed.cleanup_merged_worktrees,
         keep_failed_worktrees=parsed.keep_failed_worktrees,
         task_result_pr_packager=parsed.task_result_pr_packager,

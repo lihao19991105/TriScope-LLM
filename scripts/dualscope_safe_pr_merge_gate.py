@@ -297,6 +297,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--merge-method", default="squash", choices=["squash", "merge", "rebase"], help="Merge method. Default: squash.")
     parser.add_argument("--delete-branch", type=bool_arg, default=False, help="Whether to delete branch. Default: false.")
     parser.add_argument("--allow-review-pending", action="store_true", help="Allow missing Codex review evidence.")
+    parser.add_argument(
+        "--allow-auto-merge-without-review",
+        action="store_true",
+        help="Allow merge without Codex review evidence when all hard safety checks pass. Default: disabled.",
+    )
     parser.add_argument("--require-codex-review", type=bool_arg, default=True, help="Require Codex review evidence. Default: true.")
     parser.add_argument("--require-no-requested-changes", type=bool_arg, default=True, help="Require no requested changes. Default: true.")
     parser.add_argument("--require-no-failing-checks", type=bool_arg, default=True, help="Require no failing checks. Default: true.")
@@ -342,6 +347,7 @@ def main() -> int:
         "merge_method": args.merge_method,
         "delete_branch": args.delete_branch,
         "require_codex_review": args.require_codex_review,
+        "allow_auto_merge_without_review": args.allow_auto_merge_without_review,
         "require_no_requested_changes": args.require_no_requested_changes,
         "require_no_failing_checks": args.require_no_failing_checks,
         "allow_review_pending": args.allow_review_pending,
@@ -387,7 +393,13 @@ def main() -> int:
         blockers.append({"kind": "requested_changes", "message": "PR has requested changes."})
     if args.require_no_failing_checks and ci_check.get("failing_checks"):
         blockers.append({"kind": "failing_checks", "message": "PR has failing CI checks."})
-    if args.require_codex_review and not args.allow_review_pending and not codex_review_present:
+    codex_review_required = args.require_codex_review and not args.allow_auto_merge_without_review
+    review_missing_but_user_authorized = bool(
+        args.allow_auto_merge_without_review
+        and args.require_codex_review
+        and not codex_review_present
+    )
+    if codex_review_required and not args.allow_review_pending and not codex_review_present:
         blockers.append({"kind": "codex_review_missing", "message": "Codex review evidence is missing or still pending."})
     if args.delete_branch:
         blockers.append({"kind": "branch_deletion_forbidden", "message": "--delete-branch=true is not allowed for this gate."})
@@ -421,9 +433,19 @@ def main() -> int:
         "blockers": blockers,
         "merge_blockers": blockers,
         "codex_review_requested": review_check.get("codex_review_requested"),
+        "codex_review_required": codex_review_required,
         "codex_review_present": review_check.get("codex_review_present"),
         "codex_review_evidence_source": review_check.get("codex_review_evidence_source"),
         "codex_review_evidence_excerpt": review_check.get("codex_review_evidence_excerpt"),
+        "review_missing_but_user_authorized": review_missing_but_user_authorized,
+        "merged_without_codex_review": bool(args.merge and can_merge and review_missing_but_user_authorized),
+        "auto_merge_policy": "allow_without_review" if args.allow_auto_merge_without_review else "require_codex_review",
+        "merge_allowed_reason": "all_hard_safety_checks_passed" if can_merge else "",
+        "requested_changes": review_check.get("requested_changes"),
+        "requested_changes_count": review_check.get("requested_changes_count", 0),
+        "failing_checks_count": len(ci_check.get("failing_checks") or []),
+        "failing_checks": ci_check.get("failing_checks") or [],
+        "ci_state": ci_check.get("ci_state"),
         "file_scope_allowed": file_scope.get("file_scope_allowed"),
         "blocked_files": file_scope.get("blocked_files", []),
         "allowed_outputs_artifacts": file_scope.get("allowed_outputs_artifacts", []),
