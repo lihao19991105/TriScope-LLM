@@ -431,3 +431,147 @@
 5. 仅在 milestone 完成或必须打断时汇报
 
 如果最新的未完成计划属于旧 TriScope / route_c 历史链，但不再服务于 DualScope 主线，则**不要默认继续它**。
+
+---
+
+## GitHub PR Workflow for Codex Tasks
+
+For every Codex coding task that changes repository files, follow this GitHub PR workflow unless the user explicitly says otherwise.
+
+### Remote and authentication
+
+- This repository uses HTTPS remote plus gh auth.
+- Do not switch the remote to SSH.
+- Do not rewrite origin to git@github.com:...
+- Use the following proxy environment for all GitHub / gh / remote Git commands:
+  - HTTP_PROXY=http://127.0.0.1:18080
+  - HTTPS_PROXY=http://127.0.0.1:18080
+  - ALL_PROXY=http://127.0.0.1:18080
+
+Before making changes, run:
+
+- export HTTP_PROXY=http://127.0.0.1:18080
+- export HTTPS_PROXY=http://127.0.0.1:18080
+- export ALL_PROXY=http://127.0.0.1:18080
+- git status -sb
+- gh auth status
+- git remote -v
+- git ls-remote origin HEAD
+
+If any check fails:
+
+- Stop before modifying files.
+- Report the failing command.
+- Explain the likely cause.
+- Do not switch to SSH.
+- Do not proceed to branch creation.
+
+### Branching
+
+- Always start from main.
+- Run git checkout main.
+- Run git pull origin main.
+- Create a new task branch from main.
+- Use branch names like codex/<short-task-name>.
+- Do not work directly on main.
+
+### Change scope
+
+- Make the minimum necessary changes for the task.
+- Do not do unrelated refactors.
+- Do not revive the old TriScope / route_c recursive mainline.
+- Do not generate 199+ route_c stages.
+- Do not change benchmark truth semantics.
+- Do not change gate semantics.
+- Do not expand model axes, budgets, datasets, trigger families, or prompt families unless the task explicitly requires it.
+- Do not convert dry-run outputs into claimed real performance results.
+
+### Testing
+
+- Run relevant tests before committing.
+- At minimum, run python -m py_compile on every new or modified Python file.
+- Run CLI --help or dry-run / contract-check when adding CLI scripts.
+- Run artifact existence checks when a task generates artifacts.
+- If tests fail, fix and rerun.
+- Do not commit clearly broken code unless the task is specifically to preserve a failing reproduction.
+
+### Commit and PR
+
+After tests pass:
+
+- Run git status -sb.
+- Run git diff --stat.
+- Add only task-related files.
+- Commit with a concise English message.
+- Execute ./scripts/codex-pr.sh.
+
+The PR workflow must:
+
+- Use HTTPS remote and gh auth.
+- Not auto-merge.
+- Not force push.
+- Not delete branches.
+
+If ./scripts/codex-pr.sh is missing:
+
+- Do not manually improvise a risky PR workflow.
+- Report that the PR helper is missing.
+- Create or repair the helper only if the user's task explicitly asks for it.
+
+If ./scripts/codex-pr.sh exists but is not executable:
+
+- It is acceptable to run chmod +x ./scripts/codex-pr.sh.
+- Then execute it.
+
+### Codex review
+
+After creating the PR:
+
+- Record the PR URL and PR number.
+- Determine whether @codex review was triggered.
+- If the PR helper did not trigger review, it is acceptable to run gh pr comment <PR_NUMBER> --body "@codex review".
+- Only comment on the current task PR.
+- Do not spam unrelated PRs.
+
+### Previous PR status check
+
+Before final reporting, check the previous open PR if one exists.
+
+Prefer a repository script if available, such as:
+
+- scripts/dualscope_pr_review_orchestrator.py
+
+If no such script exists, use:
+
+- gh pr list --state open --json number,title,url,headRefName,reviewDecision,statusCheckRollup
+- gh pr view <PREVIOUS_PR_NUMBER> --json number,title,url,state,reviewDecision,comments,reviews,statusCheckRollup
+
+Report:
+
+- Previous PR URL
+- reviewDecision
+- Whether Codex Review appears
+- CI status
+- Whether requested changes exist
+- Failing checks, if any
+- Recommended next action
+
+If no previous PR exists, report:
+
+- No previous PR found.
+
+### Final report format
+
+At the end of every PR-based task, report:
+
+1. Task completion summary
+2. Modified files
+3. Tests run and results
+4. Branch name
+5. Commit hash
+6. Current PR URL
+7. Current PR number
+8. Whether @codex review was triggered
+9. Previous PR Codex Review / CI status
+10. Current blockers or risks
+11. One next recommended action
