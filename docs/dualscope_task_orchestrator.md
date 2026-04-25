@@ -62,6 +62,8 @@ Each run writes:
 
 These files are local generated artifacts under `outputs/` and are safe to overwrite.
 
+`dualscope_next_task_selection.json` records `prompt_available` and `prompt_path` so callers can stop before autorun if a repair route does not yet have a direct queue prompt.
+
 ## Queue Format
 
 `DUALSCOPE_TASK_QUEUE.md` contains a fenced JSON block with one object per task. Each task must include:
@@ -88,7 +90,8 @@ The required queue order is:
 3. `dualscope-minimal-first-slice-real-run-rerun-with-labels`
 4. `dualscope-first-slice-target-response-generation-plan`
 5. `dualscope-first-slice-real-run-artifact-validation`
-6. `dualscope-first-slice-result-package`
-7. `dualscope-next-experiment-readiness-package`
+6. `dualscope-first-slice-real-run-artifact-validation-repair`
+7. `dualscope-first-slice-result-package`
+8. `dualscope-next-experiment-readiness-package`
 
 The current DualScope mainline remains the two-stage illumination + confidence pipeline with budget-aware fusion. The scheduler must not resume old route_c chains by default.
