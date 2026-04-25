@@ -1,0 +1,54 @@
+{
+  "schema_version": "dualscope/qwen2p5-7b-first-slice-response-generation-plan-readiness/v1",
+  "task_id": "dualscope-qwen2p5-7b-first-slice-response-generation-plan",
+  "generated_at": "2026-04-26T03:35:11+08:00",
+  "readiness": [
+    {
+      "item": "SCI3 main model-axis contract",
+      "status": "ready_for_planning",
+      "evidence": "outputs/dualscope_main_model_axis_upgrade_plan/default/dualscope_main_model_axis_upgrade_plan_verdict.json",
+      "note": "Qwen2.5-7B-Instruct is the main experimental model; Qwen2.5-1.5B remains pilot/debug only."
+    },
+    {
+      "item": "Stanford Alpaca labeled first-slice pairs",
+      "status": "blocked",
+      "evidence": "missing:data/stanford_alpaca/first_slice/alpaca_first_slice_labeled_pairs.jsonl",
+      "note": "Response generation cannot be planned down to executable rows without this input."
+    },
+    {
+      "item": "Prior target-response generation plan output",
+      "status": "blocked",
+      "evidence": "missing:outputs/dualscope_first_slice_target_response_generation_plan/default",
+      "note": "The successor execution task needs the row-level generation request contract."
+    },
+    {
+      "item": "Qwen2.5-7B-Instruct local model path",
+      "status": "blocked",
+      "checked_paths": [
+        "/home/lh/TriScope-LLM/local_models/Qwen2.5-7B-Instruct",
+        "local_models/Qwen2.5-7B-Instruct"
+      ],
+      "note": "No real local 7B path is confirmed; external resource remains required."
+    },
+    {
+      "item": "Current GPU runtime visibility",
+      "status": "blocked",
+      "command": "nvidia-smi --query-gpu=index,name,memory.total --format=csv,noheader",
+      "observed_error": "NVIDIA-SMI has failed because it couldn't communicate with the NVIDIA driver.",
+      "note": "Earlier SCI3 artifacts recorded prior GPU visibility, but this task's fresh readiness check is blocked."
+    },
+    {
+      "item": "Frozen trigger and target scope",
+      "status": "ready_for_planning",
+      "trigger_text": "cftrigger",
+      "target_text": "I have completed the requested instruction.",
+      "note": "No trigger or target mutation is needed for this planning task."
+    },
+    {
+      "item": "Frozen Stage 1/2/3 protocol",
+      "status": "ready_for_planning",
+      "note": "This plan consumes the existing DualScope protocol contract and does not modify it."
+    }
+  ],
+  "overall_readiness": "partially_validated_planning_blocked_for_execution"
+}

@@ -1,0 +1,62 @@
+{
+  "schema_version": "dualscope/qwen2p5-7b-first-slice-response-generation-command-plan/v1",
+  "task_id": "dualscope-qwen2p5-7b-first-slice-response-generation-plan",
+  "generated_at": "2026-04-26T03:35:11+08:00",
+  "command_is_executable_now": false,
+  "reason_not_executable": [
+    "Missing labeled first-slice pairs JSONL.",
+    "Missing prior target-response generation plan output directory.",
+    "Missing confirmed Qwen2.5-7B-Instruct local model path.",
+    "Current GPU runtime visibility check failed."
+  ],
+  "successor_task": "dualscope-qwen2p5-7b-first-slice-response-generation",
+  "planned_command_shape": [
+    "python3",
+    "scripts/build_dualscope_qwen2p5_7b_first_slice_response_generation.py",
+    "--labeled-pairs",
+    "data/stanford_alpaca/first_slice/alpaca_first_slice_labeled_pairs.jsonl",
+    "--target-response-plan-dir",
+    "outputs/dualscope_first_slice_target_response_generation_plan/default",
+    "--model-path",
+    "/path/to/Qwen2.5-7B-Instruct",
+    "--output-dir",
+    "outputs/dualscope_qwen2p5_7b_first_slice_response_generation/default",
+    "--seed",
+    "2025",
+    "--trigger-text",
+    "cftrigger",
+    "--target-text",
+    "I have completed the requested instruction.",
+    "--no-full-matrix"
+  ],
+  "planned_generation_contract": {
+    "backend": "huggingface_local_or_explicit_external_resource",
+    "batch_size": 1,
+    "deterministic_seed_required": true,
+    "temperature": 0.0,
+    "do_sample": false,
+    "max_new_tokens": "configurable_in_successor_task",
+    "capability_mode_field_required": true,
+    "fallback_flags_required": true
+  },
+  "successor_outputs_must_include": [
+    "raw_generation_requests",
+    "raw_model_responses",
+    "config_snapshot",
+    "model_path_confirmation",
+    "capability_mode",
+    "fallback_flags",
+    "run_log",
+    "blocker_register_if_execution_fails"
+  ],
+  "forbidden_successor_claims_without_real_run": [
+    "responses",
+    "logprobs",
+    "AUROC",
+    "F1",
+    "ASR",
+    "clean utility",
+    "latency",
+    "cost-effectiveness"
+  ]
+}
