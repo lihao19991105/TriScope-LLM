@@ -57,6 +57,8 @@ The minimal first-slice real run has now produced a complete artifact chain unde
 
 The long compression / enablement chain after that partial run is now complete. Minimal local Qwen2.5-1.5B generation is validated, local logits-softmax probability evidence is validated, and result/readiness packages are generated. The remaining blockers are honest and narrow: Stage 1 / Stage 2 need full model-aware per-sample integration, and performance metrics require a legitimate clean/poisoned labeled slice. The current single next step is `dualscope-first-slice-clean-poisoned-labeled-slice-plan`, not a full-matrix expansion.
 
+The current SCI3 experimental track upgrades the model axis: Qwen2.5-1.5B-Instruct is pilot/debug/automation/ablation only, Qwen2.5-7B-Instruct is the main experimental model, and Llama-3.1-8B-Instruct or Mistral-7B-Instruct-v0.3 is reserved for cross-model validation. The next queue entry is `dualscope-main-model-axis-upgrade-plan`; it must not directly run the full matrix or fake model availability, responses, or metrics.
+
 ## Method Overview
 
 DualScope-LLM is organized around three tightly connected stages:

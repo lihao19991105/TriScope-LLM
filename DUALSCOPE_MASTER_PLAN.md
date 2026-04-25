@@ -142,6 +142,8 @@
 
 当前自动化闭环与上一段 first-slice 队列已收口。下一阶段是 `dualscope-first-slice-real-experiment`：在 Stanford Alpaca first-slice、clean/poisoned labeled pairs、冻结 Stage 1 / Stage 2 / Stage 3 协议、当前小模型路径、`lexical_trigger_v1` / `cftrigger` 与 `fixed_response_v1` 范围内，逐步执行真实或明确 fallback 的 response generation、label-aligned metric computation、first-slice result package 和 next-experiment readiness。该阶段只报告 first-slice 结果，不声明完整论文性能。
 
+当前 SCI3 experimental track 已成为下一阶段目标：`Qwen2.5-1.5B-Instruct` 仅作为 pilot / debug / automation / ablation；`Qwen2.5-7B-Instruct` 是 main experimental model，用于主表、主消融和成本分析；`Llama-3.1-8B-Instruct` 或 `Mistral-7B-Instruct-v0.3` 用于 cross-model validation。执行顺序是先完成 `dualscope-main-model-axis-upgrade-plan`，再推进 Qwen2.5-7B first-slice，随后规划 Alpaca / AdvBench / JBB、3 triggers、2 targets 和 cross-model validation。不得把 1.5B 作为唯一主实验模型，也不得直接爆炸式运行完整矩阵。
+
 ### Current Submission Positioning
 
 当前论文目标应保持**稳妥、不夸大**：
