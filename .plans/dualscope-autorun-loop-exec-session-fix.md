@@ -60,13 +60,15 @@ The existing autorun/task-orchestrator baseline is already present on earlier PR
 - [x] M1: Read project instructions and classify primary working-tree state.
 - [x] M2: Create clean worktree branch from `main` and bring forward autorun baseline.
 - [x] M3: Implement session/TMPDIR fix and runtime dirty classification updates.
-- [ ] M4: Run py_compile, help, dry-run, and execute smoke.
+- [x] M4: Run py_compile, help, dry-run, and execute smoke.
 - [ ] M5: Commit, open PR, trigger Codex review, and check previous PR status.
 
 ## Surprises & Discoveries
 
 - The primary `/home/lh/TriScope-LLM` worktree contains real business changes under `DUALSCOPE_*`, `PLANS.md`, `.plans/`, `scripts/`, and `src/`. Those changes were not modified.
 - The previous execute hardening smoke reached `codex exec`, but Codex failed while creating a session because the environment exposed a read-only session/TMP location.
+- After moving both `TMPDIR` and `CODEX_HOME` to `.tmp/`, execute smoke completed one real `codex exec` round with exit code 0 and final verdict `Autorun execute hardening validated`.
+- The execute smoke selected `dualscope-minimal-first-slice-real-run-compression` from the queue. The nested Codex run made changes in the primary `/home/lh/TriScope-LLM` worktree and opened PR #9 for that queue task; those changes are outside this hardening branch and were not reverted here.
 
 ## Decision Log
 
