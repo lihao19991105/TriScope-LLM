@@ -31,6 +31,15 @@ def _load_optional(path: Path) -> dict[str, Any]:
     return read_json(path) if path.exists() else {"missing": True, "path": str(path)}
 
 
+def _load_first_existing(paths: list[Path]) -> dict[str, Any]:
+    for path in paths:
+        if path.exists():
+            payload = read_json(path)
+            payload.setdefault("source_path", str(path))
+            return payload
+    return {"missing": True, "searched_paths": [str(path) for path in paths]}
+
+
 def build_dualscope_minimal_first_slice_real_run_compression(output_dir: Path) -> dict[str, Any]:
     repo_root = Path(__file__).resolve().parents[2]
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -38,8 +47,19 @@ def build_dualscope_minimal_first_slice_real_run_compression(output_dir: Path) -
     compatibility = read_json(repo_root / "outputs/dualscope_minimal_first_slice_real_run/default/dualscope_minimal_first_slice_real_run_contract_compatibility_check.json")
     readiness = read_json(repo_root / "outputs/dualscope_minimal_first_slice_real_run_readiness_package_analysis/default/dualscope_minimal_real_run_readiness_verdict.json")
     preflight_capability = read_json(repo_root / "outputs/dualscope_first_slice_preflight_rerun/default/dualscope_first_slice_capability_mode_check.json")
-    model_probe = _load_optional(output_dir / "model_probe/dualscope_first_slice_model_execution_probe.json")
-    logprob_probe = _load_optional(output_dir / "logprob_probe/dualscope_first_slice_logprob_capability_probe.json")
+    model_probe = _load_first_existing([
+        output_dir / "dualscope_first_slice_model_execution_probe.json",
+        output_dir / "model_probe/dualscope_first_slice_model_execution_probe.json",
+        repo_root / "outputs/dualscope_first_slice_model_execution_enablement/default/dualscope_first_slice_model_execution_probe.json",
+        repo_root / "outputs/dualscope_first_slice_model_execution_enablement/default/dualscope_first_slice_generation_probe.json",
+    ])
+    logprob_probe = _load_first_existing([
+        output_dir / "dualscope_first_slice_logprob_capability_probe.json",
+        output_dir / "logprob_probe/dualscope_first_slice_logprob_capability_probe.json",
+        repo_root / "outputs/dualscope_first_slice_logprob_capability_enablement/default/dualscope_first_slice_logprob_capability_probe.json",
+        repo_root / "outputs/dualscope_first_slice_logprob_capability_enablement/default/dualscope_first_slice_logprob_capability_summary.json",
+    ])
+    label_materialization = _load_optional(repo_root / "outputs/dualscope_first_slice_label_materialization/default/dualscope_first_slice_label_materialization_summary.json")
 
     model_execution_ready = bool(model_probe.get("model_execution_ready"))
     logprobs_available = bool(logprob_probe.get("logprobs_available"))
@@ -86,7 +106,11 @@ def build_dualscope_minimal_first_slice_real_run_compression(output_dir: Path) -
         elif not logprobs_available:
             recommendation = "dualscope-first-slice-logprob-capability-enablement"
         elif not labels_available:
-            recommendation = "dualscope-first-slice-label-materialization"
+            recommendation = (
+                "dualscope-first-slice-clean-poisoned-labeled-slice-plan"
+                if label_materialization.get("performance_labels_available") is False
+                else "dualscope-first-slice-label-materialization"
+            )
         else:
             recommendation = "dualscope-minimal-first-slice-real-run-rerun-with-model-or-fallback"
     else:
@@ -135,4 +159,3 @@ def build_dualscope_minimal_first_slice_real_run_compression(output_dir: Path) -
     write_json(output_dir / "dualscope_minimal_first_slice_real_run_compression_next_step_recommendation.json", {"summary_status": "PASS", "schema_version": SCHEMA_VERSION, "final_verdict": verdict, "recommended_next_step": recommendation})
     write_json(output_dir / "dualscope_minimal_first_slice_real_run_compression_py_compile.json", py_compile)
     return {"summary": summary, "verdict": verdict, "recommendation": recommendation}
-
