@@ -33,9 +33,10 @@ This is a planning and readiness task only. It does not run Qwen2.5-7B, generate
 - `DUALSCOPE_TASK_QUEUE.md` defines this task after `dualscope-main-model-axis-upgrade-plan`.
 - `docs/dualscope_sci3_model_matrix.md` and `docs/dualscope_sci3_resource_plan_2x3090.md` define Qwen2.5-7B as the main experimental model and require real local resources before execution.
 - `outputs/dualscope_main_model_axis_upgrade_plan/default` exists and records that Qwen2.5-7B is planned / external-resource-required.
-- `data/stanford_alpaca/first_slice/alpaca_first_slice_labeled_pairs.jsonl` is expected but missing in this isolated worktree.
+- `data/stanford_alpaca/first_slice/alpaca_first_slice_labeled_pairs.jsonl` is expected but missing in this isolated worktree. Only the source manifest is present.
 - `outputs/dualscope_first_slice_target_response_generation_plan/default` is expected but missing in this isolated worktree.
-- The current task-level `nvidia-smi` readiness check reports two RTX 3090 GPUs and two RTX 2080 Ti GPUs. This confirms runtime GPU visibility only; no Qwen2.5-7B model load or generation was attempted.
+- The prior SCI3 model-axis artifact recorded GPU visibility, but the fresh check for this task failed with `NVIDIA-SMI has failed because it couldn't communicate with the NVIDIA driver`. Current GPU readiness is therefore blocked for execution.
+- Current free disk on the worktree filesystem is about 19 GB, below the conservative threshold needed for fresh Qwen2.5-7B materialization.
 
 Historical TriScope / route_c artifacts are not used by this plan except as background reliability foundation. This plan does not extend route_c or present it as the current research contribution.
 
@@ -65,13 +66,13 @@ Historical TriScope / route_c artifacts are not used by this plan except as back
 - The isolated worktree contains only the Alpaca first-slice source manifest, not `data/stanford_alpaca/first_slice/alpaca_first_slice_labeled_pairs.jsonl`.
 - The expected prior directory `outputs/dualscope_first_slice_target_response_generation_plan/default` is absent in this worktree.
 - Obvious local Qwen2.5-7B paths are absent: `/home/lh/TriScope-LLM/local_models/Qwen2.5-7B-Instruct` and `local_models/Qwen2.5-7B-Instruct`.
-- Earlier SCI3 model-axis artifacts recorded GPU visibility in a prior run, and this task's fresh `nvidia-smi` check also reports two RTX 3090 GPUs. Current execution readiness is still blocked by missing first-slice inputs and the missing Qwen2.5-7B local model path.
+- Earlier SCI3 model-axis artifacts recorded GPU visibility in a prior run, but this task's fresh `nvidia-smi` check failed. Current execution readiness is blocked by missing first-slice inputs, missing target-response plan outputs, missing Qwen2.5-7B local model path, insufficient disk for fresh materialization, and failed GPU visibility.
 
 ## Decision Log
 
 - The final verdict is `Partially validated` because the plan and blocker package are complete, but required execution inputs and the real 7B local path are missing.
 - No fallback to Qwen2.5-1.5B is used for this task because 1.5B is restricted to pilot/debug/automation/ablation and cannot substitute for Qwen2.5-7B main-model evidence.
-- The next executable task must remain blocked until a real Qwen2.5-7B path and the expected first-slice input artifacts are available.
+- The next executable task must remain blocked until a real Qwen2.5-7B path, expected first-slice input artifacts, target-response plan outputs, sufficient disk, and working GPU visibility are available.
 
 ## Plan of Work
 
@@ -82,8 +83,9 @@ The successor execution task should run only after the blocker register is clear
 1. Restore or regenerate `data/stanford_alpaca/first_slice/alpaca_first_slice_labeled_pairs.jsonl` from the frozen Alpaca first-slice materialization chain.
 2. Restore or regenerate `outputs/dualscope_first_slice_target_response_generation_plan/default`.
 3. Provide a real Qwen2.5-7B-Instruct local path, or explicitly mark the successor execution task as external-resource-required.
-4. Re-run readiness checks for the exact model path, tokenizer path, GPU visibility, dependency availability, and first-slice artifact schema.
-5. Only then run the successor `dualscope-qwen2p5-7b-first-slice-response-generation` task.
+4. Restore working GPU visibility and sufficient storage for the selected model path or cache location.
+5. Re-run readiness checks for the exact model path, tokenizer path, GPU visibility, dependency availability, and first-slice artifact schema.
+6. Only then run the successor `dualscope-qwen2p5-7b-first-slice-response-generation` task.
 
 ## Validation and Acceptance
 
@@ -97,7 +99,7 @@ This planning package is acceptable when:
 
 Current verdict: `Partially validated`.
 
-PR workflow status: pending. No auto merge, force push, branch deletion, or remote rewrite has been performed.
+PR workflow status: blocked in this session. Local `git add` failed because the shared worktree metadata is read-only and Git could not create the worktree `index.lock`; the GitHub connector branch-creation fallback was cancelled before any remote write occurred. No auto merge, force push, branch deletion, or remote rewrite has been performed.
 
 ## Idempotence and Recovery
 
