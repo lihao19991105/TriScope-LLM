@@ -1253,6 +1253,7 @@ def run_autorun_loop(args: AutorunLoopArgs) -> tuple[int, dict[str, Any]]:
         any(row.get("selected_task") and row.get("prompt_excerpt") for row in selected_tasks)
         or blockers
         or args.max_iterations == 0
+        or (stop_reason == "no_next_task" and not blockers)
     )
     verdict = decide_final_verdict(py_artifacts_written, dry_run_passed, codex_available, dangerous_actions, preflight, blockers)
     recommendation = recommendation_for_verdict(verdict)
