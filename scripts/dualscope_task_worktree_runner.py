@@ -163,6 +163,116 @@ def extract_pr_from_codex_pr_output(text: str) -> dict[str, Any]:
     return {"number": int(match.group("number")), "url": match.group("url")}
 
 
+def is_non_fast_forward_push_failure(result: dict[str, Any]) -> bool:
+    text = ((result.get("stdout") or "") + "\n" + (result.get("stderr") or "")).lower()
+    return (
+        result.get("returncode") != 0
+        and "[rejected]" in text
+        and ("fetch first" in text or "non-fast-forward" in text or "failed to push some refs" in text)
+    )
+
+
+def run_json_command(command: list[str], cwd: Path, proxy: str, timeout: int = 120) -> tuple[dict[str, Any], Any | None]:
+    result = run_command(command, cwd=cwd, proxy=proxy, timeout=timeout)
+    try:
+        payload = json.loads(result.get("stdout") or "null")
+    except json.JSONDecodeError:
+        payload = None
+    return result, payload
+
+
+def has_codex_review_evidence(pr: dict[str, Any]) -> bool:
+    for comment in pr.get("comments") or []:
+        author = (comment.get("author") or {}).get("login", "")
+        body = comment.get("body") or ""
+        if "@codex review" in body or author == "chatgpt-codex-connector":
+            return True
+    for review in pr.get("reviews") or []:
+        if (review.get("author") or {}).get("login") == "chatgpt-codex-connector":
+            return True
+    return False
+
+
+def detect_existing_pr_for_branch(
+    branch: str,
+    base_branch: str,
+    changed_paths: list[str],
+    worktree_path: Path,
+    proxy: str,
+) -> dict[str, Any]:
+    result, payload = run_json_command(
+        [
+            "gh",
+            "pr",
+            "list",
+            "--head",
+            branch,
+            "--state",
+            "open",
+            "--json",
+            "number,title,url,headRefName,headRefOid,baseRefName,reviewDecision,statusCheckRollup,files,reviews,comments",
+        ],
+        cwd=worktree_path,
+        proxy=proxy,
+        timeout=120,
+    )
+    prs = payload if isinstance(payload, list) else []
+    current_head = run_command(["git", "rev-parse", "HEAD"], cwd=worktree_path, proxy=proxy, timeout=60)
+    current_head_oid = (current_head.get("stdout") or "").strip()
+    changed_set = set(changed_paths)
+
+    selected: dict[str, Any] | None = None
+    selected_analysis: dict[str, Any] | None = None
+    for pr in prs:
+        pr_file_set = {item.get("path") for item in pr.get("files") or [] if item.get("path")}
+        branch_matches = pr.get("headRefName") == branch
+        base_matches = pr.get("baseRefName") == base_branch
+        commit_matches = bool(current_head_oid) and pr.get("headRefOid") == current_head_oid
+        diff_scope_matches = bool(changed_set) and bool(pr_file_set) and (changed_set == pr_file_set or changed_set.issubset(pr_file_set))
+        analysis = {
+            "branch_matches": branch_matches,
+            "base_matches": base_matches,
+            "current_head_oid": current_head_oid,
+            "pr_head_oid": pr.get("headRefOid"),
+            "commit_matches": commit_matches,
+            "changed_paths": sorted(changed_set),
+            "pr_files": sorted(pr_file_set),
+            "diff_scope_matches": diff_scope_matches,
+            "codex_review_evidence": has_codex_review_evidence(pr),
+        }
+        if branch_matches and base_matches and (commit_matches or diff_scope_matches):
+            selected = pr
+            selected_analysis = analysis
+            break
+        if selected is None:
+            selected = pr
+            selected_analysis = analysis
+
+    usable = bool(
+        selected
+        and selected_analysis
+        and selected_analysis["branch_matches"]
+        and selected_analysis["base_matches"]
+        and (selected_analysis["commit_matches"] or selected_analysis["diff_scope_matches"])
+    )
+    return {
+        "summary_status": "PASS" if usable else ("WARN" if selected else "FAIL"),
+        "schema_version": "dualscope/task-worktree-runner-existing-pr-check/v1",
+        "command": command_row("gh_pr_list_head", result),
+        "git_rev_parse_head": command_row("git_rev_parse_head", current_head),
+        "branch": branch,
+        "base_branch": base_branch,
+        "existing_pr_detected": bool(selected),
+        "existing_pr_usable": usable,
+        "existing_pr_number": selected.get("number") if selected else None,
+        "existing_pr_url": selected.get("url") if selected else None,
+        "existing_pr_head_ref": selected.get("headRefName") if selected else None,
+        "existing_pr_head_oid": selected.get("headRefOid") if selected else None,
+        "analysis": selected_analysis,
+        "raw_pr_count": len(prs),
+    }
+
+
 def build_codex_command(codex_bin: str, codex_extra_args: str, worktree_path: Path, prompt: str) -> list[str]:
     rendered_args = codex_extra_args.format(worktree_path=str(worktree_path))
     return [codex_bin, "exec", *shlex.split(rendered_args), prompt]
@@ -210,7 +320,8 @@ def render_report(summary: dict[str, Any]) -> str:
             f"- Status: `{summary.get('summary_status')}`",
             f"- Worktree: `{summary.get('worktree_path')}`",
             f"- Branch: `{summary.get('branch')}`",
-            f"- PR: `{summary.get('created_pr_url')}`",
+            f"- PR: `{summary.get('task_pr_url') or summary.get('created_pr_url') or summary.get('existing_pr_url')}`",
+            f"- PR source: `{summary.get('task_pr_source')}`",
             f"- Stop reason: `{summary.get('stop_reason')}`",
             "",
         ]
@@ -299,6 +410,8 @@ def main() -> int:
             "dualscope_task_worktree_runner_codex_exec_result.json",
             "dualscope_task_worktree_runner_git_status_after_exec.json",
             "dualscope_task_worktree_runner_pr_creation_result.json",
+            "dualscope_task_worktree_runner_existing_pr_check.json",
+            "dualscope_task_worktree_runner_push_result.json",
             "dualscope_task_worktree_runner_test_results.json",
         ]:
             write_json(args.output_dir / name, {"summary_status": "SKIPPED", "reason": summary["stop_reason"]})
@@ -324,6 +437,8 @@ def main() -> int:
             "dualscope_task_worktree_runner_codex_exec_result.json",
             "dualscope_task_worktree_runner_git_status_after_exec.json",
             "dualscope_task_worktree_runner_pr_creation_result.json",
+            "dualscope_task_worktree_runner_existing_pr_check.json",
+            "dualscope_task_worktree_runner_push_result.json",
             "dualscope_task_worktree_runner_test_results.json",
         ]:
             write_json(args.output_dir / name, {"summary_status": "SKIPPED", "reason": "dry_run"})
@@ -388,7 +503,17 @@ def main() -> int:
 
     pr_number: int | None = None
     pr_url: str | None = None
+    existing_pr_number: int | None = None
+    existing_pr_url: str | None = None
+    task_pr_number: int | None = None
+    task_pr_url: str | None = None
+    task_pr_source: str | None = None
+    push_non_fast_forward_handled = False
+    whether_codex_review_triggered = False
     pr_result: dict[str, Any]
+    push_result: dict[str, Any] = {"summary_status": "SKIPPED", "reason": "no_push_attempted"}
+    existing_pr_check: dict[str, Any] = {"summary_status": "SKIPPED", "reason": "not_needed"}
+    changed_paths = [path_from_porcelain(line) for line in changed_lines]
     if not changed_lines:
         pr_result = {"summary_status": "SKIPPED", "reason": "no_changes"}
     elif not tests_passed:
@@ -400,15 +525,48 @@ def main() -> int:
         pr_info = extract_pr_from_codex_pr_output((codex_pr_result.get("stdout") or "") + "\n" + (codex_pr_result.get("stderr") or ""))
         pr_number = pr_info.get("number")
         pr_url = pr_info.get("url")
+        non_fast_forward = is_non_fast_forward_push_failure(codex_pr_result)
+        push_result = {
+            "summary_status": "PASS" if codex_pr_result["returncode"] == 0 else ("WARN" if non_fast_forward else "FAIL"),
+            "schema_version": "dualscope/task-worktree-runner-push-result/v1",
+            "codex_pr": command_row("codex_pr", codex_pr_result),
+            "non_fast_forward": non_fast_forward,
+            "push_non_fast_forward_handled": False,
+        }
+        if pr_url:
+            task_pr_number = pr_number
+            task_pr_url = pr_url
+            task_pr_source = "created"
+            whether_codex_review_triggered = "@codex review" in ((codex_pr_result.get("stderr") or "") + (codex_pr_result.get("stdout") or ""))
+        elif non_fast_forward:
+            existing_pr_check = detect_existing_pr_for_branch(branch, args.base_branch, changed_paths, worktree_path, args.proxy)
+            if existing_pr_check.get("existing_pr_usable"):
+                existing_pr_number = existing_pr_check.get("existing_pr_number")
+                existing_pr_url = existing_pr_check.get("existing_pr_url")
+                task_pr_number = existing_pr_number
+                task_pr_url = existing_pr_url
+                task_pr_source = "existing"
+                push_non_fast_forward_handled = True
+                push_result["push_non_fast_forward_handled"] = True
+                whether_codex_review_triggered = bool(existing_pr_check.get("analysis", {}).get("codex_review_evidence"))
         pr_result = {
-            "summary_status": "PASS" if codex_pr_result["returncode"] == 0 and pr_url else "FAIL",
+            "summary_status": "PASS" if task_pr_url else "FAIL",
             "git_add": command_row("git_add", add_result),
             "git_commit": command_row("git_commit", commit_result),
             "codex_pr": command_row("codex_pr", codex_pr_result),
             "created_pr_number": pr_number,
             "created_pr_url": pr_url,
-            "whether_codex_review_triggered": codex_pr_result["returncode"] == 0 and "@codex review" in ((codex_pr_result.get("stderr") or "") + (codex_pr_result.get("stdout") or "")),
+            "existing_pr_detected": existing_pr_check.get("existing_pr_detected", False),
+            "existing_pr_number": existing_pr_number,
+            "existing_pr_url": existing_pr_url,
+            "task_pr_number": task_pr_number,
+            "task_pr_url": task_pr_url,
+            "task_pr_source": task_pr_source,
+            "push_non_fast_forward_handled": push_non_fast_forward_handled,
+            "whether_codex_review_triggered": whether_codex_review_triggered,
         }
+    write_json(args.output_dir / "dualscope_task_worktree_runner_push_result.json", push_result)
+    write_json(args.output_dir / "dualscope_task_worktree_runner_existing_pr_check.json", existing_pr_check)
     write_json(args.output_dir / "dualscope_task_worktree_runner_pr_creation_result.json", pr_result)
 
     final_status = "PASS" if codex_result.get("summary_status") == "PASS" and pr_result.get("summary_status") in {"PASS", "SKIPPED"} else "WARN"
@@ -418,11 +576,18 @@ def main() -> int:
         "started_at": started,
         "completed_at": utc_now(),
         "task_id": args.task_id,
-        "stop_reason": "pr_created" if pr_url else ("no_changes" if not changed_lines else "task_blocked"),
+        "stop_reason": "task_pr_ready" if task_pr_url else ("no_changes" if not changed_lines else "task_blocked"),
         "branch": branch,
         "worktree_path": str(worktree_path),
         "created_pr_number": pr_number,
         "created_pr_url": pr_url,
+        "existing_pr_detected": existing_pr_check.get("existing_pr_detected", False),
+        "existing_pr_number": existing_pr_number,
+        "existing_pr_url": existing_pr_url,
+        "task_pr_number": task_pr_number,
+        "task_pr_url": task_pr_url,
+        "task_pr_source": task_pr_source,
+        "push_non_fast_forward_handled": push_non_fast_forward_handled,
         "whether_codex_review_triggered": pr_result.get("whether_codex_review_triggered", False),
         "cleanup_allowed_after_merge": args.cleanup_worktree and not args.keep_worktree,
         "dangerous_actions": {

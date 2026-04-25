@@ -714,9 +714,20 @@ def run_task_worktree_runner(
     summary_path = output_dir / "dualscope_task_worktree_runner_summary.json"
     pr_path = output_dir / "dualscope_task_worktree_runner_pr_creation_result.json"
     manifest_path = output_dir / "dualscope_task_worktree_runner_worktree_manifest.json"
+    existing_pr_path = output_dir / "dualscope_task_worktree_runner_existing_pr_check.json"
+    push_path = output_dir / "dualscope_task_worktree_runner_push_result.json"
     summary = read_json(summary_path) if summary_path.exists() else {}
     pr_result = read_json(pr_path) if pr_path.exists() else {}
     manifest = read_json(manifest_path) if manifest_path.exists() else {}
+    existing_pr_check = read_json(existing_pr_path) if existing_pr_path.exists() else {}
+    push_result = read_json(push_path) if push_path.exists() else {}
+    created_pr_number = summary.get("created_pr_number") or pr_result.get("created_pr_number")
+    created_pr_url = summary.get("created_pr_url") or pr_result.get("created_pr_url")
+    existing_pr_number = summary.get("existing_pr_number") or pr_result.get("existing_pr_number") or existing_pr_check.get("existing_pr_number")
+    existing_pr_url = summary.get("existing_pr_url") or pr_result.get("existing_pr_url") or existing_pr_check.get("existing_pr_url")
+    task_pr_number = summary.get("task_pr_number") or pr_result.get("task_pr_number") or created_pr_number or existing_pr_number
+    task_pr_url = summary.get("task_pr_url") or pr_result.get("task_pr_url") or created_pr_url or existing_pr_url
+    task_pr_source = summary.get("task_pr_source") or pr_result.get("task_pr_source") or ("created" if created_pr_url else ("existing" if existing_pr_url else None))
     return {
         "summary_status": "PASS" if result.returncode == 0 and summary.get("summary_status") in {"PASS", "WARN"} else "FAIL",
         "iteration": iteration,
@@ -731,9 +742,17 @@ def run_task_worktree_runner(
         "artifact_dir": str(output_dir),
         "runner_summary": summary,
         "pr_creation_result": pr_result,
+        "existing_pr_check": existing_pr_check,
+        "push_result": push_result,
         "worktree_manifest": manifest,
-        "created_pr_number": summary.get("created_pr_number") or pr_result.get("created_pr_number"),
-        "created_pr_url": summary.get("created_pr_url") or pr_result.get("created_pr_url"),
+        "created_pr_number": created_pr_number,
+        "created_pr_url": created_pr_url,
+        "existing_pr_number": existing_pr_number,
+        "existing_pr_url": existing_pr_url,
+        "task_pr_number": task_pr_number,
+        "task_pr_url": task_pr_url,
+        "task_pr_source": task_pr_source,
+        "push_non_fast_forward_handled": bool(summary.get("push_non_fast_forward_handled") or pr_result.get("push_non_fast_forward_handled") or push_result.get("push_non_fast_forward_handled")),
         "worktree_path": summary.get("worktree_path") or manifest.get("worktree_path"),
         "branch": summary.get("branch") or manifest.get("branch"),
     }
@@ -1118,12 +1137,21 @@ def run_autorun_loop(args: AutorunLoopArgs) -> tuple[int, dict[str, Any]]:
             write_jsonl(worktree_iterations_path, [exec_result], append=True)
             created_pr_number = exec_result.get("created_pr_number")
             created_pr_url = exec_result.get("created_pr_url")
-            if created_pr_url:
+            task_pr_number = exec_result.get("task_pr_number") or created_pr_number
+            task_pr_url = exec_result.get("task_pr_url") or created_pr_url
+            task_pr_source = exec_result.get("task_pr_source") or ("created" if created_pr_url else None)
+            if task_pr_url:
                 created_row = {
                     "iteration": iteration,
                     "selected_task": selected_task,
                     "created_pr_number": created_pr_number,
                     "created_pr_url": created_pr_url,
+                    "existing_pr_number": exec_result.get("existing_pr_number"),
+                    "existing_pr_url": exec_result.get("existing_pr_url"),
+                    "task_pr_number": task_pr_number,
+                    "task_pr_url": task_pr_url,
+                    "task_pr_source": task_pr_source,
+                    "push_non_fast_forward_handled": exec_result.get("push_non_fast_forward_handled", False),
                     "worktree_path": exec_result.get("worktree_path"),
                     "branch": exec_result.get("branch"),
                     "created_at": utc_now(),
@@ -1134,22 +1162,23 @@ def run_autorun_loop(args: AutorunLoopArgs) -> tuple[int, dict[str, Any]]:
                 stop_reason = "task_worktree_runner_failure"
             elif args.dry_run:
                 stop_reason = "dry_run_completed"
-            elif created_pr_number and args.enable_safe_auto_merge and args.safe_merge_current_task_pr:
+            elif task_pr_number and args.enable_safe_auto_merge and args.safe_merge_current_task_pr:
                 deadline = time.monotonic() + max(0, args.max_review_wait_minutes) * 60
-                merge_decision = run_safe_pr_merge_gate(args, int(created_pr_number), merge=True)
+                merge_decision = run_safe_pr_merge_gate(args, int(task_pr_number), merge=True)
                 while (
                     merge_decision.get("decision", {}).get("decision") == "blocked"
                     and any(item.get("kind") == "codex_review_missing" for item in merge_decision.get("decision", {}).get("blockers", []))
                     and time.monotonic() < deadline
                 ):
                     time.sleep(max(1, args.review_poll_interval_seconds))
-                    merge_decision = run_safe_pr_merge_gate(args, int(created_pr_number), merge=True)
+                    merge_decision = run_safe_pr_merge_gate(args, int(task_pr_number), merge=True)
                 write_jsonl(merge_decisions_path, [merge_decision], append=True)
                 if merge_decision.get("decision", {}).get("merged"):
                     pull_result = run_command(["git", "pull", "origin", "main"], timeout=180)
                     cleanup_row = {
                         "iteration": iteration,
-                        "pr": created_pr_number,
+                        "pr": task_pr_number,
+                        "task_pr_source": task_pr_source,
                         "worktree_path": exec_result.get("worktree_path"),
                         "pull_after_merge": command_row("git_pull_origin_main", pull_result),
                         "cleanup_attempted": False,
@@ -1164,7 +1193,7 @@ def run_autorun_loop(args: AutorunLoopArgs) -> tuple[int, dict[str, Any]]:
                 else:
                     blockers.extend(merge_decision.get("decision", {}).get("blockers") or [])
                     stop_reason = "safe_merge_gate_blocker"
-            elif created_pr_number:
+            elif task_pr_number:
                 stop_reason = "task_pr_created_pending_merge"
             else:
                 stop_reason = exec_result.get("runner_summary", {}).get("stop_reason") or "worktree_task_completed"
