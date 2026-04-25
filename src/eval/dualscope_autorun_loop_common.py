@@ -79,6 +79,8 @@ class AutorunLoopArgs:
     require_codex_review_before_merge: bool
     max_review_wait_minutes: int
     review_poll_interval_seconds: int
+    wait_for_codex_review: bool
+    continue_after_review_merge: bool
     cleanup_merged_worktrees: bool
     keep_failed_worktrees: bool
     task_result_pr_packager: Path
@@ -793,6 +795,172 @@ def run_safe_pr_merge_gate(args: AutorunLoopArgs, pr_number: int, merge: bool) -
     }
 
 
+def blocker_kinds(decision: dict[str, Any]) -> list[str]:
+    return [str(item.get("kind")) for item in decision.get("blockers", []) if isinstance(item, dict)]
+
+
+def review_waiter_eligible(args: AutorunLoopArgs, pr_number: int, decision: dict[str, Any]) -> tuple[bool, list[dict[str, Any]]]:
+    blockers: list[dict[str, Any]] = []
+    kinds = blocker_kinds(decision)
+    if not args.wait_for_codex_review:
+        blockers.append({"kind": "review_wait_disabled", "message": "--wait-for-codex-review is disabled."})
+    if pr_number == 14:
+        blockers.append({"kind": "blocked_legacy_pr", "message": "PR #14 is explicitly excluded from unattended merge."})
+    if kinds != ["codex_review_missing"]:
+        blockers.append({"kind": "non_review_blocker", "message": f"Safe merge blockers are {kinds!r}, not only codex_review_missing."})
+    if not decision.get("codex_review_requested"):
+        blockers.append({"kind": "codex_review_not_requested", "message": "@codex review has not been requested for this PR."})
+    if not decision.get("file_scope_allowed"):
+        blockers.append({"kind": "file_scope_blocked", "message": "File scope is not safe for review waiting."})
+    if int(decision.get("requested_changes_count") or 0) > 0:
+        blockers.append({"kind": "requested_changes", "message": "PR has requested changes."})
+    if int(decision.get("failing_checks_count") or 0) > 0:
+        blockers.append({"kind": "failing_checks", "message": "PR has failing checks."})
+    return not blockers, blockers
+
+
+def render_review_waiter_report(status: dict[str, Any], rows: list[dict[str, Any]]) -> str:
+    lines = [
+        "# DualScope Autorun Review Waiter Report",
+        "",
+        f"- PR: #{status.get('pr_number')}",
+        f"- Status: `{status.get('status')}`",
+        f"- Started at: `{status.get('started_at')}`",
+        f"- Completed at: `{status.get('completed_at')}`",
+        f"- Wait elapsed seconds: `{status.get('wait_elapsed_seconds')}`",
+        f"- Final action: `{status.get('final_action')}`",
+        "",
+        "## Iterations",
+    ]
+    if rows:
+        for row in rows:
+            lines.append(
+                "- "
+                f"{row.get('timestamp')}: "
+                f"review_present={row.get('codex_review_present')}, "
+                f"requested_changes={row.get('requested_changes_count')}, "
+                f"failing_checks={row.get('failing_checks_count')}, "
+                f"merge_allowed={row.get('merge_allowed')}, "
+                f"next_action={row.get('next_action')}"
+            )
+    else:
+        lines.append("- None")
+    return "\n".join(lines) + "\n"
+
+
+def run_review_waiter(
+    args: AutorunLoopArgs,
+    pr_number: int,
+    initial_merge_decision: dict[str, Any],
+    iteration: int,
+    selected_task: str | None,
+) -> dict[str, Any]:
+    status_path = args.output_dir / "dualscope_autorun_review_waiter_status.json"
+    iterations_path = args.output_dir / "dualscope_autorun_review_waiter_iterations.jsonl"
+    report_path = args.output_dir / "dualscope_autorun_review_waiter_report.md"
+    started_monotonic = time.monotonic()
+    started_at = utc_now()
+    rows: list[dict[str, Any]] = []
+
+    def row_from_gate(gate_result: dict[str, Any], next_action: str) -> dict[str, Any]:
+        decision = gate_result.get("decision", {})
+        return {
+            "timestamp": utc_now(),
+            "iteration": iteration,
+            "selected_task": selected_task,
+            "pr_number": pr_number,
+            "codex_review_requested": bool(decision.get("codex_review_requested")),
+            "codex_review_present": bool(decision.get("codex_review_present")),
+            "requested_changes_count": int(decision.get("requested_changes_count") or 0),
+            "failing_checks_count": int(decision.get("failing_checks_count") or 0),
+            "file_scope_allowed": bool(decision.get("file_scope_allowed")),
+            "merge_allowed": bool(decision.get("merge_allowed") or decision.get("can_merge")),
+            "merged": bool(decision.get("merged")),
+            "merge_blockers": decision.get("merge_blockers") or decision.get("blockers") or [],
+            "wait_elapsed_seconds": round(time.monotonic() - started_monotonic, 3),
+            "next_action": next_action,
+        }
+
+    initial_decision = initial_merge_decision.get("decision", {})
+    eligible, eligibility_blockers = review_waiter_eligible(args, pr_number, initial_decision)
+    if not eligible:
+        rows.append(row_from_gate(initial_merge_decision, "stop_not_eligible"))
+        status = {
+            "summary_status": "WARN",
+            "schema_version": "dualscope/autorun-review-waiter-status/v1",
+            "started_at": started_at,
+            "completed_at": utc_now(),
+            "iteration": iteration,
+            "selected_task": selected_task,
+            "pr_number": pr_number,
+            "status": "not_eligible",
+            "final_action": "stop",
+            "wait_elapsed_seconds": round(time.monotonic() - started_monotonic, 3),
+            "blockers": eligibility_blockers,
+            "final_merge_decision": initial_merge_decision,
+        }
+        write_json(status_path, status)
+        write_jsonl(iterations_path, rows)
+        report_path.write_text(render_review_waiter_report(status, rows), encoding="utf-8")
+        return status
+
+    rows.append(row_from_gate(initial_merge_decision, "wait_for_codex_review"))
+    timeout_seconds = max(0, args.max_review_wait_minutes) * 60
+    poll_seconds = max(1, args.review_poll_interval_seconds)
+    final_gate = initial_merge_decision
+    final_status = "review_timeout"
+    final_action = "stop"
+    blockers: list[dict[str, Any]] = [{"kind": "review_timeout", "message": "Timed out waiting for Codex review evidence."}]
+
+    while time.monotonic() - started_monotonic < timeout_seconds:
+        time.sleep(min(poll_seconds, max(1, timeout_seconds - (time.monotonic() - started_monotonic))))
+        final_gate = run_safe_pr_merge_gate(args, pr_number, merge=True)
+        decision = final_gate.get("decision", {})
+        if decision.get("merged"):
+            final_status = "merged_after_review"
+            final_action = "continue" if args.continue_after_review_merge else "stop"
+            blockers = []
+            rows.append(row_from_gate(final_gate, final_action))
+            break
+        requested_changes_count = int(decision.get("requested_changes_count") or 0)
+        failing_checks_count = int(decision.get("failing_checks_count") or 0)
+        if requested_changes_count > 0 or failing_checks_count > 0:
+            final_status = "blocked_during_wait"
+            final_action = "stop"
+            blockers = decision.get("blockers") or []
+            rows.append(row_from_gate(final_gate, "stop_blocked"))
+            break
+        kinds = blocker_kinds(decision)
+        if kinds and kinds != ["codex_review_missing"]:
+            final_status = "blocked_during_wait"
+            final_action = "stop"
+            blockers = decision.get("blockers") or []
+            rows.append(row_from_gate(final_gate, "stop_blocked"))
+            break
+        rows.append(row_from_gate(final_gate, "wait_for_codex_review"))
+
+    status = {
+        "summary_status": "PASS" if final_status == "merged_after_review" else "WARN",
+        "schema_version": "dualscope/autorun-review-waiter-status/v1",
+        "started_at": started_at,
+        "completed_at": utc_now(),
+        "iteration": iteration,
+        "selected_task": selected_task,
+        "pr_number": pr_number,
+        "status": final_status,
+        "final_action": final_action,
+        "wait_elapsed_seconds": round(time.monotonic() - started_monotonic, 3),
+        "max_review_wait_minutes": args.max_review_wait_minutes,
+        "review_poll_interval_seconds": args.review_poll_interval_seconds,
+        "blockers": blockers,
+        "final_merge_decision": final_gate,
+    }
+    write_json(status_path, status)
+    write_jsonl(iterations_path, rows)
+    report_path.write_text(render_review_waiter_report(status, rows), encoding="utf-8")
+    return status
+
+
 def git_changed_files() -> dict[str, Any]:
     result = run_command(["git", "status", "--porcelain"], timeout=60)
     return {
@@ -938,6 +1106,9 @@ def run_autorun_loop(args: AutorunLoopArgs) -> tuple[int, dict[str, Any]]:
     created_prs_path = args.output_dir / "dualscope_autorun_loop_created_prs.jsonl"
     merge_decisions_path = args.output_dir / "dualscope_autorun_loop_merge_decisions.jsonl"
     worktree_cleanup_path = args.output_dir / "dualscope_autorun_loop_worktree_cleanup.jsonl"
+    review_waiter_status_path = args.output_dir / "dualscope_autorun_review_waiter_status.json"
+    review_waiter_iterations_path = args.output_dir / "dualscope_autorun_review_waiter_iterations.jsonl"
+    review_waiter_report_path = args.output_dir / "dualscope_autorun_review_waiter_report.md"
     dirty_check_path = args.output_dir / "dualscope_autorun_loop_dirty_worktree_classification.json"
     legacy_dirty_check_path = args.output_dir / "dualscope_autorun_loop_dirty_worktree_check.json"
     command_preview_path = args.output_dir / "dualscope_autorun_loop_codex_command_preview.json"
@@ -954,10 +1125,11 @@ def run_autorun_loop(args: AutorunLoopArgs) -> tuple[int, dict[str, Any]]:
         created_prs_path,
         merge_decisions_path,
         worktree_cleanup_path,
+        review_waiter_iterations_path,
     ]:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text("", encoding="utf-8")
-    for path in [failure_diagnostics_path, legacy_failure_details_path, failure_report_path]:
+    for path in [failure_diagnostics_path, legacy_failure_details_path, failure_report_path, review_waiter_status_path, review_waiter_report_path]:
         path.unlink(missing_ok=True)
 
     dangerous_actions = {
@@ -995,6 +1167,8 @@ def run_autorun_loop(args: AutorunLoopArgs) -> tuple[int, dict[str, Any]]:
         "require_codex_review_before_merge": args.require_codex_review_before_merge,
         "max_review_wait_minutes": args.max_review_wait_minutes,
         "review_poll_interval_seconds": args.review_poll_interval_seconds,
+        "wait_for_codex_review": args.wait_for_codex_review,
+        "continue_after_review_merge": args.continue_after_review_merge,
         "cleanup_merged_worktrees": args.cleanup_merged_worktrees,
         "keep_failed_worktrees": args.keep_failed_worktrees,
         "task_result_pr_packager": str(args.task_result_pr_packager),
@@ -1163,23 +1337,27 @@ def run_autorun_loop(args: AutorunLoopArgs) -> tuple[int, dict[str, Any]]:
             elif args.dry_run:
                 stop_reason = "dry_run_completed"
             elif task_pr_number and args.enable_safe_auto_merge and args.safe_merge_current_task_pr:
-                deadline = time.monotonic() + max(0, args.max_review_wait_minutes) * 60
                 merge_decision = run_safe_pr_merge_gate(args, int(task_pr_number), merge=True)
-                while (
+                write_jsonl(merge_decisions_path, [merge_decision], append=True)
+                waiter_status: dict[str, Any] | None = None
+                if (
                     merge_decision.get("decision", {}).get("decision") == "blocked"
                     and any(item.get("kind") == "codex_review_missing" for item in merge_decision.get("decision", {}).get("blockers", []))
-                    and time.monotonic() < deadline
                 ):
-                    time.sleep(max(1, args.review_poll_interval_seconds))
-                    merge_decision = run_safe_pr_merge_gate(args, int(task_pr_number), merge=True)
-                write_jsonl(merge_decisions_path, [merge_decision], append=True)
+                    waiter_status = run_review_waiter(args, int(task_pr_number), merge_decision, iteration, selected_task)
+                    final_waiter_gate = waiter_status.get("final_merge_decision") or {}
+                    if final_waiter_gate:
+                        merge_decision = final_waiter_gate
+                        write_jsonl(merge_decisions_path, [merge_decision], append=True)
                 if merge_decision.get("decision", {}).get("merged"):
+                    checkout_result = run_command(["git", "checkout", "main"], timeout=180)
                     pull_result = run_command(["git", "pull", "origin", "main"], timeout=180)
                     cleanup_row = {
                         "iteration": iteration,
                         "pr": task_pr_number,
                         "task_pr_source": task_pr_source,
                         "worktree_path": exec_result.get("worktree_path"),
+                        "checkout_main_after_merge": command_row("git_checkout_main", checkout_result),
                         "pull_after_merge": command_row("git_pull_origin_main", pull_result),
                         "cleanup_attempted": False,
                         "cleanup_result": None,
@@ -1189,10 +1367,14 @@ def run_autorun_loop(args: AutorunLoopArgs) -> tuple[int, dict[str, Any]]:
                         cleanup_row["cleanup_attempted"] = True
                         cleanup_row["cleanup_result"] = command_row("git_worktree_remove", cleanup_result)
                     write_jsonl(worktree_cleanup_path, [cleanup_row], append=True)
-                    stop_reason = "max_iterations"
+                    stop_reason = "max_iterations" if args.continue_after_review_merge else "task_pr_merged"
                 else:
-                    blockers.extend(merge_decision.get("decision", {}).get("blockers") or [])
-                    stop_reason = "safe_merge_gate_blocker"
+                    if waiter_status and waiter_status.get("status") == "review_timeout":
+                        blockers.extend(waiter_status.get("blockers") or [])
+                        stop_reason = "review_timeout"
+                    else:
+                        blockers.extend(merge_decision.get("decision", {}).get("blockers") or [])
+                        stop_reason = "safe_merge_gate_blocker"
             elif task_pr_number:
                 stop_reason = "task_pr_created_pending_merge"
             else:
@@ -1309,6 +1491,10 @@ def run_autorun_loop(args: AutorunLoopArgs) -> tuple[int, dict[str, Any]]:
         "worktree_root": str(args.worktree_root),
         "enable_safe_auto_merge": args.enable_safe_auto_merge,
         "safe_merge_current_task_pr": args.safe_merge_current_task_pr,
+        "wait_for_codex_review": args.wait_for_codex_review,
+        "max_review_wait_minutes": args.max_review_wait_minutes,
+        "review_poll_interval_seconds": args.review_poll_interval_seconds,
+        "continue_after_review_merge": args.continue_after_review_merge,
         "task_worktree_runner_output_dir": str(DEFAULT_TASK_WORKTREE_RUNNER_OUTPUT_DIR),
         "safe_pr_merge_gate_output_dir": str(DEFAULT_SAFE_PR_MERGE_GATE_OUTPUT_DIR),
         "final_verdict": verdict,

@@ -26,6 +26,7 @@ The scheduler checkout should remain clean. Each selected task can run inside an
   - Delegates task execution to the worktree runner.
   - Records created PRs and merge decisions.
   - Does not auto merge unless `--enable-safe-auto-merge` is explicitly set.
+  - When `--wait-for-codex-review` is enabled, waits for Codex connector review if the only safe merge blocker is missing review evidence.
 
 ## Safe Defaults
 
@@ -90,3 +91,32 @@ Only enable after a smoke PR review cycle has been manually inspected:
 ```
 
 The merge gate still blocks requested changes, failing checks, forbidden files, PR #14, non-main bases, branch deletion, and non-squash merge.
+
+## Review Waiter
+
+The review waiter is enabled by default in autorun and is controlled by:
+
+- `--wait-for-codex-review`
+- `--max-review-wait-minutes`
+- `--review-poll-interval-seconds`
+- `--continue-after-review-merge`
+
+It only waits when all of the following are true:
+
+- The PR is the current autorun task PR.
+- The safe merge gate blocker list contains only `codex_review_missing`.
+- `@codex review` has been requested.
+- There are no requested changes.
+- There are no failing checks.
+- File scope is safe.
+- The PR is not PR #14.
+
+Each poll re-runs the safe merge gate. If Codex connector review appears and the gate allows merge, autorun performs a squash merge with `--delete-branch=false`, checks out `main`, pulls `origin main`, optionally removes the merged worktree, and continues to the next iteration.
+
+The waiter stops without merging on requested changes, failing checks, unsafe file scope, review timeout, or any blocker other than missing Codex review evidence.
+
+Waiter artifacts are written under the autorun output directory:
+
+- `dualscope_autorun_review_waiter_status.json`
+- `dualscope_autorun_review_waiter_iterations.jsonl`
+- `dualscope_autorun_review_waiter_report.md`
