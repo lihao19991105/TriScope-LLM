@@ -254,6 +254,8 @@ def has_codex_review_evidence(pr: dict[str, Any]) -> bool:
 
 def should_materialize_qwen_dependencies(task_id: str) -> bool:
     normalized = task_id.lower()
+    if "blocker-closure" in normalized:
+        return False
     return "qwen2p5-7b" in normalized and (
         "first-slice" in normalized
         or "response-generation" in normalized
