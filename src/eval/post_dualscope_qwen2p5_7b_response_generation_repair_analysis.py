@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -22,6 +23,21 @@ def read_json(path: Path) -> dict[str, Any]:
 def write_json(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2, ensure_ascii=True) + "\n", encoding="utf-8")
+
+
+def current_git_commit() -> str:
+    try:
+        completed = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            check=False,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=10,
+        )
+    except Exception:
+        return ""
+    return completed.stdout.strip() if completed.returncode == 0 else ""
 
 
 def build_post_qwen2p5_7b_response_generation_repair_analysis(
@@ -68,6 +84,7 @@ def build_post_qwen2p5_7b_response_generation_repair_analysis(
         "task_id": "dualscope-qwen2p5-7b-response-generation-repair",
         "verdict": final_verdict,
         "source_output_dir": source_output_dir,
+        "commit": current_git_commit(),
         "created_at": utc_now(),
         "validated": validated,
         "repair_for": "dualscope-qwen2p5-7b-first-slice-response-generation",

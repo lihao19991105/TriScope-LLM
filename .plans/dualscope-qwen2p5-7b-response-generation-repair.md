@@ -57,6 +57,7 @@ Historical TriScope / route_c artifacts are not used.
 - Follow-up validation found the tracked repair verdict registry pointed at the wrong main-model-axis artifact. The registry has been corrected, and `DUALSCOPE_TASK_QUEUE.md` now includes a dedicated repair task entry so the orchestrator can recognize the repair as validated.
 - Current isolated worktree validation found `/mnt/sda3/lh/models/qwen2p5-7b-instruct` exists and a repo-local `models/qwen2p5-7b-instruct` binding can point to it, but the required ignored first-slice labeled pairs, target-response plan rows, and resource-materialization output directory are absent from this worktree.
 - Because required input artifacts are absent, the repair did not attempt model loading or generation. It wrote `Partially validated` with `blocker_type=missing_input` and next task `dualscope-qwen2p5-7b-response-input-artifact-repair`.
+- The 2026-04-26 rerun recreated the ignored repo-local model binding and confirmed it resolves to `/mnt/sda3/lh/models/qwen2p5-7b-instruct` with tokenizer/config files and four safetensor shards. The missing labeled pairs, target-response plan rows/verdict, and resource-materialization directory still block real response generation in this isolated worktree.
 
 ## Decision Log
 
@@ -97,6 +98,7 @@ Current dedicated repair validation:
 - `python3 scripts/build_post_dualscope_qwen2p5_7b_response_generation_repair_analysis.py` wrote analysis artifacts and updated `.reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-response-generation-repair.json`.
 - Current blockers are `missing_resource_materialization_dir`, `missing_labeled_pairs`, `missing_target_response_plan_rows`, and `target_response_plan_not_validated`; generated response rows are zero and no responses/logprobs/metrics were fabricated.
 - Current rerun in this isolated worktree recreated the ignored repo-local model binding to `/mnt/sda3/lh/models/qwen2p5-7b-instruct`, then reran the same bounded repair command. The model binding passed source audit, but the ignored labeled-pairs JSONL, target-response plan rows/verdict, and resource-materialization directory remain absent, so the repair verdict remains `Partially validated` with `blocker_type=missing_input` and next task `dualscope-qwen2p5-7b-response-input-artifact-repair`.
+- Latest analysis registry update wrote `.reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-response-generation-repair.json` with verdict `Partially validated`, `blocker_type=missing_input`, and next task `dualscope-qwen2p5-7b-response-input-artifact-repair`.
 
 ## Validation and Acceptance
 
