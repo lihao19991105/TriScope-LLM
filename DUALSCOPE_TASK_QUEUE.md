@@ -896,7 +896,7 @@ The Markdown text is for humans; the fenced JSON block is the source of truth.
         "outputs/dualscope_cross_model_validation_plan_repair/default/dualscope_cross_model_validation_plan_repair_verdict.json",
         "outputs/dualscope_cross_model_validation_plan_repair_analysis/default/dualscope_cross_model_validation_plan_repair_verdict.json"
       ],
-      "next_task_if_validated": null,
+      "next_task_if_validated": "queue_complete",
       "next_task_if_partially_validated": "dualscope-cross-model-validation-plan-blocker-closure",
       "next_task_if_not_validated": "dualscope-cross-model-validation-plan-blocker-closure"
     }
