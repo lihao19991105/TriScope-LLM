@@ -254,7 +254,43 @@ def has_codex_review_evidence(pr: dict[str, Any]) -> bool:
 
 def should_materialize_qwen_dependencies(task_id: str) -> bool:
     normalized = task_id.lower()
-    return "qwen2p5-7b" in normalized and "first-slice" in normalized
+    return "qwen2p5-7b" in normalized and (
+        "first-slice" in normalized
+        or "response-generation" in normalized
+        or "metric" in normalized
+        or "result-package" in normalized
+    )
+
+
+def qwen_output_dependencies_for_task(task_id: str) -> tuple[str, ...]:
+    normalized = task_id.lower()
+    base = [
+        "outputs/dualscope_first_slice_target_response_generation_plan/default",
+        "outputs/dualscope_main_model_axis_upgrade_plan/default",
+        "outputs/dualscope_qwen2p5_7b_first_slice_response_generation_plan/default",
+    ]
+    if "response-generation" in normalized or "metric" in normalized or "result-package" in normalized:
+        base.extend(
+            [
+                "outputs/dualscope_qwen2p5_7b_resource_materialization/default",
+                "outputs/dualscope_qwen2p5_7b_first_slice_response_generation/default",
+                "outputs/dualscope_qwen2p5_7b_response_generation_repair/default",
+                "outputs/dualscope_qwen2p5_7b_response_generation_repair_analysis/default",
+            ]
+        )
+    if "metric" in normalized or "result-package" in normalized:
+        base.extend(
+            [
+                "outputs/dualscope_minimal_first_slice_condition_level_rerun/default",
+                "outputs/dualscope_first_slice_condition_row_level_fusion_alignment/default",
+                "outputs/dualscope_qwen2p5_7b_label_aligned_metric_computation/default",
+                "outputs/dualscope_qwen2p5_7b_metric_blocker_closure/default",
+                "outputs/dualscope_qwen2p5_7b_metric_blocker_closure_analysis/default",
+                "outputs/dualscope_qwen2p5_7b_metric_computation_repair/default",
+                "outputs/dualscope_qwen2p5_7b_metric_computation_repair_analysis/default",
+            ]
+        )
+    return tuple(dict.fromkeys(base))
 
 
 def copy_file_dependency(repo_root: Path, worktree_path: Path, relative_path: str, result: dict[str, Any]) -> None:
@@ -345,11 +381,7 @@ def materialize_worktree_dependencies(
     ):
         copy_file_dependency(repo_root, worktree_path, relative_path, result)
 
-    for relative_path in (
-        "outputs/dualscope_first_slice_target_response_generation_plan/default",
-        "outputs/dualscope_main_model_axis_upgrade_plan/default",
-        "outputs/dualscope_qwen2p5_7b_first_slice_response_generation_plan/default",
-    ):
+    for relative_path in qwen_output_dependencies_for_task(task_id):
         copy_dir_dependency(repo_root, worktree_path, relative_path, result)
 
     create_model_symlink(worktree_path, result)
