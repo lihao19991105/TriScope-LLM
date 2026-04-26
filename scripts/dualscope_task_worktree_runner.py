@@ -257,6 +257,7 @@ def should_materialize_qwen_dependencies(task_id: str) -> bool:
     return "qwen2p5-7b" in normalized and (
         "first-slice" in normalized
         or "response-generation" in normalized
+        or "response-dependency" in normalized
         or "metric" in normalized
         or "result-package" in normalized
     )
@@ -269,13 +270,22 @@ def qwen_output_dependencies_for_task(task_id: str) -> tuple[str, ...]:
         "outputs/dualscope_main_model_axis_upgrade_plan/default",
         "outputs/dualscope_qwen2p5_7b_first_slice_response_generation_plan/default",
     ]
-    if "response-generation" in normalized or "metric" in normalized or "result-package" in normalized:
+    if (
+        "response-generation" in normalized
+        or "response-dependency" in normalized
+        or "metric" in normalized
+        or "result-package" in normalized
+    ):
         base.extend(
             [
                 "outputs/dualscope_qwen2p5_7b_resource_materialization/default",
                 "outputs/dualscope_qwen2p5_7b_first_slice_response_generation/default",
                 "outputs/dualscope_qwen2p5_7b_response_generation_repair/default",
                 "outputs/dualscope_qwen2p5_7b_response_generation_repair_analysis/default",
+                "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_plan/default",
+                "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation/default",
+                "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation_repair/default",
+                "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation_repair_analysis/default",
             ]
         )
     if "metric" in normalized or "result-package" in normalized:
@@ -327,6 +337,23 @@ def create_model_symlink(worktree_path: Path, result: dict[str, Any]) -> None:
             destination.unlink()
         elif destination.is_dir():
             result["blocker_if_any"] = f"Cannot replace existing non-symlink model directory: {relative_path}"
+            return
+    destination.symlink_to(target, target_is_directory=True)
+    result["symlinks_created"].append({"path": relative_path, "target": str(target), "resolved": str(destination.resolve())})
+
+
+def create_venv_symlink(repo_root: Path, worktree_path: Path, result: dict[str, Any]) -> None:
+    target = repo_root / ".venv"
+    relative_path = ".venv"
+    destination = worktree_path / relative_path
+    if not target.exists() or not target.is_dir():
+        result["missing_dependencies"].append(relative_path)
+        return
+    if destination.exists() or destination.is_symlink():
+        if destination.is_symlink() or destination.is_file():
+            destination.unlink()
+        elif destination.is_dir():
+            result["blocker_if_any"] = f"Cannot replace existing non-symlink virtualenv directory: {relative_path}"
             return
     destination.symlink_to(target, target_is_directory=True)
     result["symlinks_created"].append({"path": relative_path, "target": str(target), "resolved": str(destination.resolve())})
@@ -384,6 +411,7 @@ def materialize_worktree_dependencies(
         copy_dir_dependency(repo_root, worktree_path, relative_path, result)
 
     create_model_symlink(worktree_path, result)
+    create_venv_symlink(repo_root, worktree_path, result)
     if result["missing_dependencies"] or result["blocker_if_any"]:
         result["summary_status"] = "BLOCKED"
         if not result["blocker_if_any"]:

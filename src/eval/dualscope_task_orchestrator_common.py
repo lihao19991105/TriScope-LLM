@@ -601,6 +601,33 @@ def choose_next_task(
                 )
                 followup_id = repair_task.get(followup_key) or repair_id
                 followup_task = task_by_id(tasks, followup_id)
+                followup_status = scan_by_id.get(followup_id, {"status": "not_started"})
+                if followup_task and followup_status.get("status") in {"partially_validated", "not_validated"}:
+                    nested_key = (
+                        "next_task_if_partially_validated"
+                        if followup_status.get("status") == "partially_validated"
+                        else "next_task_if_not_validated"
+                    )
+                    nested_id = followup_task.get(nested_key) or followup_id
+                    nested_task = task_by_id(tasks, nested_id)
+                    return {
+                        "selection_type": "partial_repair_nested_followup",
+                        "next_task": nested_id,
+                        "selected_task_id": nested_id,
+                        "source_task_id": task_id,
+                        "repair_task_id": repair_id,
+                        "followup_task_id": followup_id,
+                        "reason": (
+                            f"Task {task_id} is partially validated, repair task {repair_id} "
+                            f"is {repair_status.get('status')}, and follow-up task {followup_id} "
+                            f"is {followup_status.get('status')}; selecting the nested follow-up task."
+                        ),
+                        "task_status": row,
+                        "repair_task_status": repair_status,
+                        "followup_task_status": followup_status,
+                        "task": nested_task,
+                        "blockers": [],
+                    }
                 return {
                     "selection_type": "partial_repair_followup",
                     "next_task": followup_id,

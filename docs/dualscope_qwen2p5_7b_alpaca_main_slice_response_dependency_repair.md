@@ -6,6 +6,8 @@ The task is execution-required. It must diagnose the actual `.venv` runtime, CUD
 
 This task must not submit plan-only, docs-only, or registry-only evidence as completed response generation. It must not fabricate responses, logprobs, metrics, labels, reviews, or CI.
 
+The worktree runner must materialize the same ignored local dependencies used by the bounded response-generation task: labeled pairs, relevant Qwen2.5-7B output directories, the model symlink, and the repository `.venv`. Without those bindings, dependency repair may incorrectly create a local fallback Python environment and report missing inputs instead of testing the real SCI3 runtime.
+
 ## Execution Result
 
 Final verdict: `Partially validated`.
