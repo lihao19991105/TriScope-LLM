@@ -19,6 +19,9 @@ SCHEMA_VERSION = "dualscope/experiment-execution-gate/v1"
 RESPONSE_GENERATION_REPAIR_TASK = "dualscope-qwen2p5-7b-response-generation-repair"
 ALPACA_MAIN_SLICE_RESPONSE_TASK = "dualscope-qwen2p5-7b-alpaca-main-slice-response-generation"
 ALPACA_MAIN_SLICE_RESPONSE_REPAIR_TASK = "dualscope-qwen2p5-7b-alpaca-main-slice-response-generation-repair"
+ALPACA_MAIN_SLICE_RESPONSE_DEPENDENCY_REPAIR_TASK = (
+    "dualscope-qwen2p5-7b-alpaca-main-slice-response-dependency-repair"
+)
 VALID_BLOCKER_TYPES = {
     "oom",
     "model_load_failure",
@@ -36,6 +39,7 @@ EXECUTION_REQUIRED_TASKS = {
     RESPONSE_GENERATION_REPAIR_TASK,
     ALPACA_MAIN_SLICE_RESPONSE_TASK,
     ALPACA_MAIN_SLICE_RESPONSE_REPAIR_TASK,
+    ALPACA_MAIN_SLICE_RESPONSE_DEPENDENCY_REPAIR_TASK,
 }
 
 
@@ -91,6 +95,29 @@ REQUIRED_ARTIFACTS: dict[str, RequiredArtifactSpec] = {
             ),
         ),
         blocker_paths=(
+            Path(
+                "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation_repair/default/"
+                "qwen2p5_7b_alpaca_main_slice_response_generation_repair_blockers.json"
+            ),
+            Path("outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation_repair/default/blockers.json"),
+        ),
+    ),
+    ALPACA_MAIN_SLICE_RESPONSE_DEPENDENCY_REPAIR_TASK: RequiredArtifactSpec(
+        response_paths=(
+            Path(
+                "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation_repair/default/"
+                "qwen2p5_7b_alpaca_main_slice_response_generation_repair_responses.jsonl"
+            ),
+            Path(
+                "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation/default/"
+                "qwen2p5_7b_alpaca_main_slice_responses.jsonl"
+            ),
+        ),
+        blocker_paths=(
+            Path(
+                "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_dependency_repair/default/"
+                "dependency_repair_blockers.json"
+            ),
             Path(
                 "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation_repair/default/"
                 "qwen2p5_7b_alpaca_main_slice_response_generation_repair_blockers.json"

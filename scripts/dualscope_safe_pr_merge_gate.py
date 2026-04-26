@@ -42,6 +42,7 @@ DEFAULT_ALLOWED_PATTERNS = [
     "DUALSCOPE_TASK_QUEUE.md",
     "PLANS.md",
     "README.md",
+    "requirements.txt",
 ]
 DEFAULT_ALLOWED_OUTPUT_ARTIFACT_PATTERNS = [
     "outputs/dualscope_main_model_axis_upgrade_plan/default/*",

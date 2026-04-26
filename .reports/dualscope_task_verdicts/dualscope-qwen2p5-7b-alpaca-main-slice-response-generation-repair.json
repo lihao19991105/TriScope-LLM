@@ -5,5 +5,6 @@
   "commit": "0e76e8b935f0b08fed18b72fa94a1f8d06dfc62f",
   "created_at": "2026-04-26T15:43:04Z",
   "validated": false,
-  "next_task": null
+  "blocker_type": "missing_dependency",
+  "next_task": "dualscope-qwen2p5-7b-alpaca-main-slice-response-dependency-repair"
 }
