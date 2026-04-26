@@ -657,6 +657,46 @@ The Markdown text is for humans; the fenced JSON block is the source of truth.
       "next_task_if_validated": null,
       "next_task_if_partially_validated": "dualscope-cross-model-validation-plan-repair",
       "next_task_if_not_validated": "dualscope-cross-model-validation-plan-blocker-closure"
+    },
+    {
+      "task_id": "dualscope-autorun-blocker-repair-orchestration",
+      "purpose": "Upgrade DualScope autorun from opaque blocker stops to safe blocker classification and generated repair task orchestration.",
+      "expected_inputs": [
+        "outputs/dualscope_autorun_loop/default/dualscope_autorun_loop_summary.json",
+        "outputs/dualscope_autorun_loop/default/dualscope_autorun_loop_blockers.json",
+        "outputs/dualscope_task_orchestrator/default/dualscope_next_task_selection.json",
+        "AGENTS.md",
+        "PLANS.md",
+        "DUALSCOPE_MASTER_PLAN.md",
+        "DUALSCOPE_TASK_QUEUE.md"
+      ],
+      "expected_outputs": [
+        ".plans/dualscope-autorun-blocker-repair-orchestration.md",
+        "src/eval/dualscope_autorun_blocker_classifier.py",
+        "src/eval/dualscope_autorun_repair_task_generator.py",
+        "scripts/dualscope_autorun_blocker_repair_orchestrator.py",
+        "docs/dualscope_autorun_blocker_repair_orchestration.md",
+        "outputs/dualscope_autorun_blocker_repair/default"
+      ],
+      "branch_name_suggestion": "codex/dualscope-autorun-blocker-repair-orchestration",
+      "prompt_template": "Continue DualScope-LLM task `{task_id}`. Implement safe autorun blocker classification and repair task generation. Support queue_or_prompt, artifact, code, PR workflow, resource, experiment, safety, and unknown blockers. Do not bypass requested changes or failing checks, do not merge PR #14, do not force push or delete branches, do not modify benchmark truth or gates, do not continue route_c/199+, and do not fake model outputs, metrics, review, or CI. Generate repair task artifacts and wire autorun flags for dry-run validation. Follow AGENTS.md PR workflow.",
+      "completion_verdicts": {
+        "validated": [
+          "Autorun blocker repair orchestration validated"
+        ],
+        "partially_validated": [
+          "Partially validated"
+        ],
+        "not_validated": [
+          "Not validated"
+        ]
+      },
+      "verdict_artifacts": [
+        "outputs/dualscope_autorun_blocker_repair/default/dualscope_autorun_repair_summary.json"
+      ],
+      "next_task_if_validated": null,
+      "next_task_if_partially_validated": "dualscope-autorun-blocker-repair-orchestration-repair",
+      "next_task_if_not_validated": "dualscope-autorun-blocker-repair-orchestration-blocker-closure"
     }
   ]
 }

@@ -118,6 +118,27 @@ def build_parser() -> argparse.ArgumentParser:
         default=True,
         help="Keep main checkout as scheduler only and stop worktree tasks on dirty scheduler state. Default: enabled.",
     )
+    parser.add_argument(
+        "--auto-repair-blockers",
+        action="store_true",
+        help="Classify autorun blockers and generate a safe repair task instead of leaving an opaque stop state. Default: disabled.",
+    )
+    parser.add_argument("--max-repair-attempts", type=int, default=2, help="Maximum attempts for one blocker class/task pair. Default: 2")
+    parser.add_argument(
+        "--repair-output-dir",
+        type=Path,
+        default=Path("outputs/dualscope_autorun_blocker_repair/default"),
+        help="Output directory for blocker repair classification and generated task artifacts.",
+    )
+    parser.add_argument(
+        "--stop-on-unrepairable-blocker",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Stop when blocker classifier marks a blocker unrepairable. Default: enabled.",
+    )
+    parser.add_argument("--allow-resource-repair", action=argparse.BooleanOptionalAction, default=True, help="Allow resource blocker repair task generation. Default: enabled.")
+    parser.add_argument("--allow-experiment-repair", action=argparse.BooleanOptionalAction, default=True, help="Allow experiment blocker repair task generation. Default: enabled.")
+    parser.add_argument("--allow-pr-workflow-repair", action=argparse.BooleanOptionalAction, default=True, help="Allow PR workflow blocker repair task generation. Default: enabled.")
     parser.add_argument("--stop-on-review-pending", action="store_true", help="Stop when checked PR review is pending.")
     parser.add_argument(
         "--allow-review-pending-continue",
@@ -177,6 +198,13 @@ def main() -> int:
         task_result_pr_packager=parsed.task_result_pr_packager,
         safe_pr_merge_gate=parsed.safe_pr_merge_gate,
         main_worktree_only_scheduler=parsed.main_worktree_only_scheduler,
+        auto_repair_blockers=parsed.auto_repair_blockers,
+        max_repair_attempts=parsed.max_repair_attempts,
+        repair_output_dir=parsed.repair_output_dir,
+        stop_on_unrepairable_blocker=parsed.stop_on_unrepairable_blocker,
+        allow_resource_repair=parsed.allow_resource_repair,
+        allow_experiment_repair=parsed.allow_experiment_repair,
+        allow_pr_workflow_repair=parsed.allow_pr_workflow_repair,
     )
     exit_code, summary = run_autorun_loop(args)
     print(json.dumps(summary, indent=2, ensure_ascii=True))
