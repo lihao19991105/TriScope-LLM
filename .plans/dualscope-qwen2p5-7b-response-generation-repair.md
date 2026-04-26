@@ -96,6 +96,7 @@ Current dedicated repair validation:
 - `HF_HOME=/mnt/sda3/lh/huggingface TRANSFORMERS_CACHE=/mnt/sda3/lh/huggingface/transformers HF_HUB_CACHE=/mnt/sda3/lh/huggingface/hub TMPDIR=/mnt/sda3/lh/tmp CUDA_DEVICE_ORDER=PCI_BUS_ID CUDA_VISIBLE_DEVICES=2,3 python3 scripts/build_dualscope_qwen2p5_7b_response_generation_repair.py --model-dir models/qwen2p5-7b-instruct --max-examples 4 --batch-size 1 --max-new-tokens 64 --min-free-gpu-memory-mib 18432 --allow-without-logprobs` wrote repair and first-slice blocker artifacts with final verdict `Partially validated`.
 - `python3 scripts/build_post_dualscope_qwen2p5_7b_response_generation_repair_analysis.py` wrote analysis artifacts and updated `.reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-response-generation-repair.json`.
 - Current blockers are `missing_resource_materialization_dir`, `missing_labeled_pairs`, `missing_target_response_plan_rows`, and `target_response_plan_not_validated`; generated response rows are zero and no responses/logprobs/metrics were fabricated.
+- Current rerun in this isolated worktree recreated the ignored repo-local model binding to `/mnt/sda3/lh/models/qwen2p5-7b-instruct`, then reran the same bounded repair command. The model binding passed source audit, but the ignored labeled-pairs JSONL, target-response plan rows/verdict, and resource-materialization directory remain absent, so the repair verdict remains `Partially validated` with `blocker_type=missing_input` and next task `dualscope-qwen2p5-7b-response-input-artifact-repair`.
 
 ## Validation and Acceptance
 
