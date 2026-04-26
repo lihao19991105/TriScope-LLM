@@ -101,6 +101,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--cleanup-merged-worktrees", action=argparse.BooleanOptionalAction, default=True, help="Remove task worktrees after successful merge. Default: enabled.")
     parser.add_argument("--keep-failed-worktrees", action="store_true", help="Keep failed task worktrees for inspection.")
     parser.add_argument(
+        "--worktree-dependency-materialization",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Let task worktree runner copy ignored data/output dependencies and model bindings before codex exec. Default: enabled.",
+    )
+    parser.add_argument(
         "--task-result-pr-packager",
         type=Path,
         default=Path("scripts/dualscope_task_worktree_runner.py"),
@@ -174,6 +180,7 @@ def main() -> int:
         continue_after_review_merge=parsed.continue_after_review_merge,
         cleanup_merged_worktrees=parsed.cleanup_merged_worktrees,
         keep_failed_worktrees=parsed.keep_failed_worktrees,
+        worktree_dependency_materialization=parsed.worktree_dependency_materialization,
         task_result_pr_packager=parsed.task_result_pr_packager,
         safe_pr_merge_gate=parsed.safe_pr_merge_gate,
         main_worktree_only_scheduler=parsed.main_worktree_only_scheduler,

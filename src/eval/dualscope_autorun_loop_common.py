@@ -84,6 +84,7 @@ class AutorunLoopArgs:
     continue_after_review_merge: bool
     cleanup_merged_worktrees: bool
     keep_failed_worktrees: bool
+    worktree_dependency_materialization: bool
     task_result_pr_packager: Path
     safe_pr_merge_gate: Path
     main_worktree_only_scheduler: bool
@@ -712,6 +713,8 @@ def run_task_worktree_runner(
         command.append("--execute")
     if args.keep_failed_worktrees:
         command.append("--keep-worktree")
+    if not args.worktree_dependency_materialization:
+        command.append("--no-materialize-dependencies")
     started = utc_now()
     result = run_command(command, timeout=max(60, args.max_minutes * 60 + 300))
     summary_path = output_dir / "dualscope_task_worktree_runner_summary.json"
@@ -748,6 +751,7 @@ def run_task_worktree_runner(
         "existing_pr_check": existing_pr_check,
         "push_result": push_result,
         "worktree_manifest": manifest,
+        "worktree_dependency_materialization": args.worktree_dependency_materialization,
         "created_pr_number": created_pr_number,
         "created_pr_url": created_pr_url,
         "existing_pr_number": existing_pr_number,
@@ -1165,6 +1169,7 @@ def run_autorun_loop(args: AutorunLoopArgs) -> tuple[int, dict[str, Any]]:
         "ignore_runtime_dirty_paths": args.ignore_runtime_dirty_paths,
         "use_worktrees": args.use_worktrees,
         "worktree_root": str(args.worktree_root),
+        "worktree_dependency_materialization": args.worktree_dependency_materialization,
         "enable_safe_auto_merge": args.enable_safe_auto_merge,
         "safe_merge_current_task_pr": args.safe_merge_current_task_pr,
         "require_codex_review_before_merge": args.require_codex_review_before_merge,

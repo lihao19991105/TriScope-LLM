@@ -8,6 +8,7 @@ import json
 import os
 import re
 import shlex
+import shutil
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
@@ -18,6 +19,25 @@ DEFAULT_OUTPUT_DIR = Path("outputs/dualscope_task_worktree_runner/default")
 DEFAULT_WORKTREE_ROOT = Path("/tmp/dualscope-worktrees")
 DEFAULT_PROXY = "http://127.0.0.1:18080"
 DEFAULT_CODEX_EXTRA_ARGS = "--cd {worktree_path} --full-auto"
+DEFAULT_QWEN25_7B_MODEL_DIR = Path("/mnt/sda3/lh/models/qwen2p5-7b-instruct")
+DEFAULT_VERDICT_REGISTRY_DIR = Path(".reports/dualscope_task_verdicts")
+WORKTREE_EXEC_ENV = {
+    "HF_HOME": "/mnt/sda3/lh/huggingface",
+    "TRANSFORMERS_CACHE": "/mnt/sda3/lh/huggingface/transformers",
+    "HF_HUB_CACHE": "/mnt/sda3/lh/huggingface/hub",
+    "TMPDIR": "/mnt/sda3/lh/tmp",
+    "CUDA_VISIBLE_DEVICES": "2,3",
+}
+TASK_NEXT_TASK_OVERRIDES = {
+    "dualscope-qwen2p5-7b-first-slice-response-generation-plan": "dualscope-qwen2p5-7b-first-slice-response-generation",
+}
+TASK_VALIDATED_VERDICT_OVERRIDES = {
+    "dualscope-qwen2p5-7b-first-slice-response-generation-plan": {
+        "qwen2.5-7b first-slice response generation plan validated",
+        "first-slice response generation plan validated",
+        "response generation plan validated",
+    },
+}
 RUNTIME_DIRTY_PREFIXES = (
     "outputs/dualscope_autorun_loop/",
     "outputs/dualscope_task_orchestrator/",
@@ -52,7 +72,13 @@ def proxy_env(proxy: str, extra: dict[str, str] | None = None) -> dict[str, str]
     return env
 
 
-def run_command(command: list[str], cwd: Path | None = None, proxy: str = DEFAULT_PROXY, timeout: int = 120) -> dict[str, Any]:
+def run_command(
+    command: list[str],
+    cwd: Path | None = None,
+    proxy: str = DEFAULT_PROXY,
+    timeout: int = 120,
+    extra_env: dict[str, str] | None = None,
+) -> dict[str, Any]:
     try:
         completed = subprocess.run(
             command,
@@ -63,7 +89,7 @@ def run_command(command: list[str], cwd: Path | None = None, proxy: str = DEFAUL
             stderr=subprocess.PIPE,
             stdin=subprocess.DEVNULL,
             timeout=timeout,
-            env=proxy_env(proxy),
+            env=proxy_env(proxy, extra_env),
         )
         return {
             "command": command,
@@ -193,6 +219,220 @@ def has_codex_review_evidence(pr: dict[str, Any]) -> bool:
     return False
 
 
+def should_materialize_qwen_dependencies(task_id: str) -> bool:
+    normalized = task_id.lower()
+    return "qwen2p5-7b" in normalized and "first-slice" in normalized
+
+
+def copy_file_dependency(repo_root: Path, worktree_path: Path, relative_path: str, result: dict[str, Any]) -> None:
+    source = repo_root / relative_path
+    destination = worktree_path / relative_path
+    if not source.exists():
+        result["missing_dependencies"].append(relative_path)
+        return
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(source, destination)
+    result["copied_files"].append(relative_path)
+
+
+def copy_dir_dependency(repo_root: Path, worktree_path: Path, relative_path: str, result: dict[str, Any]) -> None:
+    source = repo_root / relative_path
+    destination = worktree_path / relative_path
+    if not source.exists() or not source.is_dir():
+        result["missing_dependencies"].append(relative_path)
+        return
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copytree(source, destination, dirs_exist_ok=True)
+    result["copied_dirs"].append(relative_path)
+
+
+def create_model_symlink(worktree_path: Path, result: dict[str, Any]) -> None:
+    target = DEFAULT_QWEN25_7B_MODEL_DIR
+    relative_path = "models/qwen2p5-7b-instruct"
+    destination = worktree_path / relative_path
+    if not target.exists() or not target.is_dir():
+        result["missing_dependencies"].append(str(target))
+        return
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    if destination.exists() or destination.is_symlink():
+        if destination.is_symlink() or destination.is_file():
+            destination.unlink()
+        elif destination.is_dir():
+            result["blocker_if_any"] = f"Cannot replace existing non-symlink model directory: {relative_path}"
+            return
+    destination.symlink_to(target, target_is_directory=True)
+    result["symlinks_created"].append({"path": relative_path, "target": str(target), "resolved": str(destination.resolve())})
+
+
+def ensure_exec_env_dirs(result: dict[str, Any]) -> None:
+    for key in ("HF_HOME", "TRANSFORMERS_CACHE", "HF_HUB_CACHE", "TMPDIR"):
+        path = Path(WORKTREE_EXEC_ENV[key])
+        try:
+            path.mkdir(parents=True, exist_ok=True)
+            result["env_dirs_ready"].append({"name": key, "path": str(path), "exists": path.exists(), "writable": os.access(path, os.W_OK)})
+        except OSError as exc:
+            result["missing_dependencies"].append(str(path))
+            result["env_dirs_ready"].append({"name": key, "path": str(path), "exists": path.exists(), "writable": False, "error": str(exc)})
+
+
+def materialize_worktree_dependencies(
+    repo_root: Path,
+    worktree_path: Path,
+    task_id: str,
+    enabled: bool,
+) -> dict[str, Any]:
+    result: dict[str, Any] = {
+        "summary_status": "PASS",
+        "schema_version": "dualscope/worktree-dependency-materialization/v1",
+        "task_id": task_id,
+        "enabled": enabled,
+        "worktree_path": str(worktree_path),
+        "copied_files": [],
+        "copied_dirs": [],
+        "symlinks_created": [],
+        "generated_dependencies": [],
+        "missing_dependencies": [],
+        "env": WORKTREE_EXEC_ENV,
+        "env_dirs_ready": [],
+        "blocker_if_any": None,
+    }
+    if not enabled:
+        result["summary_status"] = "SKIPPED"
+        result["reason"] = "dependency_materialization_disabled"
+        return result
+    if not should_materialize_qwen_dependencies(task_id):
+        result["summary_status"] = "SKIPPED"
+        result["reason"] = "no_known_ignored_dependencies_for_task"
+        return result
+
+    ensure_exec_env_dirs(result)
+    for relative_path in (
+        "data/stanford_alpaca/first_slice/alpaca_first_slice_labeled_pairs.jsonl",
+        "data/stanford_alpaca/first_slice/alpaca_first_slice_source.jsonl",
+    ):
+        copy_file_dependency(repo_root, worktree_path, relative_path, result)
+
+    for relative_path in (
+        "outputs/dualscope_first_slice_target_response_generation_plan/default",
+        "outputs/dualscope_main_model_axis_upgrade_plan/default",
+        "outputs/dualscope_qwen2p5_7b_first_slice_response_generation_plan/default",
+    ):
+        copy_dir_dependency(repo_root, worktree_path, relative_path, result)
+
+    create_model_symlink(worktree_path, result)
+    if result["missing_dependencies"] or result["blocker_if_any"]:
+        result["summary_status"] = "BLOCKED"
+        if not result["blocker_if_any"]:
+            result["blocker_if_any"] = "One or more required ignored worktree dependencies are missing."
+    return result
+
+
+def render_dependency_report(result: dict[str, Any]) -> str:
+    return "\n".join(
+        [
+            "# DualScope Worktree Dependency Materialization",
+            "",
+            f"- Task: `{result.get('task_id')}`",
+            f"- Status: `{result.get('summary_status')}`",
+            f"- Copied files: `{len(result.get('copied_files') or [])}`",
+            f"- Copied dirs: `{len(result.get('copied_dirs') or [])}`",
+            f"- Symlinks created: `{len(result.get('symlinks_created') or [])}`",
+            f"- Missing dependencies: `{len(result.get('missing_dependencies') or [])}`",
+            f"- Blocker: `{result.get('blocker_if_any')}`",
+            "",
+        ]
+    )
+
+
+def extract_verdict(payload: Any) -> str | None:
+    if isinstance(payload, dict):
+        for key in ("final_verdict", "verdict", "decision", "status", "recommended_next_action"):
+            value = payload.get(key)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+        for value in payload.values():
+            nested = extract_verdict(value)
+            if nested:
+                return nested
+    elif isinstance(payload, list):
+        for item in payload:
+            nested = extract_verdict(item)
+            if nested:
+                return nested
+    return None
+
+
+def is_validated_verdict(task_id: str, verdict: str | None) -> bool:
+    if not verdict:
+        return False
+    normalized = verdict.strip().lower()
+    if normalized in TASK_VALIDATED_VERDICT_OVERRIDES.get(task_id, set()):
+        return True
+    return "validated" in normalized and "partially" not in normalized and "not validated" not in normalized
+
+
+def find_output_verdict(worktree_path: Path, task_id: str) -> dict[str, Any] | None:
+    outputs_dir = worktree_path / "outputs"
+    if not outputs_dir.exists():
+        return None
+    task_token = task_id.replace("-", "_")
+    candidates = sorted(outputs_dir.glob("**/*verdict.json"))
+    preferred = [path for path in candidates if task_token in str(path)]
+    for path in preferred + [path for path in candidates if path not in preferred]:
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        verdict = extract_verdict(payload)
+        if verdict:
+            return {"path": path, "verdict": verdict}
+    return None
+
+
+def persist_task_verdict_registry(worktree_path: Path, task_id: str, proxy: str) -> dict[str, Any]:
+    output_verdict = find_output_verdict(worktree_path, task_id)
+    registry_dir = worktree_path / DEFAULT_VERDICT_REGISTRY_DIR
+    registry_path = registry_dir / f"{task_id}.json"
+    result: dict[str, Any] = {
+        "summary_status": "SKIPPED",
+        "schema_version": "dualscope/task-verdict-registry-persistence/v1",
+        "task_id": task_id,
+        "registry_path": str(registry_path.relative_to(worktree_path)),
+        "source_output_dir": None,
+        "verdict": None,
+        "validated": False,
+        "next_task": TASK_NEXT_TASK_OVERRIDES.get(task_id),
+    }
+    if not output_verdict:
+        result["reason"] = "no_output_verdict_found"
+        return result
+
+    commit_result = run_command(["git", "rev-parse", "HEAD"], cwd=worktree_path, proxy=proxy, timeout=60)
+    source_path = output_verdict["path"]
+    verdict = output_verdict["verdict"]
+    payload = {
+        "task_id": task_id,
+        "verdict": verdict,
+        "source_output_dir": str(source_path.parent.relative_to(worktree_path)),
+        "commit": (commit_result.get("stdout") or "").strip() or None,
+        "created_at": utc_now(),
+        "validated": is_validated_verdict(task_id, verdict),
+        "next_task": TASK_NEXT_TASK_OVERRIDES.get(task_id),
+    }
+    registry_dir.mkdir(parents=True, exist_ok=True)
+    registry_path.write_text(json.dumps(payload, indent=2, ensure_ascii=True) + "\n", encoding="utf-8")
+    result.update(
+        {
+            "summary_status": "PASS",
+            "source_output_dir": payload["source_output_dir"],
+            "verdict": verdict,
+            "validated": payload["validated"],
+            "commit": payload["commit"],
+        }
+    )
+    return result
+
+
 def detect_existing_pr_for_branch(
     branch: str,
     base_branch: str,
@@ -307,6 +547,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--cleanup-worktree", type=parse_bool, default=True, help="Allow later cleanup of merged worktrees. Default: true.")
     parser.add_argument("--stop-on-dirty-main", type=parse_bool, default=True, help="Stop if scheduler worktree is dirty. Default: true.")
     parser.add_argument("--allow-runtime-dirty", action="store_true", help="Allow runtime-only dirty files in scheduler worktree.")
+    parser.add_argument(
+        "--materialize-dependencies",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Copy ignored data/output dependencies and model bindings into task worktrees before codex exec. Default: enabled.",
+    )
     parser.add_argument("--proxy", default=DEFAULT_PROXY, help=f"Proxy URL. Default: {DEFAULT_PROXY}")
     return parser
 
@@ -359,6 +605,8 @@ def main() -> int:
         "keep_worktree": args.keep_worktree,
         "stop_on_dirty_main": args.stop_on_dirty_main,
         "allow_runtime_dirty": args.allow_runtime_dirty,
+        "materialize_dependencies": args.materialize_dependencies,
+        "worktree_exec_env": WORKTREE_EXEC_ENV,
         "proxy": args.proxy,
     }
     write_json(args.output_dir / "dualscope_task_worktree_runner_config.json", config)
@@ -413,8 +661,14 @@ def main() -> int:
             "dualscope_task_worktree_runner_existing_pr_check.json",
             "dualscope_task_worktree_runner_push_result.json",
             "dualscope_task_worktree_runner_test_results.json",
+            "dualscope_worktree_dependency_materialization.json",
+            "dualscope_task_worktree_runner_verdict_registry_result.json",
         ]:
             write_json(args.output_dir / name, {"summary_status": "SKIPPED", "reason": summary["stop_reason"]})
+        (args.output_dir / "dualscope_worktree_dependency_materialization_report.md").write_text(
+            render_dependency_report({"task_id": args.task_id, "summary_status": "SKIPPED", "blocker_if_any": summary["stop_reason"]}),
+            encoding="utf-8",
+        )
         write_json(args.output_dir / "dualscope_task_worktree_runner_summary.json", summary)
         (args.output_dir / "dualscope_task_worktree_runner_report.md").write_text(render_report(summary), encoding="utf-8")
         print(json.dumps(summary, indent=2, ensure_ascii=True))
@@ -440,8 +694,14 @@ def main() -> int:
             "dualscope_task_worktree_runner_existing_pr_check.json",
             "dualscope_task_worktree_runner_push_result.json",
             "dualscope_task_worktree_runner_test_results.json",
+            "dualscope_worktree_dependency_materialization.json",
+            "dualscope_task_worktree_runner_verdict_registry_result.json",
         ]:
             write_json(args.output_dir / name, {"summary_status": "SKIPPED", "reason": "dry_run"})
+        (args.output_dir / "dualscope_worktree_dependency_materialization_report.md").write_text(
+            render_dependency_report({"task_id": args.task_id, "summary_status": "SKIPPED", "blocker_if_any": "dry_run"}),
+            encoding="utf-8",
+        )
         write_json(args.output_dir / "dualscope_task_worktree_runner_summary.json", summary)
         (args.output_dir / "dualscope_task_worktree_runner_report.md").write_text(render_report(summary), encoding="utf-8")
         print(json.dumps(summary, indent=2, ensure_ascii=True))
@@ -457,26 +717,51 @@ def main() -> int:
         timeout=180,
     )
     codex_result: dict[str, Any]
+    materialization: dict[str, Any] = {"summary_status": "SKIPPED", "reason": "worktree_create_failed"}
     if worktree_result["returncode"] != 0:
         codex_result = {"summary_status": "SKIPPED", "reason": "worktree_create_failed"}
     else:
-        codex_proc = run_command(codex_command, cwd=worktree_path, proxy=args.proxy, timeout=max(60, args.max_minutes * 60))
-        codex_result = {
-            "summary_status": "PASS" if codex_proc["returncode"] == 0 else "FAIL",
-            "command": redacted_codex_command,
-            "returncode": codex_proc["returncode"],
-            "stdout": truncate(codex_proc.get("stdout")),
-            "stderr": truncate(codex_proc.get("stderr")),
-        }
+        materialization = materialize_worktree_dependencies(repo_root, worktree_path, args.task_id, args.materialize_dependencies)
+        if materialization.get("summary_status") == "BLOCKED":
+            codex_result = {"summary_status": "SKIPPED", "reason": "dependency_materialization_blocker"}
+        else:
+            codex_proc = run_command(
+                codex_command,
+                cwd=worktree_path,
+                proxy=args.proxy,
+                timeout=max(60, args.max_minutes * 60),
+                extra_env=WORKTREE_EXEC_ENV,
+            )
+            codex_result = {
+                "summary_status": "PASS" if codex_proc["returncode"] == 0 else "FAIL",
+                "command": redacted_codex_command,
+                "returncode": codex_proc["returncode"],
+                "stdout": truncate(codex_proc.get("stdout")),
+                "stderr": truncate(codex_proc.get("stderr")),
+                "exec_environment": WORKTREE_EXEC_ENV,
+            }
+    write_json(args.output_dir / "dualscope_worktree_dependency_materialization.json", materialization)
+    (args.output_dir / "dualscope_worktree_dependency_materialization_report.md").write_text(
+        render_dependency_report(materialization),
+        encoding="utf-8",
+    )
     write_json(
         args.output_dir / "dualscope_task_worktree_runner_codex_exec_result.json",
         {
             "summary_status": codex_result.get("summary_status", "FAIL"),
             "pull_result": command_row("git_pull_base", pull_result),
             "worktree_result": command_row("git_worktree_add", worktree_result),
+            "dependency_materialization": materialization,
             "codex_exec": codex_result,
         },
     )
+
+    verdict_registry_result = (
+        persist_task_verdict_registry(worktree_path, args.task_id, args.proxy)
+        if worktree_path.exists() and codex_result.get("summary_status") == "PASS"
+        else {"summary_status": "SKIPPED", "reason": codex_result.get("reason") or "codex_exec_not_passed"}
+    )
+    write_json(args.output_dir / "dualscope_task_worktree_runner_verdict_registry_result.json", verdict_registry_result)
 
     changed_lines = porcelain_lines(worktree_path, args.proxy) if worktree_path.exists() else []
     status_after = {
@@ -588,6 +873,9 @@ def main() -> int:
         "task_pr_url": task_pr_url,
         "task_pr_source": task_pr_source,
         "push_non_fast_forward_handled": push_non_fast_forward_handled,
+        "dependency_materialization_status": materialization.get("summary_status"),
+        "dependency_materialization_blocker": materialization.get("blocker_if_any"),
+        "verdict_registry_result": verdict_registry_result,
         "whether_codex_review_triggered": pr_result.get("whether_codex_review_triggered", False),
         "cleanup_allowed_after_merge": args.cleanup_worktree and not args.keep_worktree,
         "dangerous_actions": {

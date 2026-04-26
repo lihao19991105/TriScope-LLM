@@ -16,6 +16,7 @@ from typing import Any
 DEFAULT_QUEUE_FILE = Path("DUALSCOPE_TASK_QUEUE.md")
 DEFAULT_OUTPUT_DIR = Path("outputs/dualscope_task_orchestrator/default")
 DEFAULT_PR_STATUS_SUBDIR = "pr_review_status"
+DEFAULT_VERDICT_REGISTRY_DIR = Path(".reports/dualscope_task_verdicts")
 RUNTIME_DIRTY_PREFIXES = (
     "outputs/dualscope_autorun_loop/",
     "outputs/dualscope_task_orchestrator/",
@@ -154,8 +155,14 @@ def extract_verdict(payload: Any) -> str | None:
     return None
 
 
+def task_verdict_registry_path(task_id: str) -> Path:
+    return DEFAULT_VERDICT_REGISTRY_DIR / f"{task_id}.json"
+
+
 def classify_task(task: dict[str, Any]) -> dict[str, Any]:
-    verdict_artifacts = [Path(path) for path in task.get("verdict_artifacts") or []]
+    task_id = str(task["task_id"])
+    registry_artifact = task_verdict_registry_path(task_id)
+    verdict_artifacts = [registry_artifact, *[Path(path) for path in task.get("verdict_artifacts") or []]]
     completion = task.get("completion_verdicts") if isinstance(task.get("completion_verdicts"), dict) else {}
     validated = lower_set(completion.get("validated"))
     partial = lower_set(completion.get("partially_validated"))
@@ -168,7 +175,8 @@ def classify_task(task: dict[str, Any]) -> dict[str, Any]:
     rank = {"validated": 3, "partially_validated": 2, "not_validated": 1, "not_started": 0, "unknown_verdict": 0}
 
     for artifact in verdict_artifacts:
-        row: dict[str, Any] = {"path": str(artifact), "exists": artifact.exists()}
+        source = "tracked_verdict_registry" if artifact == registry_artifact else "output_verdict_artifact"
+        row: dict[str, Any] = {"path": str(artifact), "source": source, "exists": artifact.exists()}
         if not artifact.exists():
             artifact_rows.append(row)
             continue
@@ -194,7 +202,7 @@ def classify_task(task: dict[str, Any]) -> dict[str, Any]:
         artifact_rows.append(row)
 
     return {
-        "task_id": task["task_id"],
+        "task_id": task_id,
         "status": best_status,
         "final_verdict": best_verdict,
         "verdict_artifact": best_artifact,
