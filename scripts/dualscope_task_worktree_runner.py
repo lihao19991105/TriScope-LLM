@@ -282,7 +282,6 @@ def qwen_output_dependencies_for_task(task_id: str) -> tuple[str, ...]:
         base.extend(
             [
                 "outputs/dualscope_minimal_first_slice_condition_level_rerun/default",
-                "outputs/dualscope_first_slice_condition_row_level_fusion_alignment/default",
                 "outputs/dualscope_qwen2p5_7b_label_aligned_metric_computation/default",
                 "outputs/dualscope_qwen2p5_7b_metric_blocker_closure/default",
                 "outputs/dualscope_qwen2p5_7b_metric_blocker_closure_analysis/default",

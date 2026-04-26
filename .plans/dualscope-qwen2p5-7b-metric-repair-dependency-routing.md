@@ -22,6 +22,7 @@ Stop repeated metric repair packaging by ensuring Qwen2.5-7B metric repair workt
 
 - [x] Diagnosed skipped worktree dependency materialization for metric repair tasks.
 - [x] Added Qwen2.5-7B metric/result package output dependencies to worktree materialization.
+- [x] Removed a non-required fusion-alignment output directory from hard Qwen2.5-7B metric/result-package dependency materialization.
 - [x] Regenerate metric repair artifacts and tracked verdict registry.
 - [x] Run validation commands.
 - [ ] Create PR and trigger Codex review.
