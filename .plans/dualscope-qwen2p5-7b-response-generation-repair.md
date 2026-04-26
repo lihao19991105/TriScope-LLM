@@ -1,0 +1,88 @@
+# DualScope Qwen2.5-7B Response Generation Repair
+
+## Purpose / Big Picture
+
+The previous Qwen2.5-7B first-slice response-generation task was partially validated because the artifact contract and local model binding were present, but the real generation attempt hung after loading checkpoint shards onto a low-free-memory GPU. This repair makes the response-generation path budget-aware at the runtime-resource level: it must prove CUDA/device/memory readiness before loading the 7B model, otherwise it writes honest blockers and exits without fabricated responses or metrics.
+
+This serves the DualScope-LLM SCI3 mainline by making the Qwen2.5-7B first-slice response-generation step recoverable and auditable before label-aligned metrics.
+
+## Scope
+
+### In Scope
+
+- Add selected-GPU memory preflight before model load.
+- Record CUDA device order, visible devices, selected physical GPU, selected free memory, and memory threshold in artifacts.
+- Block CPU fallback by default for Qwen2.5-7B generation to avoid impractical hangs.
+- Keep all response rows honest when generation is blocked.
+- Update the run document and ExecPlan status.
+
+### Out of Scope
+
+- No training, LoRA, QLoRA, or full finetune.
+- No full matrix execution.
+- No AUROC, F1, ASR, clean utility, or paper-level metric computation.
+- No benchmark truth, gate, route_c, or 199+ changes.
+- No model download in this repair worktree.
+
+## Repository Context
+
+- Core response-generation logic: `src/eval/dualscope_qwen2p5_7b_first_slice_response_generation.py`
+- CLI wrapper: `scripts/build_dualscope_qwen2p5_7b_first_slice_response_generation.py`
+- User-facing run document: `docs/dualscope_qwen2p5_7b_first_slice_response_generation.md`
+- Prior partially validated task plan: `.plans/dualscope-qwen2p5-7b-first-slice-response-generation.md`
+- Queue route: `dualscope-qwen2p5-7b-first-slice-response-generation` -> `dualscope-qwen2p5-7b-response-generation-repair`
+
+Historical TriScope / route_c artifacts are not used.
+
+## Deliverables
+
+- Runtime preflight in the Qwen2.5-7B response generator.
+- CLI options for selected-GPU memory threshold and explicit CPU fallback.
+- Updated documentation with `CUDA_DEVICE_ORDER=PCI_BUS_ID` and the new memory guard.
+- Validation artifacts showing the repair path compiles and writes non-fabricated blockers when local ignored dependencies are unavailable.
+
+## Progress
+
+- [x] M1: Read repository guidance, master plan, queue, and prior response-generation plan.
+- [x] M2: Identify partial-validation cause: unsafe model-load attempt on insufficient GPU memory.
+- [x] M3: Add selected-GPU memory preflight and CPU fallback guard.
+- [x] M4: Update docs and run local validation.
+- [ ] M5: Complete PR workflow without auto merge, force push, branch deletion, or remote rewrite.
+
+## Surprises & Discoveries
+
+- This isolated repair worktree does not include ignored first-slice data, target-response outputs, or `models/qwen2p5-7b-instruct`; those are intentionally outside git.
+- The queue names `dualscope-qwen2p5-7b-response-generation-repair` as the partial-verdict next step, but no dedicated queue entry exists yet. This repair therefore scopes itself to the configured next-step behavior described by the existing response-generation task.
+
+## Decision Log
+
+- Use a conservative default selected-GPU free-memory threshold of 18432 MiB for fp16 single-device Qwen2.5-7B and 8192 MiB for requested 4-bit mode.
+- Keep CPU generation disabled unless `--allow-cpu-generation` is explicitly passed.
+- Treat unknown selected-GPU free memory as a blocker rather than risking another hanging model load.
+- Continue to write row-level blocked artifacts with `model_response_fabricated=false` when source or runtime blockers exist.
+
+## Plan of Work
+
+Patch the response-generation module so dependency checks and CUDA/memory checks run before any tokenizer/model load. The CLI exposes the threshold but defaults to the repair-safe values. Documentation is updated to show the recommended GPU ordering prefix and the new guard flag. Validation compiles the changed files and runs a prepare/blocker path in this worktree.
+
+## Concrete Steps
+
+1. Add selected GPU memory parsing from `nvidia-smi`.
+2. Select the visible CUDA device with the most free memory and record the physical index.
+3. Block generation before model load if CUDA is unavailable, CPU fallback is not allowed, memory is unknown, or free memory is below threshold.
+4. Add CLI flags for `--min-free-gpu-memory-mib` and `--allow-cpu-generation`.
+5. Update documentation and prior plan notes.
+6. Run `py_compile`, `--help`, `git diff --check`, and a local artifact-writing command.
+
+## Validation and Acceptance
+
+The repair is acceptable when:
+
+- Python files compile.
+- CLI help includes the new runtime guard options.
+- A local run in this isolated worktree writes response-generation artifacts without fabricated responses.
+- The generator no longer attempts to load Qwen2.5-7B when selected-GPU memory is below the configured threshold.
+
+## Idempotence and Recovery
+
+The output directory is safe to regenerate. In a fully materialized worktree, rerun the original response-generation command with `CUDA_DEVICE_ORDER=PCI_BUS_ID CUDA_VISIBLE_DEVICES=2,3`. If the selected GPU has enough free memory, generation can proceed; otherwise the same command exits with explicit blockers and no fabricated rows.

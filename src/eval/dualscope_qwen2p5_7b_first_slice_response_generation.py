@@ -28,6 +28,8 @@ class GenerationConfig:
     batch_size: int
     use_4bit: bool
     low_memory: bool
+    min_free_gpu_memory_mib: int
+    allow_cpu_generation: bool
     no_full_matrix: bool
     prepare_only: bool
 
@@ -118,10 +120,42 @@ def nvidia_smi_snapshot() -> dict[str, Any]:
     return {
         "summary_status": "PASS" if result["passed"] else "FAIL",
         "cuda_visible_devices": os.environ.get("CUDA_VISIBLE_DEVICES", ""),
+        "cuda_device_order": os.environ.get("CUDA_DEVICE_ORDER", ""),
         "gpu_count": len(gpus),
         "gpus": gpus,
         "command_result": result,
     }
+
+
+def _parse_mib(value: str) -> int | None:
+    cleaned = value.strip().lower().replace("mib", "").strip()
+    try:
+        return int(cleaned)
+    except ValueError:
+        return None
+
+
+def _gpu_memory_rows() -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    result = run_command(
+        ["nvidia-smi", "--query-gpu=index,name,memory.total,memory.free", "--format=csv,noheader,nounits"],
+        timeout=30,
+    )
+    rows: list[dict[str, Any]] = []
+    if result["passed"]:
+        for line in result["stdout"].splitlines():
+            parts = [part.strip() for part in line.split(",")]
+            if len(parts) >= 4:
+                total_mib = _parse_mib(parts[2])
+                free_mib = _parse_mib(parts[3])
+                rows.append(
+                    {
+                        "physical_index": parts[0],
+                        "name": parts[1],
+                        "memory_total_mib": total_mib,
+                        "memory_free_mib": free_mib,
+                    }
+                )
+    return rows, result
 
 
 def model_path_status(model_path: Path) -> dict[str, Any]:
@@ -175,23 +209,25 @@ def _blocked_rows(rows: list[dict[str, Any]], reason: str) -> list[dict[str, Any
     return blocked
 
 
-def _select_cuda_device(torch_module: Any) -> str:
+def _select_cuda_device(torch_module: Any) -> tuple[str, dict[str, Any]]:
     if not torch_module.cuda.is_available():
-        return "cpu"
+        return "cpu", {
+            "summary_status": "FAIL",
+            "reason": "cuda_unavailable",
+            "selected_device": "cpu",
+            "selected_visible_index": None,
+            "selected_physical_index": None,
+            "selected_free_mib": None,
+            "visible_physical_indices": [],
+            "nvidia_smi_result": None,
+        }
     visible = [part.strip() for part in os.environ.get("CUDA_VISIBLE_DEVICES", "").split(",") if part.strip()]
-    physical_free: dict[str, int] = {}
-    smi = run_command(
-        ["nvidia-smi", "--query-gpu=index,memory.free", "--format=csv,noheader,nounits"],
-        timeout=30,
-    )
-    if smi["passed"]:
-        for line in smi["stdout"].splitlines():
-            parts = [part.strip() for part in line.split(",")]
-            if len(parts) >= 2:
-                try:
-                    physical_free[parts[0]] = int(parts[1])
-                except ValueError:
-                    continue
+    gpu_rows, smi = _gpu_memory_rows()
+    physical_free = {
+        str(row["physical_index"]): row.get("memory_free_mib")
+        for row in gpu_rows
+        if row.get("memory_free_mib") is not None
+    }
     if visible and physical_free:
         best_visible_index = 0
         best_free_mib = -1
@@ -201,7 +237,16 @@ def _select_cuda_device(torch_module: Any) -> str:
                 best_free_mib = free_mib
                 best_visible_index = visible_index
         if best_free_mib >= 0:
-            return f"cuda:{best_visible_index}"
+            return f"cuda:{best_visible_index}", {
+                "summary_status": "PASS",
+                "selected_device": f"cuda:{best_visible_index}",
+                "selected_visible_index": best_visible_index,
+                "selected_physical_index": visible[best_visible_index],
+                "selected_free_mib": best_free_mib,
+                "visible_physical_indices": visible,
+                "gpu_memory_rows": gpu_rows,
+                "nvidia_smi_result": smi,
+            }
     best_index = 0
     best_free = -1
     for index in range(torch_module.cuda.device_count()):
@@ -213,7 +258,43 @@ def _select_cuda_device(torch_module: Any) -> str:
         if free_bytes > best_free:
             best_free = free_bytes
             best_index = index
-    return f"cuda:{best_index}"
+    best_free_mib = int(best_free / (1024 * 1024)) if best_free >= 0 else None
+    return f"cuda:{best_index}", {
+        "summary_status": "PASS" if best_free_mib is not None else "PARTIAL",
+        "selected_device": f"cuda:{best_index}",
+        "selected_visible_index": best_index,
+        "selected_physical_index": visible[best_index] if best_index < len(visible) else None,
+        "selected_free_mib": best_free_mib,
+        "visible_physical_indices": visible,
+        "gpu_memory_rows": gpu_rows,
+        "nvidia_smi_result": smi,
+    }
+
+
+def _runtime_preflight(torch_module: Any, config: GenerationConfig) -> tuple[str, dict[str, Any], list[str]]:
+    blockers: list[str] = []
+    device, selection = _select_cuda_device(torch_module)
+    if device == "cpu" and not config.allow_cpu_generation:
+        blockers.append("cuda_unavailable_cpu_generation_disabled")
+    selected_free_mib = selection.get("selected_free_mib")
+    if device.startswith("cuda"):
+        if selected_free_mib is None:
+            blockers.append("selected_gpu_free_memory_unknown")
+        elif selected_free_mib < config.min_free_gpu_memory_mib:
+            blockers.append(
+                "insufficient_selected_gpu_memory:"
+                f"selected_free_mib={selected_free_mib},"
+                f"required_mib={config.min_free_gpu_memory_mib}"
+            )
+    status = "PASS" if not blockers else "BLOCKED"
+    return device, {
+        "summary_status": status,
+        "selected_device": device,
+        "selection": selection,
+        "min_free_gpu_memory_mib": config.min_free_gpu_memory_mib,
+        "allow_cpu_generation": config.allow_cpu_generation,
+        "blockers": blockers,
+    }, blockers
 
 
 def _format_prompt(tokenizer: Any, prompt: str) -> str:
@@ -250,7 +331,14 @@ def _generate_rows(
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(config.seed)
 
-    device = _select_cuda_device(torch)
+    device, runtime_preflight, preflight_blockers = _runtime_preflight(torch, config)
+    if preflight_blockers:
+        return _blocked_rows(rows, ",".join(preflight_blockers)), {
+            "dependency_status": deps,
+            "runtime_preflight": runtime_preflight,
+        }, preflight_blockers
+    if device.startswith("cuda"):
+        torch.cuda.set_device(int(device.split(":", 1)[1]))
     load_kwargs: dict[str, Any] = {
         "torch_dtype": torch.float16 if device.startswith("cuda") else torch.float32,
         "local_files_only": True,
@@ -261,6 +349,7 @@ def _generate_rows(
         "selected_device": device,
         "torch_cuda_available": torch.cuda.is_available(),
         "torch_cuda_device_count": torch.cuda.device_count() if torch.cuda.is_available() else 0,
+        "runtime_preflight": runtime_preflight,
         "load_strategy": "4bit" if config.use_4bit else "fp16_single_device" if device.startswith("cuda") else "cpu_fp32",
         "low_cpu_mem_usage_requested": config.low_memory,
         "low_cpu_mem_usage_enabled": config.low_memory and deps["accelerate"],
@@ -360,6 +449,8 @@ def build_qwen2p5_7b_first_slice_response_generation(
     batch_size: int,
     use_4bit: bool,
     low_memory: bool,
+    min_free_gpu_memory_mib: int,
+    allow_cpu_generation: bool,
     no_full_matrix: bool,
     max_rows: int | None,
     prepare_only: bool,
@@ -375,6 +466,8 @@ def build_qwen2p5_7b_first_slice_response_generation(
         raise ValueError("--temperature must be between 0.0 and 2.0.")
     if not 0.0 < top_p <= 1.0:
         raise ValueError("--top-p must be in (0.0, 1.0].")
+    if min_free_gpu_memory_mib < 0:
+        raise ValueError("--min-free-gpu-memory-mib must be non-negative.")
 
     output_dir.mkdir(parents=True, exist_ok=True)
     plan_rows_path = target_response_plan_dir / "dualscope_first_slice_target_response_generation_plan_rows.jsonl"
@@ -389,6 +482,8 @@ def build_qwen2p5_7b_first_slice_response_generation(
         batch_size=batch_size,
         use_4bit=use_4bit,
         low_memory=low_memory,
+        min_free_gpu_memory_mib=min_free_gpu_memory_mib or (8192 if use_4bit else 18432),
+        allow_cpu_generation=allow_cpu_generation,
         no_full_matrix=no_full_matrix,
         prepare_only=prepare_only,
     )
@@ -478,7 +573,10 @@ def build_qwen2p5_7b_first_slice_response_generation(
         "batch_size": batch_size,
         "low_memory": low_memory,
         "use_4bit": use_4bit,
+        "min_free_gpu_memory_mib": config.min_free_gpu_memory_mib,
+        "allow_cpu_generation": allow_cpu_generation,
         "cuda_visible_devices": os.environ.get("CUDA_VISIBLE_DEVICES", ""),
+        "cuda_device_order": os.environ.get("CUDA_DEVICE_ORDER", ""),
     }
     response_generation_mode = {
         "summary_status": "PASS" if generated_count else "FAIL",
@@ -493,6 +591,8 @@ def build_qwen2p5_7b_first_slice_response_generation(
         "temperature": temperature,
         "top_p": top_p,
         "do_sample": temperature > 0.0,
+        "min_free_gpu_memory_mib": config.min_free_gpu_memory_mib,
+        "allow_cpu_generation": allow_cpu_generation,
         "target_match_recorded_for_later_metrics": True,
         "aggregate_metrics_computed": False,
     }
@@ -547,9 +647,12 @@ def build_qwen2p5_7b_first_slice_response_generation(
         f"- Capability mode: `without_logprobs`",
         f"- Response generation mode: `{response_generation_mode['mode']}`",
         f"- CUDA_VISIBLE_DEVICES: `{os.environ.get('CUDA_VISIBLE_DEVICES', '')}`",
+        f"- CUDA_DEVICE_ORDER: `{os.environ.get('CUDA_DEVICE_ORDER', '')}`",
         f"- Model path: `{model_path}`",
         f"- 4-bit requested: `{use_4bit}`",
         f"- Low memory mode: `{low_memory}`",
+        f"- Minimum selected-GPU free memory MiB: `{config.min_free_gpu_memory_mib}`",
+        f"- CPU generation allowed: `{allow_cpu_generation}`",
         "- Metrics computed: `False`",
         f"- Prepare-only fallback: `{prepare_only}`",
         f"- Prepare-only reason: `{prepare_only_reason}`",

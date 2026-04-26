@@ -57,6 +57,7 @@ Historical TriScope / route_c artifacts are not used except as reliability backg
 - `python3` has `torch` and `transformers`, but `bitsandbytes` and `accelerate` are unavailable, so 4-bit loading and automatic multi-GPU device mapping are not available in this environment.
 - The first real generation attempt was launched with `CUDA_VISIBLE_DEVICES=2,3` and loaded checkpoint shards, but it placed memory on physical GPU 2, which had only about 1.4 GiB free before launch, then hung without flushing artifacts. A prepare-only fallback artifact package was written instead.
 - After the hung attempt, `nvidia-smi` in later checks reported that it could not communicate with the NVIDIA driver, so response generation remains runtime-blocked in this session.
+- The follow-up repair plan `.plans/dualscope-qwen2p5-7b-response-generation-repair.md` adds a selected-GPU memory preflight and disables CPU fallback by default so future reruns block before model load when runtime resources are unsuitable.
 
 ## Decision Log
 
@@ -88,7 +89,7 @@ The task is acceptable when it writes a verdict artifact with exactly one of:
 
 The output package must include capability mode, response generation mode, fallback flags, blockers, and no fabricated model responses or metrics.
 
-Current verdict: `Partially validated`.
+Current verdict: `Partially validated`. Repair next step: `dualscope-qwen2p5-7b-response-generation-repair`.
 
 ## Idempotence and Recovery
 
