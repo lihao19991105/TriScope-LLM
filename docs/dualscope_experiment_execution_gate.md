@@ -9,6 +9,7 @@ The enforced response-generation tasks are:
 - `dualscope-qwen2p5-7b-response-generation-repair`
 - `dualscope-qwen2p5-7b-alpaca-main-slice-response-generation`
 - `dualscope-qwen2p5-7b-alpaca-main-slice-response-generation-repair`
+- `dualscope-qwen2p5-7b-alpaca-main-slice-response-dependency-repair`
 
 These tasks are execution-required. They must either produce real response rows or explicit blocker artifacts. Blocked row ledgers do not count as successful response evidence unless they contain non-empty real model response fields.
 
@@ -28,6 +29,8 @@ Passing blocker evidence:
 The blocker must expose a clear blocker type such as `oom`, `model_load_failure`, `cuda_error`, `missing_dependency`, `logprob_unavailable`, `missing_input`, or `runtime_error`.
 
 Additional accepted blocker types for local Qwen2.5-7B execution include `cuda_unavailable`, `cuda_unavailable_cpu_generation_disabled`, `torch_cuda_unavailable`, and `accelerate_unavailable`.
+
+For bounded Alpaca main-slice dependency repair, the gate also accepts an explicit dependency blocker under `outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_dependency_repair/default/dependency_repair_blockers.json`. The task can pass only with real response rows or a concrete blocker type; plan-only, docs-only, or registry-only changes are not sufficient.
 
 ## Integration Points
 

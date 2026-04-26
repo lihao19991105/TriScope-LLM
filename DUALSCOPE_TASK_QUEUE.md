@@ -1011,6 +1011,45 @@ The Markdown text is for humans; the fenced JSON block is the source of truth.
         "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation_repair_analysis/default/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation_repair_verdict.json"
       ],
       "next_task_if_validated": "dualscope-qwen2p5-7b-alpaca-main-slice-metric-computation",
+      "next_task_if_partially_validated": "dualscope-qwen2p5-7b-alpaca-main-slice-response-dependency-repair",
+      "next_task_if_not_validated": "dualscope-qwen2p5-7b-alpaca-main-slice-response-generation-blocker-closure"
+    },
+    {
+      "task_id": "dualscope-qwen2p5-7b-alpaca-main-slice-response-dependency-repair",
+      "purpose": "Repair the bounded Qwen2.5-7B Alpaca main-slice response-generation runtime dependency blocker, especially missing bitsandbytes or CUDA visibility mismatches, then rerun the bounded response-generation repair CLI or produce explicit blocker artifacts.",
+      "expected_inputs": [
+        ".reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-alpaca-main-slice-response-generation-repair.json",
+        ".reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-alpaca-main-slice-plan.json",
+        "requirements.txt",
+        "scripts/build_dualscope_qwen2p5_7b_alpaca_main_slice_response_generation_repair.py",
+        "data/stanford_alpaca/first_slice/alpaca_first_slice_labeled_pairs.jsonl",
+        "/mnt/sda3/lh/models/qwen2p5-7b-instruct"
+      ],
+      "expected_outputs": [
+        ".plans/dualscope-qwen2p5-7b-alpaca-main-slice-response-dependency-repair.md",
+        "docs/dualscope_qwen2p5_7b_alpaca_main_slice_response_dependency_repair.md",
+        ".reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-alpaca-main-slice-response-dependency-repair.json",
+        "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_dependency_repair/default",
+        "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation_repair/default"
+      ],
+      "branch_name_suggestion": "codex/qwen2p5-7b-alpaca-main-slice-response-dependency-repair",
+      "prompt_template": "Continue DualScope-LLM task `{task_id}`. Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, DUALSCOPE_TASK_QUEUE.md, the Alpaca main-slice response-generation repair registry, and the previous blocker artifacts first. This is an execution-required dependency repair task, not a plan-only task. Diagnose the recorded `missing_dependency` / `requested_4bit_but_bitsandbytes_unavailable` blocker and the CUDA visibility context using `.venv/bin/python`, `torch.cuda.is_available()`, `torch.cuda.device_count()`, `torch.version.cuda`, `CUDA_VISIBLE_DEVICES=2,3`, `accelerate`, `bitsandbytes`, `/mnt/sda3/lh/models/qwen2p5-7b-instruct`, and available GPU memory. Use `HF_HOME=/mnt/sda3/lh/huggingface`, `TRANSFORMERS_CACHE=/mnt/sda3/lh/huggingface/transformers`, `HF_HUB_CACHE=/mnt/sda3/lh/huggingface/hub`, and `TMPDIR=/mnt/sda3/lh/tmp`. If `bitsandbytes` is missing, install only the minimal dependency into `.venv` with `.venv/bin/python -m pip install \"bitsandbytes>=0.43,<0.47\"` using the configured proxy, record the install result, and keep `requirements.txt` aligned. Do not install unrelated packages. Then rerun the bounded repair CLI: `.venv/bin/python scripts/build_dualscope_qwen2p5_7b_alpaca_main_slice_response_generation_repair.py --model-dir /mnt/sda3/lh/models/qwen2p5-7b-instruct --input-jsonl data/stanford_alpaca/first_slice/alpaca_first_slice_labeled_pairs.jsonl --plan-verdict .reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-alpaca-main-slice-plan.json --output-dir outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation_repair/default --registry-path .reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-alpaca-main-slice-response-generation-repair.json --max-source-examples 4 --expected-response-rows 8 --batch-size 1 --max-new-tokens 32 --max-generation-attempts 8 --load-in-4bit --allow-without-logprobs`. If 4-bit still fails, retry without `--load-in-4bit` only when memory checks make that safe; otherwise write explicit blocker artifacts under `outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_dependency_repair/default`. Required success evidence is a response JSONL with at least one real model response. Qualified failure evidence is blocker JSON with blocker_type such as `missing_dependency`, `torch_cuda_unavailable`, `cuda_error`, `oom`, `model_load_failure`, or `runtime_error`. Do not fake responses, logprobs, labels, metrics, reviews, or CI. Do not compute final metrics in this task. Verdicts: `Qwen2.5-7B Alpaca main-slice response dependency repair validated`, `Partially validated`, or `Not validated`. If validated and real responses exist, next task is `dualscope-qwen2p5-7b-alpaca-main-slice-metric-computation`; if still blocked, next task is `dualscope-qwen2p5-7b-alpaca-main-slice-response-generation-blocker-closure`. Never modify benchmark truth or gates, never continue route_c or generate 199+, never run a full matrix, and follow AGENTS.md PR workflow without force push, branch deletion, remote rewrite, or merging unrelated PRs.",
+      "completion_verdicts": {
+        "validated": [
+          "Qwen2.5-7B Alpaca main-slice response dependency repair validated"
+        ],
+        "partially_validated": [
+          "Partially validated"
+        ],
+        "not_validated": [
+          "Not validated"
+        ]
+      },
+      "verdict_artifacts": [
+        "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_dependency_repair/default/dualscope_qwen2p5_7b_alpaca_main_slice_response_dependency_repair_verdict.json",
+        "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_dependency_repair_analysis/default/dualscope_qwen2p5_7b_alpaca_main_slice_response_dependency_repair_verdict.json"
+      ],
+      "next_task_if_validated": "dualscope-qwen2p5-7b-alpaca-main-slice-metric-computation",
       "next_task_if_partially_validated": "dualscope-qwen2p5-7b-alpaca-main-slice-response-generation-blocker-closure",
       "next_task_if_not_validated": "dualscope-qwen2p5-7b-alpaca-main-slice-response-generation-blocker-closure"
     },

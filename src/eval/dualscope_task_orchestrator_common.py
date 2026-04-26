@@ -593,6 +593,29 @@ def choose_next_task(
             repair_status = scan_by_id.get(repair_id, {"status": "not_started"})
             if repair_task and repair_status.get("status") == "validated":
                 continue
+            if repair_task and repair_status.get("status") in {"partially_validated", "not_validated"}:
+                followup_key = (
+                    "next_task_if_partially_validated"
+                    if repair_status.get("status") == "partially_validated"
+                    else "next_task_if_not_validated"
+                )
+                followup_id = repair_task.get(followup_key) or repair_id
+                followup_task = task_by_id(tasks, followup_id)
+                return {
+                    "selection_type": "partial_repair_followup",
+                    "next_task": followup_id,
+                    "selected_task_id": followup_id,
+                    "source_task_id": task_id,
+                    "repair_task_id": repair_id,
+                    "reason": (
+                        f"Task {task_id} is partially validated and repair task {repair_id} "
+                        f"is {repair_status.get('status')}; selecting the repair follow-up task."
+                    ),
+                    "task_status": row,
+                    "repair_task_status": repair_status,
+                    "task": followup_task,
+                    "blockers": [],
+                }
             return {
                 "selection_type": "partial_repair",
                 "next_task": repair_id,
