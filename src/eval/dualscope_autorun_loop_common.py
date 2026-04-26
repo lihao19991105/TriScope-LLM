@@ -13,6 +13,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from src.eval.dualscope_autorun_blocker_classifier import classify_autorun_blockers
+from src.eval.dualscope_autorun_repair_task_generator import generate_repair_task
+
 
 DEFAULT_QUEUE_FILE = Path("DUALSCOPE_TASK_QUEUE.md")
 DEFAULT_OUTPUT_DIR = Path("outputs/dualscope_autorun_loop/default")
@@ -87,6 +90,13 @@ class AutorunLoopArgs:
     task_result_pr_packager: Path
     safe_pr_merge_gate: Path
     main_worktree_only_scheduler: bool
+    auto_repair_blockers: bool
+    max_repair_attempts: int
+    repair_output_dir: Path
+    stop_on_unrepairable_blocker: bool
+    allow_resource_repair: bool
+    allow_experiment_repair: bool
+    allow_pr_workflow_repair: bool
 
 
 def utc_now() -> str:
@@ -1095,6 +1105,109 @@ def render_dry_run_plan(selected_tasks: list[dict[str, Any]], args: AutorunLoopA
     return "\n".join(lines)
 
 
+def repair_class_allowed(args: AutorunLoopArgs, blocker_class: str | None) -> tuple[bool, str | None]:
+    if blocker_class == "resource_blocker" and not args.allow_resource_repair:
+        return False, "Resource repair is disabled by --no-allow-resource-repair."
+    if blocker_class == "experiment_blocker" and not args.allow_experiment_repair:
+        return False, "Experiment repair is disabled by --no-allow-experiment-repair."
+    if blocker_class == "pr_workflow_blocker" and not args.allow_pr_workflow_repair:
+        return False, "PR workflow repair is disabled by --no-allow-pr-workflow-repair."
+    return True, None
+
+
+def write_repair_orchestration_artifacts(
+    args: AutorunLoopArgs,
+    summary_context: dict[str, Any],
+    blockers_payload: dict[str, Any],
+    task_selection: dict[str, Any],
+    selected_tasks: list[dict[str, Any]],
+) -> dict[str, Any]:
+    args.repair_output_dir.mkdir(parents=True, exist_ok=True)
+    classification = classify_autorun_blockers(
+        autorun_summary=summary_context,
+        autorun_blockers=blockers_payload,
+        task_selection=task_selection,
+    )
+    allowed, disabled_reason = repair_class_allowed(args, classification.get("primary_blocker_class"))
+    if not allowed:
+        classification["repairable"] = False
+        classification["auto_repair_allowed"] = False
+        classification["stop_reason_if_not_repairable"] = disabled_reason
+        classification.setdefault("human_actions", []).append(disabled_reason)
+    repair_task = generate_repair_task(
+        classification,
+        task_selection=task_selection,
+        failed_task_id=summary_context.get("selected_task"),
+    )
+    repairable = bool(classification.get("repairable"))
+    decision = {
+        "summary_status": "PASS" if repairable else "WARN",
+        "schema_version": "dualscope/autorun-blocker-repair-decision/v1",
+        "auto_repair_blockers": args.auto_repair_blockers,
+        "max_repair_attempts": args.max_repair_attempts,
+        "decision": "generate_repair_task" if repairable else "stop_unrepairable",
+        "blocker_class": classification.get("primary_blocker_class"),
+        "repairable": repairable,
+        "repair_task_id": repair_task.get("repair_task_id"),
+        "return_to_mainline_task": repair_task.get("return_to_task_if_validated"),
+        "stop_on_unrepairable_blocker": args.stop_on_unrepairable_blocker,
+        "unrepairable_reason": repair_task.get("stop_reason_if_not_repairable"),
+        "next_action": (
+            "Run generated repair task in an isolated worktree, then return to mainline queue selection."
+            if repairable
+            else "Stop and report manual blocker action."
+        ),
+    }
+    attempts = [
+        {
+            "attempt": 1,
+            "blocker_class": classification.get("primary_blocker_class"),
+            "repair_task_id": repair_task.get("repair_task_id"),
+            "repairable": repairable,
+            "status": "planned" if repairable else "not_planned",
+            "repair_pr_url": None,
+        }
+    ]
+    report_lines = [
+        "# DualScope Autorun Blocker Repair Orchestration",
+        "",
+        f"- Blocker class: `{classification.get('primary_blocker_class')}`",
+        f"- Repairable: `{repairable}`",
+        f"- Repair task: `{repair_task.get('repair_task_id')}`",
+        f"- Return task: `{repair_task.get('return_to_task_if_validated')}`",
+        f"- Decision: `{decision.get('decision')}`",
+        "",
+        "## Selected Tasks",
+    ]
+    for row in selected_tasks:
+        report_lines.append(f"- iteration {row.get('iteration')}: `{row.get('selected_task')}`")
+    report_lines.extend(["", "## Safety", "- Requested changes and failing checks remain hard stops.", "- Benchmark truth, gates, route_c/199+, secrets, fake model outputs, fake metrics, fake review, and fake CI remain forbidden."])
+    repair_summary = {
+        "summary_status": decision["summary_status"],
+        "schema_version": "dualscope/autorun-blocker-repair-summary/v1",
+        "blocker_class": classification.get("primary_blocker_class"),
+        "repairable": repairable,
+        "repair_task_id": repair_task.get("repair_task_id"),
+        "repair_attempt_count": len(attempts),
+        "repair_pr_url": None,
+        "return_to_mainline_task": repair_task.get("return_to_task_if_validated"),
+        "unrepairable_reason": decision.get("unrepairable_reason"),
+        "output_dir": str(args.repair_output_dir),
+    }
+    write_json(args.repair_output_dir / "dualscope_autorun_blocker_classification.json", classification)
+    write_json(args.repair_output_dir / "dualscope_autorun_blocker_repair_decision.json", decision)
+    write_json(args.repair_output_dir / "dualscope_autorun_generated_repair_task.json", repair_task)
+    write_jsonl(args.repair_output_dir / "dualscope_autorun_repair_attempts.jsonl", attempts)
+    write_json(args.repair_output_dir / "dualscope_autorun_repair_summary.json", repair_summary)
+    (args.repair_output_dir / "dualscope_autorun_repair_report.md").write_text("\n".join(report_lines) + "\n", encoding="utf-8")
+    return {
+        "classification": classification,
+        "decision": decision,
+        "repair_task": repair_task,
+        "summary": repair_summary,
+    }
+
+
 def run_autorun_loop(args: AutorunLoopArgs) -> tuple[int, dict[str, Any]]:
     started_at = utc_now()
     start_monotonic = time.monotonic()
@@ -1178,6 +1291,13 @@ def run_autorun_loop(args: AutorunLoopArgs) -> tuple[int, dict[str, Any]]:
         "task_result_pr_packager": str(args.task_result_pr_packager),
         "safe_pr_merge_gate": str(args.safe_pr_merge_gate),
         "main_worktree_only_scheduler": args.main_worktree_only_scheduler,
+        "auto_repair_blockers": args.auto_repair_blockers,
+        "max_repair_attempts": args.max_repair_attempts,
+        "repair_output_dir": str(args.repair_output_dir),
+        "stop_on_unrepairable_blocker": args.stop_on_unrepairable_blocker,
+        "allow_resource_repair": args.allow_resource_repair,
+        "allow_experiment_repair": args.allow_experiment_repair,
+        "allow_pr_workflow_repair": args.allow_pr_workflow_repair,
         "stop_on_review_pending": args.stop_on_review_pending,
         "allow_review_pending_continue": args.allow_review_pending_continue,
         "stop_on_requested_changes": args.stop_on_requested_changes,
@@ -1474,6 +1594,25 @@ def run_autorun_loop(args: AutorunLoopArgs) -> tuple[int, dict[str, Any]]:
     recommendation = recommendation_for_verdict(verdict)
     blockers_payload = {"summary_status": "PASS" if not blockers else "WARN", "schema_version": "dualscope/autorun-loop-blockers/v1", "blockers": blockers}
     write_json(args.output_dir / "dualscope_autorun_loop_blockers.json", blockers_payload)
+    latest_task_selection_path = args.task_orchestrator_output_dir / "dualscope_next_task_selection.json"
+    latest_task_selection = read_json(latest_task_selection_path) if latest_task_selection_path.exists() else {}
+    repair_payload: dict[str, Any] | None = None
+    summary_context = {
+        "mode": mode,
+        "stop_reason": stop_reason,
+        "iterations_completed": len(selected_tasks),
+        "selected_task": selected_tasks[-1].get("selected_task") if selected_tasks else None,
+        "final_verdict": verdict,
+        "recommendation": recommendation,
+    }
+    if args.auto_repair_blockers:
+        repair_payload = write_repair_orchestration_artifacts(
+            args=args,
+            summary_context=summary_context,
+            blockers_payload=blockers_payload,
+            task_selection=latest_task_selection,
+            selected_tasks=selected_tasks,
+        )
     summary = {
         "summary_status": "PASS" if verdict != FINAL_VERDICTS["not_validated"] else "FAIL",
         "schema_version": "dualscope/autorun-loop-summary/v1",
@@ -1500,6 +1639,16 @@ def run_autorun_loop(args: AutorunLoopArgs) -> tuple[int, dict[str, Any]]:
         "max_review_wait_minutes": args.max_review_wait_minutes,
         "review_poll_interval_seconds": args.review_poll_interval_seconds,
         "continue_after_review_merge": args.continue_after_review_merge,
+        "auto_repair_blockers": args.auto_repair_blockers,
+        "max_repair_attempts": args.max_repair_attempts,
+        "repair_output_dir": str(args.repair_output_dir),
+        "blocker_class": (repair_payload or {}).get("summary", {}).get("blocker_class"),
+        "repairable": (repair_payload or {}).get("summary", {}).get("repairable"),
+        "repair_task_id": (repair_payload or {}).get("summary", {}).get("repair_task_id"),
+        "repair_attempt_count": (repair_payload or {}).get("summary", {}).get("repair_attempt_count", 0),
+        "repair_pr_url": (repair_payload or {}).get("summary", {}).get("repair_pr_url"),
+        "return_to_mainline_task": (repair_payload or {}).get("summary", {}).get("return_to_mainline_task"),
+        "unrepairable_reason": (repair_payload or {}).get("summary", {}).get("unrepairable_reason"),
         "task_worktree_runner_output_dir": str(DEFAULT_TASK_WORKTREE_RUNNER_OUTPUT_DIR),
         "safe_pr_merge_gate_output_dir": str(DEFAULT_SAFE_PR_MERGE_GATE_OUTPUT_DIR),
         "final_verdict": verdict,
