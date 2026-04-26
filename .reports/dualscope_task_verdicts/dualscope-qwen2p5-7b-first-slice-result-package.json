@@ -2,8 +2,16 @@
   "task_id": "dualscope-qwen2p5-7b-first-slice-result-package",
   "verdict": "Partially validated",
   "source_output_dir": "outputs/dualscope_qwen2p5_7b_first_slice_result_package/default",
-  "commit": "7f087acc4fe2e0e3edb875654dfa8f9befa8e3eb",
-  "created_at": "2026-04-26T12:41:30Z",
+  "created_at": "2026-04-26T12:36:22Z",
   "validated": false,
-  "next_task": null
+  "next_task": "dualscope-qwen2p5-7b-clean-utility-scoring",
+  "real_response_row_count": 8,
+  "aligned_metric_row_count": 8,
+  "detection_metrics_reportable": true,
+  "asr_reportable": true,
+  "clean_utility_reportable": false,
+  "full_paper_performance_claimed": false,
+  "model_responses_fabricated": false,
+  "logprobs_fabricated": false,
+  "placeholder_metrics_presented_as_real": false
 }
