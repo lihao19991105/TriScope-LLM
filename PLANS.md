@@ -94,6 +94,8 @@
 
 当前 Qwen2.5-7B first-slice 前置资源门已独立为 `dualscope-qwen2p5-7b-resource-materialization-and-config`。该任务必须诚实检查或下载 `Qwen/Qwen2.5-7B-Instruct`，检查 labeled pairs、target-response plan、GPU/disk、tokenizer/config，并输出 resource verdict artifact。若资源仍 blocked，应进入 resource repair，而不是重复选择 Qwen2.5-7B response-generation-plan。
 
+当前 DualScope SCI3 first-slice Qwen2.5-7B 自动化实验链已阶段性完成：Qwen2.5-7B resource materialization validated，已生成 8 条真实 first-slice response，label-aligned detection metrics 与 ASR 已计算，clean utility blocker 已真实记录，result package、SCI3 main expansion plan 与 cross-model validation readiness plan 已收口。下一阶段进入 `dualscope-sci3-next-real-expansion-track`，只允许小步推进：先规划 Qwen2.5-7B Stanford Alpaca main-slice，再执行 bounded main-slice response generation，随后依次规划 semantic trigger smoke、behavior-shift target smoke、AdvBench small-slice readiness 与 JBB small-slice readiness。该阶段不得直接运行 full matrix，不得把 8 条 first-slice response 写成完整论文结果，也不得伪造 clean utility 或 cross-model 实验。
+
 ---
 
 ## 1. What an ExecPlan Is
