@@ -1054,6 +1054,41 @@ The Markdown text is for humans; the fenced JSON block is the source of truth.
       "next_task_if_not_validated": "dualscope-qwen2p5-7b-alpaca-main-slice-response-generation-blocker-closure"
     },
     {
+      "task_id": "dualscope-qwen2p5-7b-alpaca-main-slice-response-generation-blocker-closure",
+      "purpose": "Close the bounded Qwen2.5-7B Alpaca main-slice response-generation blocker with a truthful hard-blocker report after bounded generation and dependency repair attempts fail.",
+      "expected_inputs": [
+        ".reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-alpaca-main-slice-response-generation.json",
+        ".reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-alpaca-main-slice-response-generation-repair.json",
+        ".reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-alpaca-main-slice-response-dependency-repair.json",
+        "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation_repair/default"
+      ],
+      "expected_outputs": [
+        ".plans/dualscope-qwen2p5-7b-alpaca-main-slice-response-generation-blocker-closure.md",
+        "docs/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation_blocker_closure.md",
+        ".reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-alpaca-main-slice-response-generation-blocker-closure.json",
+        "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation_blocker_closure/default"
+      ],
+      "branch_name_suggestion": "codex/qwen2p5-7b-alpaca-main-slice-response-generation-blocker-closure",
+      "prompt_template": "Continue DualScope-LLM task `{task_id}`. Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, DUALSCOPE_TASK_QUEUE.md, the bounded Alpaca response-generation, repair, and dependency-repair registries first. This is a blocker-closure task, not a response-generation task. Do not retry plan-only packaging and do not fabricate responses, logprobs, labels, metrics, reviews, or CI. Summarize the real blocker chain: zero bounded Alpaca main-slice response rows, the dependency repair attempt, missing_dependency / bitsandbytes install blocker if present, CUDA visibility diagnostics, missing input materialization diagnostics if present, and any safe retry recommendations. Produce a concise blocker report, blocker summary JSON, next manual action recommendation, and tracked registry. If the blocker is truly unresolved, verdict should be `Qwen2.5-7B Alpaca main-slice response generation blocker closed` with `validated=true` only for blocker documentation, not for response generation. The registry must state that no new model responses or metrics were produced. Next task is `queue_complete` unless a future user explicitly authorizes another resource repair. Never modify benchmark truth or gates, never continue route_c or generate 199+, never run a full matrix, and follow AGENTS.md PR workflow without force push, branch deletion, remote rewrite, or merging unrelated PRs.",
+      "completion_verdicts": {
+        "validated": [
+          "Qwen2.5-7B Alpaca main-slice response generation blocker closed"
+        ],
+        "partially_validated": [
+          "Partially validated"
+        ],
+        "not_validated": [
+          "Not validated"
+        ]
+      },
+      "verdict_artifacts": [
+        "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation_blocker_closure/default/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation_blocker_closure_verdict.json"
+      ],
+      "next_task_if_validated": "queue_complete",
+      "next_task_if_partially_validated": "queue_complete",
+      "next_task_if_not_validated": "queue_complete"
+    },
+    {
       "task_id": "dualscope-qwen2p5-7b-alpaca-main-slice-metric-computation",
       "purpose": "Compute available bounded Qwen2.5-7B Alpaca main-slice detection, ASR, cost, and fallback-readiness metrics from real response artifacts without fabricating clean utility or logprobs.",
       "expected_inputs": [
