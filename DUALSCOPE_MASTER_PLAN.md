@@ -150,6 +150,12 @@
 
 该阶段负责下载/配置或明确阻塞 `Qwen/Qwen2.5-7B-Instruct`，并检查 labeled pairs、target-response plan output、GPU、disk、tokenizer/config readiness。只有资源 validated 后才继续 Qwen2.5-7B response-generation planning；如果资源 partially validated，则进入 resource repair，而不是重复选择 response-generation-plan。
 
+当前 Qwen2.5-7B first-slice SCI3 自动化链已经完成一个受控 smoke 闭环：8 条真实 Qwen2.5-7B response 已生成，label-aligned detection metrics 与 ASR 已计算，clean utility blocker 已诚实保留，first-slice result package、SCI3 main expansion plan 与 cross-model validation readiness plan 已完成。下一阶段入口是：
+
+- [.plans/dualscope-sci3-next-real-expansion-track.md](/home/lh/TriScope-LLM/.plans/dualscope-sci3-next-real-expansion-track.md)
+
+该阶段只做 small-step expansion：先规划 Qwen2.5-7B Stanford Alpaca main-slice，再做 bounded response generation，然后依次规划 semantic trigger smoke、behavior-shift target smoke、AdvBench small-slice readiness 与 JBB small-slice readiness。它明确不执行 full matrix，不把 8 条 first-slice response 声称为完整论文结果，不伪造 clean utility，不把 cross-model readiness 写成真实 Llama/Mistral 实验。
+
 ### Current Submission Positioning
 
 当前论文目标应保持**稳妥、不夸大**：

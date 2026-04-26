@@ -896,9 +896,220 @@ The Markdown text is for humans; the fenced JSON block is the source of truth.
         "outputs/dualscope_cross_model_validation_plan_repair/default/dualscope_cross_model_validation_plan_repair_verdict.json",
         "outputs/dualscope_cross_model_validation_plan_repair_analysis/default/dualscope_cross_model_validation_plan_repair_verdict.json"
       ],
-      "next_task_if_validated": "queue_complete",
+      "next_task_if_validated": "dualscope-qwen2p5-7b-alpaca-main-slice-plan",
       "next_task_if_partially_validated": "dualscope-cross-model-validation-plan-blocker-closure",
       "next_task_if_not_validated": "dualscope-cross-model-validation-plan-blocker-closure"
+    },
+    {
+      "task_id": "dualscope-qwen2p5-7b-alpaca-main-slice-plan",
+      "purpose": "Plan the next small-step Qwen2.5-7B Stanford Alpaca main-slice expansion from the completed first-slice smoke results without executing a full matrix.",
+      "expected_inputs": [
+        ".reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-result-package-repair.json",
+        ".reports/dualscope_task_verdicts/dualscope-cross-model-validation-plan-repair.json",
+        "outputs/dualscope_qwen2p5_7b_response_generation_repair/default",
+        "outputs/dualscope_qwen2p5_7b_metric_computation_repair/default",
+        "data/stanford_alpaca/first_slice/alpaca_first_slice_labeled_pairs.jsonl",
+        "models/qwen2p5-7b-instruct"
+      ],
+      "expected_outputs": [
+        ".plans/dualscope-qwen2p5-7b-alpaca-main-slice-plan.md",
+        "docs/dualscope_qwen2p5_7b_alpaca_main_slice_plan.md",
+        ".reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-alpaca-main-slice-plan.json",
+        "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_plan/default"
+      ],
+      "branch_name_suggestion": "codex/qwen2p5-7b-alpaca-main-slice-plan",
+      "prompt_template": "Continue DualScope-LLM task `{task_id}`. Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, DUALSCOPE_TASK_QUEUE.md, the Qwen2.5-7B first-slice result package, metric repair artifacts, and cross-model readiness plan first. This is a small-step expansion planning task only. Plan a Qwen2.5-7B Stanford Alpaca main-slice expansion that grows beyond the 8-response first-slice smoke while remaining bounded: no full matrix, no new model axis, no training, no route_c, and no 199+. Explicitly state that the current 8 Qwen2.5-7B responses are first-slice smoke evidence, not full paper results; detection metrics and ASR are first-slice only; clean utility remains blocked unless explicit utility success/reference-match fields are generated later; cross-model validation remains readiness only. Preserve Qwen2.5-7B as the main experimental model and Qwen2.5-1.5B as pilot/debug/ablation only. Define main-slice size, input artifact contract, response generation CLI plan, budget limits, risk controls, expected artifacts, and go/no-go criteria. Do not execute response generation in this task, do not fabricate responses/logprobs/AUROC/F1/ASR/clean utility, and do not modify benchmark truth or gates. Produce plan artifacts, report, verdict, next-step recommendation, and tracked registry. Final verdicts: `Qwen2.5-7B Alpaca main-slice plan validated`, `Partially validated`, or `Not validated`. If validated, next task is `dualscope-qwen2p5-7b-alpaca-main-slice-response-generation`. Follow AGENTS.md PR workflow without force push, branch deletion, remote rewrite, or merging unrelated PRs.",
+      "completion_verdicts": {
+        "validated": [
+          "Qwen2.5-7B Alpaca main-slice plan validated"
+        ],
+        "partially_validated": [
+          "Partially validated"
+        ],
+        "not_validated": [
+          "Not validated"
+        ]
+      },
+      "verdict_artifacts": [
+        "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_plan/default/dualscope_qwen2p5_7b_alpaca_main_slice_plan_verdict.json",
+        "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_plan_analysis/default/dualscope_qwen2p5_7b_alpaca_main_slice_plan_verdict.json"
+      ],
+      "next_task_if_validated": "dualscope-qwen2p5-7b-alpaca-main-slice-response-generation",
+      "next_task_if_partially_validated": "dualscope-qwen2p5-7b-alpaca-main-slice-plan-repair",
+      "next_task_if_not_validated": "dualscope-qwen2p5-7b-alpaca-main-slice-plan-blocker-closure"
+    },
+    {
+      "task_id": "dualscope-qwen2p5-7b-alpaca-main-slice-response-generation",
+      "purpose": "Execute a bounded Qwen2.5-7B Stanford Alpaca main-slice response-generation expansion after the main-slice plan is validated, without running a full matrix.",
+      "expected_inputs": [
+        ".reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-alpaca-main-slice-plan.json",
+        "data/stanford_alpaca/first_slice/alpaca_first_slice_labeled_pairs.jsonl",
+        "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_plan/default",
+        "models/qwen2p5-7b-instruct",
+        "/mnt/sda3/lh/models/qwen2p5-7b-instruct"
+      ],
+      "expected_outputs": [
+        ".plans/dualscope-qwen2p5-7b-alpaca-main-slice-response-generation.md",
+        "docs/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation.md",
+        ".reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-alpaca-main-slice-response-generation.json",
+        "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation/default"
+      ],
+      "branch_name_suggestion": "codex/qwen2p5-7b-alpaca-main-slice-response-generation",
+      "prompt_template": "Continue DualScope-LLM task `{task_id}`. Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, DUALSCOPE_TASK_QUEUE.md, and the validated Alpaca main-slice plan first. This is an execution task, but it must remain a small-step expansion: Qwen2.5-7B only, Stanford Alpaca only, bounded main-slice only, lexical trigger baseline first, fixed target first, no full matrix, no training, no route_c, and no 199+. Use `/mnt/sda3/lh/models/qwen2p5-7b-instruct` through `models/qwen2p5-7b-instruct`, `HF_HOME=/mnt/sda3/lh/huggingface`, `TRANSFORMERS_CACHE=/mnt/sda3/lh/huggingface/transformers`, `HF_HUB_CACHE=/mnt/sda3/lh/huggingface/hub`, `TMPDIR=/mnt/sda3/lh/tmp`, and `CUDA_VISIBLE_DEVICES=2,3`. Execute the response-generation CLI defined by the plan or an equivalent supported invocation. If generation succeeds, write real response JSONL rows, summary, capability/fallback flags, report, verdict, and tracked registry. If GPU/OOM/model/logprob/runtime blockers occur, write explicit blocker artifacts; do not fake responses or logprobs. Do not compute final metrics in this task except availability summaries. Final verdicts: `Qwen2.5-7B Alpaca main-slice response generation validated`, `Partially validated`, or `Not validated`. If validated, next task is `dualscope-qwen2p5-7b-semantic-trigger-smoke-plan`. Follow AGENTS.md PR workflow without force push, branch deletion, remote rewrite, or merging unrelated PRs.",
+      "completion_verdicts": {
+        "validated": [
+          "Qwen2.5-7B Alpaca main-slice response generation validated"
+        ],
+        "partially_validated": [
+          "Partially validated"
+        ],
+        "not_validated": [
+          "Not validated"
+        ]
+      },
+      "verdict_artifacts": [
+        "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation/default/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation_verdict.json",
+        "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation_analysis/default/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation_verdict.json"
+      ],
+      "next_task_if_validated": "dualscope-qwen2p5-7b-semantic-trigger-smoke-plan",
+      "next_task_if_partially_validated": "dualscope-qwen2p5-7b-alpaca-main-slice-response-generation-repair",
+      "next_task_if_not_validated": "dualscope-qwen2p5-7b-alpaca-main-slice-response-generation-blocker-closure"
+    },
+    {
+      "task_id": "dualscope-qwen2p5-7b-semantic-trigger-smoke-plan",
+      "purpose": "Plan a minimal semantic-trigger smoke extension for Qwen2.5-7B after Alpaca main-slice readiness, without executing a trigger family matrix.",
+      "expected_inputs": [
+        ".reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-alpaca-main-slice-response-generation.json",
+        "docs/dualscope_sci3_experiment_scope_control.md",
+        "docs/dualscope_sci3_next_real_expansion_track.md"
+      ],
+      "expected_outputs": [
+        ".plans/dualscope-qwen2p5-7b-semantic-trigger-smoke-plan.md",
+        "docs/dualscope_qwen2p5_7b_semantic_trigger_smoke_plan.md",
+        ".reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-semantic-trigger-smoke-plan.json",
+        "outputs/dualscope_qwen2p5_7b_semantic_trigger_smoke_plan/default"
+      ],
+      "branch_name_suggestion": "codex/qwen2p5-7b-semantic-trigger-smoke-plan",
+      "prompt_template": "Continue DualScope-LLM task `{task_id}`. Plan exactly one small semantic-trigger smoke for Qwen2.5-7B. Do not execute the smoke in this task. Keep Stanford Alpaca and Qwen2.5-7B fixed; introduce only the semantic trigger design contract, target compatibility check, sample budget, expected artifacts, and blocker conditions. Do not expand to contextual triggers, AdvBench, JBB, cross-model validation, full matrix, training, route_c, or 199+. Preserve clean utility blocker honesty and do not fabricate metrics, responses, logprobs, labels, or benchmark truth. Final verdicts: `Qwen2.5-7B semantic trigger smoke plan validated`, `Partially validated`, or `Not validated`. If validated, next task is `dualscope-qwen2p5-7b-behavior-shift-target-smoke-plan`. Follow AGENTS.md PR workflow.",
+      "completion_verdicts": {
+        "validated": [
+          "Qwen2.5-7B semantic trigger smoke plan validated"
+        ],
+        "partially_validated": [
+          "Partially validated"
+        ],
+        "not_validated": [
+          "Not validated"
+        ]
+      },
+      "verdict_artifacts": [
+        "outputs/dualscope_qwen2p5_7b_semantic_trigger_smoke_plan/default/dualscope_qwen2p5_7b_semantic_trigger_smoke_plan_verdict.json"
+      ],
+      "next_task_if_validated": "dualscope-qwen2p5-7b-behavior-shift-target-smoke-plan",
+      "next_task_if_partially_validated": "dualscope-qwen2p5-7b-semantic-trigger-smoke-plan-repair",
+      "next_task_if_not_validated": "dualscope-qwen2p5-7b-semantic-trigger-smoke-plan-blocker-closure"
+    },
+    {
+      "task_id": "dualscope-qwen2p5-7b-behavior-shift-target-smoke-plan",
+      "purpose": "Plan one minimal behavior-shift target smoke for Qwen2.5-7B while keeping dataset, model, and trigger scope bounded.",
+      "expected_inputs": [
+        ".reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-semantic-trigger-smoke-plan.json",
+        "docs/dualscope_sci3_experiment_scope_control.md",
+        "docs/dualscope_sci3_next_real_expansion_track.md"
+      ],
+      "expected_outputs": [
+        ".plans/dualscope-qwen2p5-7b-behavior-shift-target-smoke-plan.md",
+        "docs/dualscope_qwen2p5_7b_behavior_shift_target_smoke_plan.md",
+        ".reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-behavior-shift-target-smoke-plan.json",
+        "outputs/dualscope_qwen2p5_7b_behavior_shift_target_smoke_plan/default"
+      ],
+      "branch_name_suggestion": "codex/qwen2p5-7b-behavior-shift-target-smoke-plan",
+      "prompt_template": "Continue DualScope-LLM task `{task_id}`. Plan exactly one behavior-shift target smoke for Qwen2.5-7B. This is a planning task only: do not generate model responses, do not compute metrics, and do not run a target matrix. Keep the model as Qwen2.5-7B and the dataset path small; define behavior-shift target semantics, eligibility criteria, expected outputs, safety boundaries, and blocker conditions. Explicitly preserve that fixed-response first-slice metrics are smoke evidence and clean utility remains blocked. Do not fabricate target behavior success, ASR, utility, responses, logprobs, labels, benchmark truth, gates, route_c, or 199+. Final verdicts: `Qwen2.5-7B behavior-shift target smoke plan validated`, `Partially validated`, or `Not validated`. If validated, next task is `dualscope-advbench-small-slice-readiness-plan`. Follow AGENTS.md PR workflow.",
+      "completion_verdicts": {
+        "validated": [
+          "Qwen2.5-7B behavior-shift target smoke plan validated"
+        ],
+        "partially_validated": [
+          "Partially validated"
+        ],
+        "not_validated": [
+          "Not validated"
+        ]
+      },
+      "verdict_artifacts": [
+        "outputs/dualscope_qwen2p5_7b_behavior_shift_target_smoke_plan/default/dualscope_qwen2p5_7b_behavior_shift_target_smoke_plan_verdict.json"
+      ],
+      "next_task_if_validated": "dualscope-advbench-small-slice-readiness-plan",
+      "next_task_if_partially_validated": "dualscope-qwen2p5-7b-behavior-shift-target-smoke-plan-repair",
+      "next_task_if_not_validated": "dualscope-qwen2p5-7b-behavior-shift-target-smoke-plan-blocker-closure"
+    },
+    {
+      "task_id": "dualscope-advbench-small-slice-readiness-plan",
+      "purpose": "Plan a small-slice AdvBench readiness step for DualScope SCI3 without ingesting or executing the full dataset.",
+      "expected_inputs": [
+        ".reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-behavior-shift-target-smoke-plan.json",
+        "docs/dualscope_sci3_next_real_expansion_track.md",
+        "docs/dualscope_sci3_experiment_scope_control.md"
+      ],
+      "expected_outputs": [
+        ".plans/dualscope-advbench-small-slice-readiness-plan.md",
+        "docs/dualscope_advbench_small_slice_readiness_plan.md",
+        ".reports/dualscope_task_verdicts/dualscope-advbench-small-slice-readiness-plan.json",
+        "outputs/dualscope_advbench_small_slice_readiness_plan/default"
+      ],
+      "branch_name_suggestion": "codex/dualscope-advbench-small-slice-readiness-plan",
+      "prompt_template": "Continue DualScope-LLM task `{task_id}`. Plan a small-slice AdvBench readiness step only. Do not download restricted resources, do not run AdvBench full dataset, do not generate responses, and do not compute metrics. Define source requirements, license/availability checks, small-slice schema, safety review, trigger/target compatibility, expected artifacts, and blocker routing. Preserve Qwen2.5-7B as main model and current first-slice Qwen2.5-7B results as smoke evidence only. Do not fabricate data availability, harmfulness labels, ASR, utility, responses, logprobs, benchmark truth, gates, route_c, or 199+. Final verdicts: `AdvBench small-slice readiness plan validated`, `Partially validated`, or `Not validated`. If validated, next task is `dualscope-jbb-small-slice-readiness-plan`. Follow AGENTS.md PR workflow.",
+      "completion_verdicts": {
+        "validated": [
+          "AdvBench small-slice readiness plan validated"
+        ],
+        "partially_validated": [
+          "Partially validated"
+        ],
+        "not_validated": [
+          "Not validated"
+        ]
+      },
+      "verdict_artifacts": [
+        "outputs/dualscope_advbench_small_slice_readiness_plan/default/dualscope_advbench_small_slice_readiness_plan_verdict.json"
+      ],
+      "next_task_if_validated": "dualscope-jbb-small-slice-readiness-plan",
+      "next_task_if_partially_validated": "dualscope-advbench-small-slice-readiness-plan-repair",
+      "next_task_if_not_validated": "dualscope-advbench-small-slice-readiness-plan-blocker-closure"
+    },
+    {
+      "task_id": "dualscope-jbb-small-slice-readiness-plan",
+      "purpose": "Plan a small-slice JBB-Behaviors readiness step for DualScope SCI3 without executing the full benchmark.",
+      "expected_inputs": [
+        ".reports/dualscope_task_verdicts/dualscope-advbench-small-slice-readiness-plan.json",
+        "docs/dualscope_sci3_next_real_expansion_track.md",
+        "docs/dualscope_sci3_experiment_scope_control.md"
+      ],
+      "expected_outputs": [
+        ".plans/dualscope-jbb-small-slice-readiness-plan.md",
+        "docs/dualscope_jbb_small_slice_readiness_plan.md",
+        ".reports/dualscope_task_verdicts/dualscope-jbb-small-slice-readiness-plan.json",
+        "outputs/dualscope_jbb_small_slice_readiness_plan/default"
+      ],
+      "branch_name_suggestion": "codex/dualscope-jbb-small-slice-readiness-plan",
+      "prompt_template": "Continue DualScope-LLM task `{task_id}`. Plan a small-slice JBB-Behaviors readiness step only. Do not run the full benchmark, do not download gated data without authorization, do not generate responses, and do not compute metrics. Define data/license readiness, small-slice schema, behavior category sampling, Qwen2.5-7B execution prerequisites, expected artifacts, and blocker routing. Cross-model validation remains readiness-only unless Llama/Mistral resources and license are explicitly available. Do not fabricate model availability, responses, AUROC/F1/ASR/utility, benchmark truth, gates, route_c, or 199+. Final verdicts: `JBB small-slice readiness plan validated`, `Partially validated`, or `Not validated`. If validated, the next queue state is `queue_complete` for this expansion planning batch. Follow AGENTS.md PR workflow.",
+      "completion_verdicts": {
+        "validated": [
+          "JBB small-slice readiness plan validated"
+        ],
+        "partially_validated": [
+          "Partially validated"
+        ],
+        "not_validated": [
+          "Not validated"
+        ]
+      },
+      "verdict_artifacts": [
+        "outputs/dualscope_jbb_small_slice_readiness_plan/default/dualscope_jbb_small_slice_readiness_plan_verdict.json"
+      ],
+      "next_task_if_validated": "queue_complete",
+      "next_task_if_partially_validated": "dualscope-jbb-small-slice-readiness-plan-repair",
+      "next_task_if_not_validated": "dualscope-jbb-small-slice-readiness-plan-blocker-closure"
     }
   ]
 }
