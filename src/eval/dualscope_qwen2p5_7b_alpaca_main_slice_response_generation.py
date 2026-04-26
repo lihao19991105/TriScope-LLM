@@ -136,7 +136,9 @@ def _write_registry(registry_path: Path, summary: dict[str, Any]) -> None:
             "created_at": summary["created_at"],
             "validated": summary["final_verdict"] == FINAL_VALIDATED,
             "next_task": summary["recommended_next_step"],
+            "blocker_type": summary["blockers"][0] if summary.get("blockers") else None,
             "generated_rows": summary["response_generation_mode"]["row_count_generated"],
+            "blocked_rows": summary["response_generation_mode"]["row_count_blocked"],
             "model_response_fabricated": False,
             "logprobs_fabricated": False,
             "metrics_computed": False,
@@ -300,7 +302,7 @@ def build_qwen2p5_7b_alpaca_main_slice_response_generation(
         "output_dir": str(output_dir),
         "final_verdict": final_verdict,
         "recommended_next_step": (
-            "dualscope-qwen2p5-7b-semantic-trigger-smoke-plan"
+            "dualscope-qwen2p5-7b-alpaca-main-slice-metric-computation"
             if final_verdict == FINAL_VALIDATED
             else f"{TASK_ID}-repair"
             if final_verdict == FINAL_PARTIAL

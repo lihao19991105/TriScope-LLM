@@ -955,7 +955,7 @@ The Markdown text is for humans; the fenced JSON block is the source of truth.
         "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation/default"
       ],
       "branch_name_suggestion": "codex/qwen2p5-7b-alpaca-main-slice-response-generation",
-      "prompt_template": "Continue DualScope-LLM task `{task_id}`. Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, DUALSCOPE_TASK_QUEUE.md, and the validated Alpaca main-slice plan first. This is an execution task, but it must remain a small-step expansion: Qwen2.5-7B only, Stanford Alpaca only, bounded main-slice only, lexical trigger baseline first, fixed target first, no full matrix, no training, no route_c, and no 199+. Use `/mnt/sda3/lh/models/qwen2p5-7b-instruct` through `models/qwen2p5-7b-instruct`, `HF_HOME=/mnt/sda3/lh/huggingface`, `TRANSFORMERS_CACHE=/mnt/sda3/lh/huggingface/transformers`, `HF_HUB_CACHE=/mnt/sda3/lh/huggingface/hub`, `TMPDIR=/mnt/sda3/lh/tmp`, and `CUDA_VISIBLE_DEVICES=2,3`. Execute the response-generation CLI defined by the plan or an equivalent supported invocation. If generation succeeds, write real response JSONL rows, summary, capability/fallback flags, report, verdict, and tracked registry. If GPU/OOM/model/logprob/runtime blockers occur, write explicit blocker artifacts; do not fake responses or logprobs. Do not compute final metrics in this task except availability summaries. Final verdicts: `Qwen2.5-7B Alpaca main-slice response generation validated`, `Partially validated`, or `Not validated`. If validated, next task is `dualscope-qwen2p5-7b-semantic-trigger-smoke-plan`. Follow AGENTS.md PR workflow without force push, branch deletion, remote rewrite, or merging unrelated PRs.",
+      "prompt_template": "Continue DualScope-LLM task `{task_id}`. Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, DUALSCOPE_TASK_QUEUE.md, and the validated Alpaca main-slice plan first. This is an execution task, but it must remain a small-step expansion: Qwen2.5-7B only, Stanford Alpaca only, bounded main-slice only, lexical trigger baseline first, fixed target first, no full matrix, no training, no route_c, and no 199+. Use `/mnt/sda3/lh/models/qwen2p5-7b-instruct` through `models/qwen2p5-7b-instruct`, `HF_HOME=/mnt/sda3/lh/huggingface`, `TRANSFORMERS_CACHE=/mnt/sda3/lh/huggingface/transformers`, `HF_HUB_CACHE=/mnt/sda3/lh/huggingface/hub`, `TMPDIR=/mnt/sda3/lh/tmp`, and `CUDA_VISIBLE_DEVICES=2,3`. Execute the response-generation CLI defined by the plan or an equivalent supported invocation. If generation succeeds, write real response JSONL rows, summary, capability/fallback flags, report, verdict, and tracked registry. If GPU/OOM/model/logprob/runtime blockers occur, write explicit blocker artifacts; do not fake responses or logprobs. Do not compute final metrics in this task except availability summaries. Final verdicts: `Qwen2.5-7B Alpaca main-slice response generation validated`, `Partially validated`, or `Not validated`. If validated, next task is `dualscope-qwen2p5-7b-alpaca-main-slice-metric-computation`. Follow AGENTS.md PR workflow without force push, branch deletion, remote rewrite, or merging unrelated PRs.",
       "completion_verdicts": {
         "validated": [
           "Qwen2.5-7B Alpaca main-slice response generation validated"
@@ -971,15 +971,125 @@ The Markdown text is for humans; the fenced JSON block is the source of truth.
         "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation/default/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation_verdict.json",
         "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation_analysis/default/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation_verdict.json"
       ],
-      "next_task_if_validated": "dualscope-qwen2p5-7b-semantic-trigger-smoke-plan",
+      "next_task_if_validated": "dualscope-qwen2p5-7b-alpaca-main-slice-metric-computation",
       "next_task_if_partially_validated": "dualscope-qwen2p5-7b-alpaca-main-slice-response-generation-repair",
       "next_task_if_not_validated": "dualscope-qwen2p5-7b-alpaca-main-slice-response-generation-blocker-closure"
+    },
+    {
+      "task_id": "dualscope-qwen2p5-7b-alpaca-main-slice-response-generation-repair",
+      "purpose": "Repair the bounded Qwen2.5-7B Stanford Alpaca main-slice response generation after a real runtime blocker, producing real responses or explicit blocker artifacts without falling back to plan-only packaging.",
+      "expected_inputs": [
+        ".reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-alpaca-main-slice-response-generation.json",
+        ".reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-alpaca-main-slice-plan.json",
+        "data/stanford_alpaca/first_slice/alpaca_first_slice_labeled_pairs.jsonl",
+        "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_plan/default",
+        "models/qwen2p5-7b-instruct",
+        "/mnt/sda3/lh/models/qwen2p5-7b-instruct"
+      ],
+      "expected_outputs": [
+        ".plans/dualscope-qwen2p5-7b-alpaca-main-slice-response-generation-repair.md",
+        "docs/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation_repair.md",
+        ".reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-alpaca-main-slice-response-generation-repair.json",
+        "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation_repair/default",
+        "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation_repair_analysis/default"
+      ],
+      "branch_name_suggestion": "codex/qwen2p5-7b-alpaca-main-slice-response-generation-repair",
+      "prompt_template": "Continue DualScope-LLM task `{task_id}`. Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, DUALSCOPE_TASK_QUEUE.md, the Alpaca main-slice response-generation registry, and the previous generation blockers first. This is an execution-required repair task, not a plan-only task. Do not create only plans, docs, registry, or scaffold. Diagnose why the previous run recorded `cuda_unavailable_cpu_generation_disabled` even though `nvidia-smi` may show GPUs: check `.venv` Python, `torch.cuda.is_available()`, `torch.version.cuda`, selected devices, `CUDA_VISIBLE_DEVICES=2,3`, `accelerate`, `bitsandbytes`, model path binding, and free GPU memory. Use `HF_HOME=/mnt/sda3/lh/huggingface`, `TRANSFORMERS_CACHE=/mnt/sda3/lh/huggingface/transformers`, `HF_HUB_CACHE=/mnt/sda3/lh/huggingface/hub`, `TMPDIR=/mnt/sda3/lh/tmp`, and model path `/mnt/sda3/lh/models/qwen2p5-7b-instruct`. Execute the bounded repair CLI, adapting only to supported arguments: `.venv/bin/python scripts/build_dualscope_qwen2p5_7b_alpaca_main_slice_response_generation_repair.py --model-dir /mnt/sda3/lh/models/qwen2p5-7b-instruct --input-jsonl data/stanford_alpaca/first_slice/alpaca_first_slice_labeled_pairs.jsonl --plan-verdict .reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-alpaca-main-slice-plan.json --output-dir outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation_repair/default --registry-path .reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-alpaca-main-slice-response-generation-repair.json --max-source-examples 4 --expected-response-rows 8 --batch-size 1 --max-new-tokens 32 --max-generation-attempts 8 --load-in-4bit --allow-without-logprobs`. If that succeeds, preserve real response rows and repair verdict artifacts; if it fails due missing dependency, install only the minimal missing package in `.venv`, record it, and rerun once. If 4-bit fails, retry without `--load-in-4bit` only if memory checks make it safe. If OOM or CUDA/model runtime still fails, write explicit blocker artifacts with blocker_type such as `oom`, `cuda_unavailable`, `torch_cuda_unavailable`, `missing_dependency`, `model_load_failure`, `logprob_unavailable`, or `runtime_error`. Do not fake responses, logprobs, labels, or metrics. Do not compute final metrics in this task. Required success evidence is response JSONL with at least one real model response; qualified failure evidence is blocker JSON with an explicit blocker_type. Generate repair summary, report, verdict, recommendation, and tracked registry. Verdicts: `Qwen2.5-7B Alpaca main-slice response generation repaired`, `Partially validated`, or `Not validated`. If repaired with real responses, next task is `dualscope-qwen2p5-7b-alpaca-main-slice-metric-computation`; if partially validated due GPU/CUDA/OOM/runtime, route to the matching blocker repair or closure and do not repeat plan-only packaging. Never modify benchmark truth or gates, never continue route_c or generate 199+, never run a full matrix, and follow AGENTS.md PR workflow without force push, branch deletion, remote rewrite, or merging unrelated PRs.",
+      "completion_verdicts": {
+        "validated": [
+          "Qwen2.5-7B Alpaca main-slice response generation repaired"
+        ],
+        "partially_validated": [
+          "Partially validated"
+        ],
+        "not_validated": [
+          "Not validated"
+        ]
+      },
+      "verdict_artifacts": [
+        "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation_repair/default/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation_repair_verdict.json",
+        "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation_repair_analysis/default/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation_repair_verdict.json"
+      ],
+      "next_task_if_validated": "dualscope-qwen2p5-7b-alpaca-main-slice-metric-computation",
+      "next_task_if_partially_validated": "dualscope-qwen2p5-7b-alpaca-main-slice-response-generation-blocker-closure",
+      "next_task_if_not_validated": "dualscope-qwen2p5-7b-alpaca-main-slice-response-generation-blocker-closure"
+    },
+    {
+      "task_id": "dualscope-qwen2p5-7b-alpaca-main-slice-metric-computation",
+      "purpose": "Compute available bounded Qwen2.5-7B Alpaca main-slice detection, ASR, cost, and fallback-readiness metrics from real response artifacts without fabricating clean utility or logprobs.",
+      "expected_inputs": [
+        ".reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-alpaca-main-slice-response-generation.json",
+        ".reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-alpaca-main-slice-response-generation-repair.json",
+        "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation/default",
+        "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation_repair/default",
+        "data/stanford_alpaca/first_slice/alpaca_first_slice_labeled_pairs.jsonl"
+      ],
+      "expected_outputs": [
+        ".plans/dualscope-qwen2p5-7b-alpaca-main-slice-metric-computation.md",
+        "docs/dualscope_qwen2p5_7b_alpaca_main_slice_metric_computation.md",
+        ".reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-alpaca-main-slice-metric-computation.json",
+        "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_metric_computation/default"
+      ],
+      "branch_name_suggestion": "codex/qwen2p5-7b-alpaca-main-slice-metric-computation",
+      "prompt_template": "Continue DualScope-LLM task `{task_id}`. Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, DUALSCOPE_TASK_QUEUE.md, and the bounded Alpaca main-slice response artifacts first. Compute only metrics that are supported by real labels, final_risk_score or available score fields, and real model_response rows. Allowed outputs include detection metrics, ASR, target behavior success readiness, query cost summary, without-logprobs fallback summaries, metric availability matrix, blockers, report, verdict, recommendation, and tracked registry. Do not fabricate clean utility, logprobs, AUROC/F1/ASR, labels, responses, benchmark truth, or gate decisions. If detection labels and scores do not align, output a metric blocker instead of fake AUROC/F1. If ASR inputs are absent, output a blocker. Clean utility remains blocked unless clean response and reference_response eligibility are explicitly available. No full matrix, no training, no route_c, no 199+. Verdicts: `Qwen2.5-7B Alpaca main-slice metrics validated`, `Partially validated`, or `Not validated`. If validated or partially validated with honest blockers, next task is `dualscope-qwen2p5-7b-alpaca-main-slice-result-package`. Follow AGENTS.md PR workflow without force push, branch deletion, remote rewrite, or merging unrelated PRs.",
+      "completion_verdicts": {
+        "validated": [
+          "Qwen2.5-7B Alpaca main-slice metrics validated"
+        ],
+        "partially_validated": [
+          "Partially validated"
+        ],
+        "not_validated": [
+          "Not validated"
+        ]
+      },
+      "verdict_artifacts": [
+        "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_metric_computation/default/dualscope_qwen2p5_7b_alpaca_main_slice_metric_computation_verdict.json"
+      ],
+      "next_task_if_validated": "dualscope-qwen2p5-7b-alpaca-main-slice-result-package",
+      "next_task_if_partially_validated": "dualscope-qwen2p5-7b-alpaca-main-slice-result-package",
+      "next_task_if_not_validated": "dualscope-qwen2p5-7b-alpaca-main-slice-metric-blocker-closure"
+    },
+    {
+      "task_id": "dualscope-qwen2p5-7b-alpaca-main-slice-result-package",
+      "purpose": "Package bounded Qwen2.5-7B Alpaca main-slice response and metric evidence while separating real metrics, fallback metrics, blocked metrics, and limitations.",
+      "expected_inputs": [
+        ".reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-alpaca-main-slice-metric-computation.json",
+        "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_metric_computation/default",
+        "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation/default",
+        "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation_repair/default"
+      ],
+      "expected_outputs": [
+        ".plans/dualscope-qwen2p5-7b-alpaca-main-slice-result-package.md",
+        "docs/dualscope_qwen2p5_7b_alpaca_main_slice_result_package.md",
+        ".reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-alpaca-main-slice-result-package.json",
+        "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_result_package/default"
+      ],
+      "branch_name_suggestion": "codex/qwen2p5-7b-alpaca-main-slice-result-package",
+      "prompt_template": "Continue DualScope-LLM task `{task_id}`. Package the bounded Qwen2.5-7B Alpaca main-slice results after metric computation. Clearly separate real response counts, real computed metrics, without-logprobs fallback indicators, blocked clean utility, limitations, and next actions. This package must not claim full paper performance, full Alpaca coverage, full trigger coverage, cross-model validation, or clean utility success unless artifacts prove it. Produce summary, metric availability matrix, table skeleton, limitations, blocker summary, report, verdict, recommendation, and tracked registry. Do not fabricate responses, logprobs, AUROC/F1/ASR/utility, labels, benchmark truth, gates, route_c, or 199+. Verdicts: `Qwen2.5-7B Alpaca main-slice result package validated`, `Partially validated`, or `Not validated`. If validated or partially validated with honest blockers, next task is `dualscope-qwen2p5-7b-semantic-trigger-smoke-plan`. Follow AGENTS.md PR workflow without force push, branch deletion, remote rewrite, or merging unrelated PRs.",
+      "completion_verdicts": {
+        "validated": [
+          "Qwen2.5-7B Alpaca main-slice result package validated"
+        ],
+        "partially_validated": [
+          "Partially validated"
+        ],
+        "not_validated": [
+          "Not validated"
+        ]
+      },
+      "verdict_artifacts": [
+        "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_result_package/default/dualscope_qwen2p5_7b_alpaca_main_slice_result_package_verdict.json"
+      ],
+      "next_task_if_validated": "dualscope-qwen2p5-7b-semantic-trigger-smoke-plan",
+      "next_task_if_partially_validated": "dualscope-qwen2p5-7b-semantic-trigger-smoke-plan",
+      "next_task_if_not_validated": "dualscope-qwen2p5-7b-alpaca-main-slice-result-package-blocker-closure"
     },
     {
       "task_id": "dualscope-qwen2p5-7b-semantic-trigger-smoke-plan",
       "purpose": "Plan a minimal semantic-trigger smoke extension for Qwen2.5-7B after Alpaca main-slice readiness, without executing a trigger family matrix.",
       "expected_inputs": [
-        ".reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-alpaca-main-slice-response-generation.json",
+        ".reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-alpaca-main-slice-result-package.json",
         "docs/dualscope_sci3_experiment_scope_control.md",
         "docs/dualscope_sci3_next_real_expansion_track.md"
       ],
