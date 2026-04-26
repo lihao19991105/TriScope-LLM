@@ -722,11 +722,13 @@ def run_task_worktree_runner(
     manifest_path = output_dir / "dualscope_task_worktree_runner_worktree_manifest.json"
     existing_pr_path = output_dir / "dualscope_task_worktree_runner_existing_pr_check.json"
     push_path = output_dir / "dualscope_task_worktree_runner_push_result.json"
+    execution_gate_path = output_dir / "dualscope_task_worktree_runner_experiment_execution_gate_result.json"
     summary = read_json(summary_path) if summary_path.exists() else {}
     pr_result = read_json(pr_path) if pr_path.exists() else {}
     manifest = read_json(manifest_path) if manifest_path.exists() else {}
     existing_pr_check = read_json(existing_pr_path) if existing_pr_path.exists() else {}
     push_result = read_json(push_path) if push_path.exists() else {}
+    execution_gate_result = read_json(execution_gate_path) if execution_gate_path.exists() else {}
     created_pr_number = summary.get("created_pr_number") or pr_result.get("created_pr_number")
     created_pr_url = summary.get("created_pr_url") or pr_result.get("created_pr_url")
     existing_pr_number = summary.get("existing_pr_number") or pr_result.get("existing_pr_number") or existing_pr_check.get("existing_pr_number")
@@ -752,6 +754,8 @@ def run_task_worktree_runner(
         "push_result": push_result,
         "worktree_manifest": manifest,
         "worktree_dependency_materialization": args.worktree_dependency_materialization,
+        "experiment_execution_gate_result": execution_gate_result,
+        "experiment_execution_gate_passed": execution_gate_result.get("execution_gate_passed"),
         "created_pr_number": created_pr_number,
         "created_pr_url": created_pr_url,
         "existing_pr_number": existing_pr_number,
