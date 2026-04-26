@@ -863,6 +863,42 @@ The Markdown text is for humans; the fenced JSON block is the source of truth.
       "next_task_if_validated": null,
       "next_task_if_partially_validated": "dualscope-cross-model-validation-plan-repair",
       "next_task_if_not_validated": "dualscope-cross-model-validation-plan-blocker-closure"
+    },
+    {
+      "task_id": "dualscope-cross-model-validation-plan-repair",
+      "purpose": "Repair the partially validated cross-model validation plan by explicitly separating locally available resources from planned external-resource-required candidates.",
+      "expected_inputs": [
+        ".reports/dualscope_task_verdicts/dualscope-cross-model-validation-plan.json",
+        "outputs/dualscope_cross_model_validation_plan/default",
+        "docs/dualscope_sci3_model_matrix.md"
+      ],
+      "expected_outputs": [
+        ".plans/dualscope-cross-model-validation-plan-repair.md",
+        "docs/dualscope_cross_model_validation_plan_repair.md",
+        ".reports/dualscope_task_verdicts/dualscope-cross-model-validation-plan-repair.json",
+        "outputs/dualscope_cross_model_validation_plan_repair/default",
+        "outputs/dualscope_cross_model_validation_plan_repair_analysis/default"
+      ],
+      "branch_name_suggestion": "codex/cross-model-validation-plan-repair",
+      "prompt_template": "Continue DualScope-LLM task `{task_id}`. Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, DUALSCOPE_TASK_QUEUE.md, the partially validated cross-model validation plan registry, and existing SCI3 model matrix docs first. This is a planning repair task only: do not download gated models, do not execute full matrix, do not train, and do not generate responses. Verify and document local availability for Llama-3.1-8B-Instruct and Mistral-7B-Instruct-v0.3 candidates if paths exist; if missing, mark each as `planned` / `external-resource-required` with no fake availability. Preserve Qwen2.5-7B as the main model and Qwen2.5-1.5B as pilot/ablation only. Produce repaired planning artifacts, candidate availability matrix, license/auth blockers, next-step recommendation, report, verdict, and tracked registry `.reports/dualscope_task_verdicts/dualscope-cross-model-validation-plan-repair.json`. Final verdicts: `Cross-model validation plan repair validated`, `Partially validated`, or `Not validated`. If validated, next task is `queue_complete`. Do not fabricate model paths, responses, logprobs, AUROC/F1/ASR/utility, benchmark truth, gates, route_c, or 199+. Follow AGENTS.md PR workflow without force push, branch deletion, remote rewrite, or merging unrelated PRs.",
+      "completion_verdicts": {
+        "validated": [
+          "Cross-model validation plan repair validated"
+        ],
+        "partially_validated": [
+          "Partially validated"
+        ],
+        "not_validated": [
+          "Not validated"
+        ]
+      },
+      "verdict_artifacts": [
+        "outputs/dualscope_cross_model_validation_plan_repair/default/dualscope_cross_model_validation_plan_repair_verdict.json",
+        "outputs/dualscope_cross_model_validation_plan_repair_analysis/default/dualscope_cross_model_validation_plan_repair_verdict.json"
+      ],
+      "next_task_if_validated": null,
+      "next_task_if_partially_validated": "dualscope-cross-model-validation-plan-blocker-closure",
+      "next_task_if_not_validated": "dualscope-cross-model-validation-plan-blocker-closure"
     }
   ]
 }
