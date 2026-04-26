@@ -722,6 +722,44 @@ The Markdown text is for humans; the fenced JSON block is the source of truth.
       "next_task_if_not_validated": "dualscope-qwen2p5-7b-result-package-blocker-closure"
     },
     {
+      "task_id": "dualscope-qwen2p5-7b-result-package-repair",
+      "purpose": "Repair the partially validated Qwen2.5-7B first-slice result package by preserving real detection/ASR metrics, explicitly documenting clean-utility unavailability, and producing a limitations-aware package that can safely feed SCI3 expansion planning.",
+      "expected_inputs": [
+        ".reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-first-slice-result-package.json",
+        "outputs/dualscope_qwen2p5_7b_first_slice_result_package/default",
+        "outputs/dualscope_qwen2p5_7b_label_aligned_metric_computation/default",
+        "outputs/dualscope_qwen2p5_7b_metric_computation_repair/default",
+        "outputs/dualscope_qwen2p5_7b_first_slice_response_generation/default"
+      ],
+      "expected_outputs": [
+        ".plans/dualscope-qwen2p5-7b-result-package-repair.md",
+        "docs/dualscope_qwen2p5_7b_result_package_repair.md",
+        ".reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-result-package-repair.json",
+        "outputs/dualscope_qwen2p5_7b_result_package_repair/default",
+        "outputs/dualscope_qwen2p5_7b_result_package_repair_analysis/default"
+      ],
+      "branch_name_suggestion": "codex/qwen2p5-7b-result-package-repair",
+      "prompt_template": "Continue DualScope-LLM task `{task_id}`. Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, DUALSCOPE_TASK_QUEUE.md, the Qwen2.5-7B first-slice result package artifacts, metric computation repair artifacts, and real response artifacts first. This is a result-package repair task, not a plan-only task. Preserve real metrics only: detection metrics and ASR may be reported only from PASS artifacts computed from real Qwen2.5-7B response rows. Clean utility must remain explicitly blocked unless an explicit utility success/reference-match field exists; do not infer utility from free text. Produce a repaired package under `outputs/dualscope_qwen2p5_7b_result_package_repair/default` that contains a real metric summary, limitation matrix, unavailable metric blockers, clean-utility blocker, SCI3 expansion readiness note, report, verdict, and tracked registry `.reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-result-package-repair.json`. If detection metrics and ASR are real and clean utility is explicitly blocked, final verdict may be `Qwen2.5-7B result package repair validated` and next task is `dualscope-sci3-main-experiment-expansion-plan`. If real detection/ASR evidence is unavailable, final verdict is `Partially validated` or `Not validated` and route to `dualscope-qwen2p5-7b-result-package-blocker-closure`. Do not fabricate AUROC, AUPRC, F1, accuracy, ASR, clean utility, responses, logprobs, labels, or final_risk_score. Do not claim full paper performance, do not modify benchmark truth or gates, do not continue route_c, do not generate 199+, do not run a full matrix, and do not train models. Follow AGENTS.md PR workflow without force push, branch deletion, remote rewrite, or merging unrelated PRs.",
+      "completion_verdicts": {
+        "validated": [
+          "Qwen2.5-7B result package repair validated"
+        ],
+        "partially_validated": [
+          "Partially validated"
+        ],
+        "not_validated": [
+          "Not validated"
+        ]
+      },
+      "verdict_artifacts": [
+        "outputs/dualscope_qwen2p5_7b_result_package_repair/default/dualscope_qwen2p5_7b_result_package_repair_verdict.json",
+        "outputs/dualscope_qwen2p5_7b_result_package_repair_analysis/default/dualscope_qwen2p5_7b_result_package_repair_verdict.json"
+      ],
+      "next_task_if_validated": "dualscope-sci3-main-experiment-expansion-plan",
+      "next_task_if_partially_validated": "dualscope-qwen2p5-7b-result-package-blocker-closure",
+      "next_task_if_not_validated": "dualscope-qwen2p5-7b-result-package-blocker-closure"
+    },
+    {
       "task_id": "dualscope-sci3-main-experiment-expansion-plan",
       "purpose": "Plan expansion from first-slice to SCI3 main experiment: Alpaca / AdvBench / JBB, 3 triggers, 2 targets, 7B main model.",
       "expected_inputs": [
