@@ -124,6 +124,17 @@ def _run_py_compile(repo_root: Path) -> dict[str, Any]:
     }
 
 
+def _current_commit(repo_root: Path) -> str:
+    result = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    return result.stdout.strip() if result.returncode == 0 else ""
+
+
 def _classify_blockers(
     *,
     inputs: ClosureInputs,
@@ -398,6 +409,7 @@ def build_metric_blocker_closure(
         "task_id": TASK_NAME,
         "verdict": final_verdict,
         "source_output_dir": str(output_dir),
+        "commit": _current_commit(repo_root),
         "created_at": summary["created_at"],
         "validated": final_verdict == FINAL_VALIDATED,
         "next_task": next_task,
@@ -449,4 +461,3 @@ def build_metric_blocker_closure(
         ],
     )
     return summary
-
