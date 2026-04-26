@@ -150,7 +150,11 @@ def is_benign_gate_path_exception(path: str) -> bool:
 def fetch_pr_file_json(path: str, head_ref: str | None, repo_full_name: str | None, proxy: str) -> dict[str, Any] | None:
     if not head_ref or not repo_full_name:
         return None
-    result = run_command(["gh", "api", f"repos/{repo_full_name}/contents/{path}", "-f", f"ref={head_ref}"], proxy=proxy, timeout=120)
+    result = run_command(
+        ["gh", "api", f"repos/{repo_full_name}/contents/{path}", "--method", "GET", "-f", f"ref={head_ref}"],
+        proxy=proxy,
+        timeout=120,
+    )
     if result["returncode"] != 0:
         return None
     try:
