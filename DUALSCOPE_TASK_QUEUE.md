@@ -528,24 +528,35 @@ The Markdown text is for humans; the fenced JSON block is the source of truth.
     },
     {
       "task_id": "dualscope-qwen2p5-7b-response-generation-repair",
-      "purpose": "Repair the partially validated Qwen2.5-7B first-slice response-generation path by adding runtime resource guards and honest blocker artifacts before any 7B model load.",
+      "purpose": "Repair the partially validated Qwen2.5-7B first-slice response-generation path by producing real minimal response artifacts when resources allow, or a precise runtime blocker when they do not.",
       "expected_inputs": [
         ".plans/dualscope-qwen2p5-7b-response-generation-repair.md",
         ".plans/dualscope-qwen2p5-7b-first-slice-response-generation.md",
+        "data/stanford_alpaca/first_slice/alpaca_first_slice_labeled_pairs.jsonl",
+        "outputs/dualscope_first_slice_target_response_generation_plan/default",
+        "outputs/dualscope_qwen2p5_7b_resource_materialization/default",
+        "models/qwen2p5-7b-instruct",
+        "/mnt/sda3/lh/models/qwen2p5-7b-instruct",
         "src/eval/dualscope_qwen2p5_7b_first_slice_response_generation.py",
-        "scripts/build_dualscope_qwen2p5_7b_first_slice_response_generation.py",
-        "docs/dualscope_qwen2p5_7b_first_slice_response_generation.md"
+        "scripts/build_dualscope_qwen2p5_7b_first_slice_response_generation.py"
       ],
       "expected_outputs": [
         ".plans/dualscope-qwen2p5-7b-response-generation-repair.md",
+        "src/eval/dualscope_qwen2p5_7b_response_generation_repair.py",
+        "src/eval/post_dualscope_qwen2p5_7b_response_generation_repair_analysis.py",
+        "scripts/build_dualscope_qwen2p5_7b_response_generation_repair.py",
+        "scripts/build_post_dualscope_qwen2p5_7b_response_generation_repair_analysis.py",
+        "docs/dualscope_qwen2p5_7b_response_generation_repair.md",
         ".reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-response-generation-repair.json",
+        "outputs/dualscope_qwen2p5_7b_response_generation_repair/default",
+        "outputs/dualscope_qwen2p5_7b_response_generation_repair_analysis/default",
         "outputs/dualscope_qwen2p5_7b_first_slice_response_generation/default"
       ],
       "branch_name_suggestion": "codex/qwen2p5-7b-response-generation-repair",
-      "prompt_template": "Continue DualScope-LLM task `{task_id}`. Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, DUALSCOPE_TASK_QUEUE.md, and the Qwen2.5-7B response-generation partial verdict first. Scope the work to the response-generation repair only: selected-GPU memory preflight, CUDA/device recording, CPU fallback guard, honest blocker artifacts, docs, validation, and tracked verdict registry. Do not train, do not run a full matrix, do not fabricate responses/logprobs/metrics, do not modify benchmark truth or gates, do not continue route_c, and do not generate 199+. Follow AGENTS.md PR workflow without auto merge, force push, branch deletion, or remote rewrite.",
+      "prompt_template": "Continue DualScope-LLM task `{task_id}`. Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, DUALSCOPE_TASK_QUEUE.md, the Qwen2.5-7B first-slice response-generation partial verdict, and the tracked verdict registry first. Goal: repair the Qwen2.5-7B first-slice response-generation path so it either produces real minimal response artifacts or records a concrete blocker. Required inputs are `data/stanford_alpaca/first_slice/alpaca_first_slice_labeled_pairs.jsonl`, `outputs/dualscope_first_slice_target_response_generation_plan/default`, `outputs/dualscope_qwen2p5_7b_resource_materialization/default`, repo binding `models/qwen2p5-7b-instruct`, and `/mnt/sda3/lh/models/qwen2p5-7b-instruct`. Use environment `HF_HOME=/mnt/sda3/lh/huggingface`, `TRANSFORMERS_CACHE=/mnt/sda3/lh/huggingface/transformers`, `HF_HUB_CACHE=/mnt/sda3/lh/huggingface/hub`, `TMPDIR=/mnt/sda3/lh/tmp`, and `CUDA_VISIBLE_DEVICES=2,3`. Scope is only Stanford Alpaca first-slice, lexical trigger `cftrigger`, fixed target `I have completed the requested instruction.`, `batch_size=1`, and a small max-example repair run first. Prefer 4-bit or low-memory loading, `device_map=auto` when implemented, and bounded `max_new_tokens`. If OOM, model load, CUDA, or logprob support fails, write explicit blocker artifacts; if logprobs are unavailable, record without-logprobs fallback and do not fake logprobs. Generate repair artifacts under `outputs/dualscope_qwen2p5_7b_response_generation_repair/default`, analysis artifacts under `outputs/dualscope_qwen2p5_7b_response_generation_repair_analysis/default`, response rows JSONL when real generation succeeds, generation summary, capability/fallback flags, blocker JSON if failed, verdict JSON, next-step recommendation, docs, and tracked registry `.reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-response-generation-repair.json`. Verdict must be exactly one of: `Qwen2.5-7B first-slice response generation repaired`, `Partially validated`, or `Not validated`. If repaired and real response artifacts exist, next task is `dualscope-qwen2p5-7b-label-aligned-metric-computation`. If partially validated due OOM, route to `dualscope-qwen2p5-7b-quantized-response-generation-repair`; if due logprobs only, route to `dualscope-qwen2p5-7b-without-logprobs-response-generation-repair`; if due missing input, route to `dualscope-qwen2p5-7b-response-input-artifact-repair`; otherwise stay on this repair task. Do not train, do not run a full matrix, do not fabricate responses/logprobs/metrics, do not modify benchmark truth or gates, do not continue route_c, and do not generate 199+. Follow AGENTS.md PR workflow without force push, branch deletion, or remote rewrite.",
       "completion_verdicts": {
         "validated": [
-          "Qwen2.5-7B response-generation repair validated"
+          "Qwen2.5-7B first-slice response generation repaired"
         ],
         "partially_validated": [
           "Partially validated"
@@ -555,7 +566,8 @@ The Markdown text is for humans; the fenced JSON block is the source of truth.
         ]
       },
       "verdict_artifacts": [
-        "outputs/dualscope_qwen2p5_7b_first_slice_response_generation/default/dualscope_qwen2p5_7b_first_slice_response_generation_verdict.json"
+        "outputs/dualscope_qwen2p5_7b_response_generation_repair/default/dualscope_qwen2p5_7b_response_generation_repair_verdict.json",
+        "outputs/dualscope_qwen2p5_7b_response_generation_repair_analysis/default/dualscope_qwen2p5_7b_response_generation_repair_verdict.json"
       ],
       "next_task_if_validated": "dualscope-qwen2p5-7b-label-aligned-metric-computation",
       "next_task_if_partially_validated": "dualscope-qwen2p5-7b-response-generation-repair",

@@ -182,6 +182,18 @@ def classify_task(task: dict[str, Any]) -> dict[str, Any]:
             continue
         try:
             payload = read_json(artifact)
+            if source == "tracked_verdict_registry" and isinstance(payload, dict):
+                registry_task_id = normalize_text(payload.get("task_id"))
+                if registry_task_id and registry_task_id != task_id:
+                    row.update(
+                        {
+                            "status": "registry_task_mismatch",
+                            "registry_task_id": registry_task_id,
+                            "expected_task_id": task_id,
+                        }
+                    )
+                    artifact_rows.append(row)
+                    continue
             verdict = extract_verdict(payload)
             verdict_key = normalize_text(verdict).lower()
             if verdict_key in validated:
