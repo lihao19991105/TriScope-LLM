@@ -4,9 +4,11 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import fnmatch
 import json
 import os
+import re
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -28,6 +30,7 @@ DEFAULT_ALLOWED_PATTERNS = [
     "scripts/run_dualscope_*",
     "scripts/dualscope_*",
     "docs/dualscope_*",
+    ".reports/dualscope_task_verdicts/*.json",
     "DUALSCOPE_MASTER_PLAN.md",
     "DUALSCOPE_TASK_QUEUE.md",
     "PLANS.md",
@@ -44,6 +47,10 @@ DEFAULT_ALLOWED_OUTPUT_ARTIFACT_PATTERNS = [
     "outputs/dualscope_cross_model_validation_plan/default/*",
 ]
 DEFAULT_ALLOWED_PATTERNS.extend(DEFAULT_ALLOWED_OUTPUT_ARTIFACT_PATTERNS)
+BENIGN_GATE_PATH_EXCEPTIONS = {
+    "docs/dualscope_autorun_worktree_and_merge_gate.md",
+    "scripts/dualscope_safe_pr_merge_gate.py",
+}
 DEFAULT_FORBIDDEN_PATTERNS = [
     ".env",
     ".env.*",
@@ -123,6 +130,65 @@ def parse_csv_patterns(values: list[str] | None, defaults: list[str]) -> list[st
     for value in values:
         patterns.extend([item.strip() for item in value.split(",") if item.strip()])
     return patterns or defaults
+
+
+def infer_repo_full_name(proxy: str) -> str | None:
+    result = run_command(["git", "remote", "get-url", "origin"], proxy=proxy, timeout=60)
+    if result["returncode"] != 0:
+        return None
+    remote = (result.get("stdout") or "").strip()
+    https_match = re.search(r"github\.com[:/]([^/\s]+)/([^/\s]+?)(?:\.git)?$", remote)
+    if not https_match:
+        return None
+    return f"{https_match.group(1)}/{https_match.group(2)}"
+
+
+def is_benign_gate_path_exception(path: str) -> bool:
+    return path in BENIGN_GATE_PATH_EXCEPTIONS or fnmatch.fnmatch(path, ".plans/dualscope-safe-merge-gate-*.md")
+
+
+def fetch_pr_file_json(path: str, head_ref: str | None, repo_full_name: str | None, proxy: str) -> dict[str, Any] | None:
+    if not head_ref or not repo_full_name:
+        return None
+    result = run_command(["gh", "api", f"repos/{repo_full_name}/contents/{path}", "-f", f"ref={head_ref}"], proxy=proxy, timeout=120)
+    if result["returncode"] != 0:
+        return None
+    try:
+        payload = json.loads(result.get("stdout") or "{}")
+        content = str(payload.get("content") or "").replace("\n", "")
+        decoded = base64.b64decode(content).decode("utf-8")
+        parsed = json.loads(decoded)
+    except Exception:
+        return None
+    return parsed if isinstance(parsed, dict) else None
+
+
+def validate_verdict_registry_file(path: str, pr: dict[str, Any], repo_full_name: str | None, proxy: str) -> dict[str, Any]:
+    row: dict[str, Any] = {"path": path, "valid": False, "reason": ""}
+    if not fnmatch.fnmatch(path, ".reports/dualscope_task_verdicts/*.json"):
+        row["reason"] = "not_allowed_verdict_registry_path"
+        return row
+    payload = fetch_pr_file_json(path, pr.get("headRefName"), repo_full_name, proxy)
+    if not payload:
+        row["reason"] = "unable_to_fetch_or_parse_json"
+        return row
+    missing = [key for key in ("task_id", "verdict", "validated") if key not in payload]
+    if missing:
+        row["reason"] = f"missing_required_fields:{','.join(missing)}"
+        row["keys"] = sorted(payload)
+        return row
+    if not isinstance(payload.get("validated"), bool):
+        row["reason"] = "validated_field_is_not_boolean"
+        return row
+    row.update(
+        {
+            "valid": True,
+            "task_id": payload.get("task_id"),
+            "verdict": payload.get("verdict"),
+            "validated": payload.get("validated"),
+        }
+    )
+    return row
 
 
 def gh_pr_view(pr: int, repo: str | None, proxy: str) -> dict[str, Any]:
@@ -245,16 +311,42 @@ def summarize_checks(pr: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def check_file_scope(pr: dict[str, Any], allowed_patterns: list[str], forbidden_patterns: list[str]) -> dict[str, Any]:
+def check_file_scope(
+    pr: dict[str, Any],
+    allowed_patterns: list[str],
+    forbidden_patterns: list[str],
+    repo_full_name: str | None,
+    proxy: str,
+) -> dict[str, Any]:
     files = [str(item.get("path") or "") for item in pr.get("files") or [] if isinstance(item, dict)]
     rows = []
     forbidden = []
     not_allowed = []
     allowed_outputs_artifacts = []
+    allowed_verdict_registry_files = []
+    invalid_verdict_registry_files = []
+    allowed_dualscope_docs = []
     for path in files:
         allowed = any(fnmatch.fnmatch(path, pattern) for pattern in allowed_patterns)
         matched_forbidden = [pattern for pattern in forbidden_patterns if fnmatch.fnmatch(path, pattern)]
-        row = {"path": path, "allowed": allowed, "forbidden_patterns": matched_forbidden}
+        if is_benign_gate_path_exception(path):
+            matched_forbidden = [pattern for pattern in matched_forbidden if pattern != "*gate*"]
+        verdict_registry_check: dict[str, Any] | None = None
+        if path.startswith(".reports/"):
+            verdict_registry_check = validate_verdict_registry_file(path, pr, repo_full_name, proxy)
+            if verdict_registry_check["valid"]:
+                allowed_verdict_registry_files.append(path)
+            else:
+                matched_forbidden.append(verdict_registry_check["reason"])
+                invalid_verdict_registry_files.append(verdict_registry_check)
+        if allowed and fnmatch.fnmatch(path, "docs/dualscope_*.md"):
+            allowed_dualscope_docs.append(path)
+        row = {
+            "path": path,
+            "allowed": allowed,
+            "forbidden_patterns": matched_forbidden,
+            "verdict_registry_check": verdict_registry_check,
+        }
         rows.append(row)
         if allowed and path.startswith("outputs/"):
             allowed_outputs_artifacts.append(path)
@@ -270,6 +362,9 @@ def check_file_scope(pr: dict[str, Any], allowed_patterns: list[str], forbidden_
         "allowed_patterns": allowed_patterns,
         "allowed_outputs_artifact_patterns": DEFAULT_ALLOWED_OUTPUT_ARTIFACT_PATTERNS,
         "allowed_outputs_artifacts": allowed_outputs_artifacts,
+        "allowed_verdict_registry_files": allowed_verdict_registry_files,
+        "invalid_verdict_registry_files": invalid_verdict_registry_files,
+        "allowed_dualscope_docs": allowed_dualscope_docs,
         "forbidden_patterns": forbidden_patterns,
         "files": rows,
         "forbidden_files": forbidden,
@@ -363,7 +458,12 @@ def main() -> int:
         blockers.append({"kind": "pr_read_failed", "message": str(exc)})
 
     write_json(args.output_dir / "dualscope_safe_pr_merge_gate_pr_status.json", pr_status)
-    file_scope = check_file_scope(pr_status, allowed_patterns, forbidden_patterns) if "files" in pr_status else {"summary_status": "FAIL"}
+    repo_full_name = args.repo or infer_repo_full_name(args.proxy)
+    file_scope = (
+        check_file_scope(pr_status, allowed_patterns, forbidden_patterns, repo_full_name, args.proxy)
+        if "files" in pr_status
+        else {"summary_status": "FAIL"}
+    )
     ci_check = summarize_checks(pr_status) if "statusCheckRollup" in pr_status else {"summary_status": "FAIL", "failing_checks": []}
     codex_review_analysis = analyze_codex_review(pr_status)
     codex_review_present = bool(codex_review_analysis["codex_review_present"])
@@ -449,6 +549,8 @@ def main() -> int:
         "file_scope_allowed": file_scope.get("file_scope_allowed"),
         "blocked_files": file_scope.get("blocked_files", []),
         "allowed_outputs_artifacts": file_scope.get("allowed_outputs_artifacts", []),
+        "allowed_verdict_registry_files": file_scope.get("allowed_verdict_registry_files", []),
+        "allowed_dualscope_docs": file_scope.get("allowed_dualscope_docs", []),
         "dangerous_actions": {
             "auto_merge_default": False,
             "force_push": False,
