@@ -794,6 +794,44 @@ The Markdown text is for humans; the fenced JSON block is the source of truth.
       "next_task_if_not_validated": "dualscope-sci3-main-experiment-expansion-plan-blocker-closure"
     },
     {
+      "task_id": "dualscope-sci3-main-experiment-expansion-plan-repair",
+      "purpose": "Repair the partially validated SCI3 main experiment expansion plan by closing missing planning artifacts and producing a validated, non-executing expansion plan for the next SCI3 stage.",
+      "expected_inputs": [
+        ".reports/dualscope_task_verdicts/dualscope-sci3-main-experiment-expansion-plan.json",
+        "outputs/dualscope_sci3_main_experiment_expansion_plan/default",
+        "docs/dualscope_sci3_experimental_track.md",
+        "docs/dualscope_sci3_metrics_and_tables.md",
+        "docs/dualscope_sci3_model_matrix.md"
+      ],
+      "expected_outputs": [
+        ".plans/dualscope-sci3-main-experiment-expansion-plan-repair.md",
+        "docs/dualscope_sci3_main_experiment_expansion_plan_repair.md",
+        ".reports/dualscope_task_verdicts/dualscope-sci3-main-experiment-expansion-plan-repair.json",
+        "outputs/dualscope_sci3_main_experiment_expansion_plan_repair/default",
+        "outputs/dualscope_sci3_main_experiment_expansion_plan_repair_analysis/default"
+      ],
+      "branch_name_suggestion": "codex/sci3-main-experiment-expansion-plan-repair",
+      "prompt_template": "Continue DualScope-LLM task `{task_id}`. Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, DUALSCOPE_TASK_QUEUE.md, the partially validated SCI3 main experiment expansion plan registry, and existing SCI3 docs first. This is a planning repair task only: do not execute the full matrix, do not train, and do not generate new model responses. Repair missing or incompatible planning artifacts for a staged SCI3 expansion from the Qwen2.5-7B first-slice result package to main slices: Stanford Alpaca / AdvBench / JBB-Behaviors, lexical / semantic / contextual triggers, fixed-response and behavior-shift targets, illumination-only, confidence-only with-logprobs, confidence-only without-logprobs, naive concat, and DualScope budget-aware fusion baselines. Explicitly preserve first-slice limitations: only 8 real Qwen2.5-7B responses, detection metrics and ASR are first-slice only, clean utility remains blocked until explicit utility success/reference-match evidence exists, and no full-paper performance is claimed. Produce repaired planning artifacts, a validation log, report, verdict, next-step recommendation, and tracked registry `.reports/dualscope_task_verdicts/dualscope-sci3-main-experiment-expansion-plan-repair.json`. Final verdicts: `SCI3 main experiment expansion plan repair validated`, `Partially validated`, or `Not validated`. If validated, next task is `dualscope-cross-model-validation-plan`. Do not fabricate metrics, responses, logprobs, labels, model availability, benchmark truth, gates, route_c, or 199+. Follow AGENTS.md PR workflow without force push, branch deletion, remote rewrite, or merging unrelated PRs.",
+      "completion_verdicts": {
+        "validated": [
+          "SCI3 main experiment expansion plan repair validated"
+        ],
+        "partially_validated": [
+          "Partially validated"
+        ],
+        "not_validated": [
+          "Not validated"
+        ]
+      },
+      "verdict_artifacts": [
+        "outputs/dualscope_sci3_main_experiment_expansion_plan_repair/default/dualscope_sci3_main_experiment_expansion_plan_repair_verdict.json",
+        "outputs/dualscope_sci3_main_experiment_expansion_plan_repair_analysis/default/dualscope_sci3_main_experiment_expansion_plan_repair_verdict.json"
+      ],
+      "next_task_if_validated": "dualscope-cross-model-validation-plan",
+      "next_task_if_partially_validated": "dualscope-sci3-main-experiment-expansion-plan-blocker-closure",
+      "next_task_if_not_validated": "dualscope-sci3-main-experiment-expansion-plan-blocker-closure"
+    },
+    {
       "task_id": "dualscope-cross-model-validation-plan",
       "purpose": "Plan cross-model validation with Llama-3.1-8B or Mistral-7B.",
       "expected_inputs": [
