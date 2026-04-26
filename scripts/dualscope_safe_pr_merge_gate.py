@@ -56,7 +56,10 @@ DEFAULT_ALLOWED_OUTPUT_ARTIFACT_PATTERNS = [
 DEFAULT_ALLOWED_PATTERNS.extend(DEFAULT_ALLOWED_OUTPUT_ARTIFACT_PATTERNS)
 BENIGN_GATE_PATH_EXCEPTIONS = {
     "docs/dualscope_autorun_worktree_and_merge_gate.md",
+    "docs/dualscope_experiment_execution_gate.md",
+    "scripts/dualscope_experiment_execution_gate.py",
     "scripts/dualscope_safe_pr_merge_gate.py",
+    "src/eval/dualscope_experiment_execution_gate_common.py",
 }
 DEFAULT_FORBIDDEN_PATTERNS = [
     ".env",
@@ -151,7 +154,11 @@ def infer_repo_full_name(proxy: str) -> str | None:
 
 
 def is_benign_gate_path_exception(path: str) -> bool:
-    return path in BENIGN_GATE_PATH_EXCEPTIONS or fnmatch.fnmatch(path, ".plans/dualscope-safe-merge-gate-*.md")
+    return (
+        path in BENIGN_GATE_PATH_EXCEPTIONS
+        or fnmatch.fnmatch(path, ".plans/dualscope-safe-merge-gate-*.md")
+        or path == ".plans/dualscope-experiment-execution-gate.md"
+    )
 
 
 def fetch_pr_file_json(path: str, head_ref: str | None, repo_full_name: str | None, proxy: str) -> dict[str, Any] | None:
