@@ -610,6 +610,46 @@ The Markdown text is for humans; the fenced JSON block is the source of truth.
       "next_task_if_not_validated": "dualscope-qwen2p5-7b-metric-blocker-closure"
     },
     {
+      "task_id": "dualscope-qwen2p5-7b-metric-blocker-closure",
+      "purpose": "Close the Qwen2.5-7B first-slice metric blocker by either computing only label-aligned metrics that are truly supported by available labels, scores, and response artifacts, or producing explicit blocker artifacts for unavailable metrics.",
+      "expected_inputs": [
+        ".plans/dualscope-qwen2p5-7b-metric-blocker-closure.md",
+        ".reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-label-aligned-metric-computation.json",
+        "data/stanford_alpaca/first_slice/alpaca_first_slice_labeled_pairs.jsonl",
+        "outputs/dualscope_qwen2p5_7b_first_slice_response_generation/default",
+        "outputs/dualscope_qwen2p5_7b_label_aligned_metric_computation/default",
+        "outputs/dualscope_minimal_first_slice_condition_level_rerun/default",
+        "outputs/dualscope_first_slice_condition_row_level_fusion_alignment/default"
+      ],
+      "expected_outputs": [
+        ".plans/dualscope-qwen2p5-7b-metric-blocker-closure.md",
+        "docs/dualscope_qwen2p5_7b_metric_blocker_closure.md",
+        ".reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-metric-blocker-closure.json",
+        "outputs/dualscope_qwen2p5_7b_metric_blocker_closure/default",
+        "outputs/dualscope_qwen2p5_7b_metric_blocker_closure_analysis/default"
+      ],
+      "branch_name_suggestion": "codex/qwen2p5-7b-metric-blocker-closure",
+      "prompt_template": "Continue DualScope-LLM task `{task_id}`. Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, DUALSCOPE_TASK_QUEUE.md, `.plans/dualscope-qwen2p5-7b-metric-blocker-closure.md`, the label-aligned metric computation `Not validated` registry, and the current Qwen2.5-7B response artifacts first. This is an experiment blocker-closure task, not a plan-only task: do not only write plans, docs, or registries. Determine why `dualscope-qwen2p5-7b-label-aligned-metric-computation` is Not validated by inspecting labels, `final_risk_score`, detection labels, real Qwen2.5-7B response rows, target_text, reference_response, ASR eligibility, clean utility eligibility, and logprob/capability flags. Run the existing metric CLI when inputs are sufficient: `.venv/bin/python scripts/build_dualscope_qwen2p5_7b_label_aligned_metric_computation.py --labeled-pairs data/stanford_alpaca/first_slice/alpaca_first_slice_labeled_pairs.jsonl --response-dir outputs/dualscope_qwen2p5_7b_first_slice_response_generation/default --score-dir outputs/dualscope_minimal_first_slice_condition_level_rerun/default --output-dir outputs/dualscope_qwen2p5_7b_label_aligned_metric_computation/default` or an equivalent supported invocation from `--help`. Compute AUROC, AUPRC, F1, accuracy, and TPR@low-FPR only when `detection_label` and `final_risk_score` align. Compute ASR only when eligible rows have real `model_response` and target text. Compute clean utility only when eligible clean rows have real responses and reference responses. If metrics cannot be computed, write explicit blocker artifacts under `outputs/dualscope_qwen2p5_7b_metric_blocker_closure/default` that separate missing final_risk_score, missing detection_label alignment, missing ASR inputs, missing utility inputs, missing response artifacts, logprob unavailable fallback, schema mismatch, and runtime errors. Also write a tracked verdict registry `.reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-metric-blocker-closure.json`. Final verdict must be exactly one of: `Qwen2.5-7B metric blocker closure validated`, `Partially validated`, or `Not validated`. If closure validates that metrics are available and computed, next task is `dualscope-qwen2p5-7b-first-slice-result-package`. If closure validates that only a repair remains, route to `dualscope-qwen2p5-7b-metric-computation-repair`. If blockers are not automatically repairable, route to `dualscope-qwen2p5-7b-metric-blocker-closure`. Do not fabricate AUROC, AUPRC, F1, accuracy, ASR, clean utility, responses, logprobs, labels, or final_risk_score. Do not modify benchmark truth or gates, do not continue route_c, do not generate 199+, do not run a full matrix, and do not train models. Follow AGENTS.md PR workflow without force push, branch deletion, remote rewrite, or merging unrelated PRs.",
+      "completion_verdicts": {
+        "validated": [
+          "Qwen2.5-7B metric blocker closure validated"
+        ],
+        "partially_validated": [
+          "Partially validated"
+        ],
+        "not_validated": [
+          "Not validated"
+        ]
+      },
+      "verdict_artifacts": [
+        "outputs/dualscope_qwen2p5_7b_metric_blocker_closure/default/dualscope_qwen2p5_7b_metric_blocker_closure_verdict.json",
+        "outputs/dualscope_qwen2p5_7b_metric_blocker_closure_analysis/default/dualscope_qwen2p5_7b_metric_blocker_closure_verdict.json"
+      ],
+      "next_task_if_validated": "dualscope-qwen2p5-7b-first-slice-result-package",
+      "next_task_if_partially_validated": "dualscope-qwen2p5-7b-metric-computation-repair",
+      "next_task_if_not_validated": "dualscope-qwen2p5-7b-metric-blocker-closure"
+    },
+    {
       "task_id": "dualscope-qwen2p5-7b-first-slice-result-package",
       "purpose": "Package Qwen2.5-7B first-slice results and limitations.",
       "expected_inputs": [
