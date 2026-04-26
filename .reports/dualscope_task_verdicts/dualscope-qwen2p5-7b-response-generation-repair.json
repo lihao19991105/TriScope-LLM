@@ -2,10 +2,8 @@
   "task_id": "dualscope-qwen2p5-7b-response-generation-repair",
   "verdict": "Partially validated",
   "source_output_dir": "outputs/dualscope_qwen2p5_7b_response_generation_repair/default",
-  "created_at": "2026-04-26T08:50:00Z",
+  "commit": "5b513f58360b65d49e3085b1433cc59b67821428",
+  "created_at": "2026-04-26T09:07:46Z",
   "validated": false,
-  "repair_for": "dualscope-qwen2p5-7b-first-slice-response-generation",
-  "next_task": "dualscope-qwen2p5-7b-response-generation-repair",
-  "blocker_type": "missing_response_generation_artifacts",
-  "notes": "Routing fix: previous registry content incorrectly referenced the SCI3 main model axis upgrade plan. Real response-generation repair still needs to run and produce response artifacts or a concrete blocker."
+  "next_task": null
 }
