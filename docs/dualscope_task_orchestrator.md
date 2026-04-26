@@ -96,10 +96,11 @@ The required queue order is:
 9. `dualscope-main-model-axis-upgrade-plan`
 10. `dualscope-qwen2p5-7b-first-slice-response-generation-plan`
 11. `dualscope-qwen2p5-7b-first-slice-response-generation`
-12. `dualscope-qwen2p5-7b-label-aligned-metric-computation`
-13. `dualscope-qwen2p5-7b-first-slice-result-package`
-14. `dualscope-sci3-main-experiment-expansion-plan`
-15. `dualscope-cross-model-validation-plan`
+12. `dualscope-qwen2p5-7b-response-generation-repair`
+13. `dualscope-qwen2p5-7b-label-aligned-metric-computation`
+14. `dualscope-qwen2p5-7b-first-slice-result-package`
+15. `dualscope-sci3-main-experiment-expansion-plan`
+16. `dualscope-cross-model-validation-plan`
 
 The post-automation SCI3 chain starts only after the closed-loop queue has completed. It treats Qwen2.5-1.5B-Instruct as pilot/debug/automation/ablation, Qwen2.5-7B-Instruct as the main experimental model, and Llama-3.1-8B-Instruct or Mistral-7B-Instruct-v0.3 as cross-model validation. Direct prompts must explicitly distinguish real responses and metrics from fallbacks, blockers, projections, and placeholders.
 
