@@ -4,11 +4,13 @@ The experiment execution gate prevents SCI3 execution tasks from being merged as
 
 ## Enforced Task
 
-The initial enforced task is:
+The enforced response-generation tasks are:
 
 - `dualscope-qwen2p5-7b-response-generation-repair`
+- `dualscope-qwen2p5-7b-alpaca-main-slice-response-generation`
+- `dualscope-qwen2p5-7b-alpaca-main-slice-response-generation-repair`
 
-This task is execution-required. It must either produce real response rows or explicit blocker artifacts.
+These tasks are execution-required. They must either produce real response rows or explicit blocker artifacts. Blocked row ledgers do not count as successful response evidence unless they contain non-empty real model response fields.
 
 ## Required Evidence
 
@@ -24,6 +26,8 @@ Passing blocker evidence:
 - `outputs/dualscope_qwen2p5_7b_response_generation_repair/default/qwen2p5_7b_blocker.json`.
 
 The blocker must expose a clear blocker type such as `oom`, `model_load_failure`, `cuda_error`, `missing_dependency`, `logprob_unavailable`, `missing_input`, or `runtime_error`.
+
+Additional accepted blocker types for local Qwen2.5-7B execution include `cuda_unavailable`, `cuda_unavailable_cpu_generation_disabled`, `torch_cuda_unavailable`, and `accelerate_unavailable`.
 
 ## Integration Points
 
@@ -44,4 +48,3 @@ The gate writes:
 - `experiment_execution_gate_decision.json`
 - `experiment_execution_gate_required_artifacts.json`
 - `experiment_execution_gate_report.md`
-

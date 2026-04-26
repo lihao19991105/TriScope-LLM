@@ -5,5 +5,11 @@
   "commit": "ff98d2240cd0e31a2f03223de56a008767be38a2",
   "created_at": "2026-04-26T15:01:59Z",
   "validated": false,
-  "next_task": null
+  "blocker_type": "cuda_unavailable_cpu_generation_disabled",
+  "generated_rows": 0,
+  "blocked_rows": 64,
+  "model_response_fabricated": false,
+  "logprobs_fabricated": false,
+  "metrics_computed": false,
+  "next_task": "dualscope-qwen2p5-7b-alpaca-main-slice-response-generation-repair"
 }

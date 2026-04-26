@@ -17,16 +17,26 @@ from typing import Any
 SCHEMA_VERSION = "dualscope/experiment-execution-gate/v1"
 
 RESPONSE_GENERATION_REPAIR_TASK = "dualscope-qwen2p5-7b-response-generation-repair"
+ALPACA_MAIN_SLICE_RESPONSE_TASK = "dualscope-qwen2p5-7b-alpaca-main-slice-response-generation"
+ALPACA_MAIN_SLICE_RESPONSE_REPAIR_TASK = "dualscope-qwen2p5-7b-alpaca-main-slice-response-generation-repair"
 VALID_BLOCKER_TYPES = {
     "oom",
     "model_load_failure",
     "cuda_error",
+    "cuda_unavailable",
+    "cuda_unavailable_cpu_generation_disabled",
+    "torch_cuda_unavailable",
+    "accelerate_unavailable",
     "missing_dependency",
     "logprob_unavailable",
     "missing_input",
     "runtime_error",
 }
-EXECUTION_REQUIRED_TASKS = {RESPONSE_GENERATION_REPAIR_TASK}
+EXECUTION_REQUIRED_TASKS = {
+    RESPONSE_GENERATION_REPAIR_TASK,
+    ALPACA_MAIN_SLICE_RESPONSE_TASK,
+    ALPACA_MAIN_SLICE_RESPONSE_REPAIR_TASK,
+}
 
 
 @dataclass(frozen=True)
@@ -49,7 +59,45 @@ REQUIRED_ARTIFACTS: dict[str, RequiredArtifactSpec] = {
             Path("outputs/dualscope_qwen2p5_7b_response_generation_repair/default/response_generation_repair_blockers.json"),
             Path("outputs/dualscope_qwen2p5_7b_response_generation_repair/default/qwen2p5_7b_blocker.json"),
         ),
-    )
+    ),
+    ALPACA_MAIN_SLICE_RESPONSE_TASK: RequiredArtifactSpec(
+        response_paths=(
+            Path(
+                "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation/default/"
+                "qwen2p5_7b_alpaca_main_slice_responses.jsonl"
+            ),
+            Path(
+                "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation/default/"
+                "qwen2p5_7b_alpaca_main_slice_response_rows.jsonl"
+            ),
+        ),
+        blocker_paths=(
+            Path("outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation/default/blockers.json"),
+            Path(
+                "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation/default/"
+                "qwen2p5_7b_alpaca_main_slice_response_generation_blockers.json"
+            ),
+        ),
+    ),
+    ALPACA_MAIN_SLICE_RESPONSE_REPAIR_TASK: RequiredArtifactSpec(
+        response_paths=(
+            Path(
+                "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation_repair/default/"
+                "qwen2p5_7b_alpaca_main_slice_response_generation_repair_responses.jsonl"
+            ),
+            Path(
+                "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation/default/"
+                "qwen2p5_7b_alpaca_main_slice_responses.jsonl"
+            ),
+        ),
+        blocker_paths=(
+            Path(
+                "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation_repair/default/"
+                "qwen2p5_7b_alpaca_main_slice_response_generation_repair_blockers.json"
+            ),
+            Path("outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation_repair/default/blockers.json"),
+        ),
+    ),
 }
 
 
@@ -76,6 +124,38 @@ def count_jsonl_rows(path: Path) -> int:
             return sum(1 for line in handle if line.strip())
     except OSError:
         return 0
+
+
+def _row_has_real_response(payload: Any) -> bool:
+    if not isinstance(payload, dict):
+        return False
+    if payload.get("blocked") is True or payload.get("generation_blocked") is True:
+        return False
+    if str(payload.get("status") or "").strip().lower() in {"blocked", "failed", "error"}:
+        return False
+    for key in ("model_response", "response", "generated_text", "output_text", "text"):
+        value = payload.get(key)
+        if isinstance(value, str) and value.strip():
+            return True
+    return False
+
+
+def count_real_response_jsonl_rows(path: Path) -> int:
+    count = 0
+    try:
+        with path.open("r", encoding="utf-8") as handle:
+            for line in handle:
+                if not line.strip():
+                    continue
+                try:
+                    payload = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if _row_has_real_response(payload):
+                    count += 1
+    except OSError:
+        return 0
+    return count
 
 
 def _normalize_blocker_type(value: Any) -> str:
@@ -137,7 +217,7 @@ def required_artifact_rows(task_id: str, worktree_dir: Path) -> dict[str, Any]:
     response_rows = []
     for relative in spec.response_paths:
         path = worktree_dir / relative
-        row_count = count_jsonl_rows(path) if path.exists() else 0
+        row_count = count_real_response_jsonl_rows(path) if path.exists() else 0
         response_rows.append({"path": str(relative), "exists": path.exists(), "row_count": row_count})
     blocker_rows = []
     for relative in spec.blocker_paths:
