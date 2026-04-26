@@ -36,6 +36,7 @@ Bounded repair:
   --max-examples 4 \
   --batch-size 1 \
   --max-new-tokens 64 \
+  --min-free-gpu-memory-mib 18432 \
   --load-in-4bit \
   --allow-without-logprobs
 ```
@@ -62,3 +63,5 @@ Post-analysis:
 - `Not validated`
 
 The task may only advance to `dualscope-qwen2p5-7b-label-aligned-metric-computation` when real response artifacts exist. It must not fabricate responses, logprobs, ASR, utility, AUROC, F1, or any full-paper performance metric.
+
+If the labeled pairs, target-response plan rows, resource-materialization verdict, or repo-local model binding are missing, the repair records a `missing_input` blocker and routes to `dualscope-qwen2p5-7b-response-input-artifact-repair` rather than attempting model generation.
