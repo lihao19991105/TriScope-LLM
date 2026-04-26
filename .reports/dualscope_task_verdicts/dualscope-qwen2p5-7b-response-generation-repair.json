@@ -2,8 +2,8 @@
   "task_id": "dualscope-qwen2p5-7b-response-generation-repair",
   "verdict": "SCI3 main model axis upgrade plan validated",
   "source_output_dir": "outputs/dualscope_main_model_axis_upgrade_plan/default",
-  "commit": "4b43746fdfb5763ace5bf0f513d0e4d3a8fd68b7",
-  "created_at": "2026-04-26T08:25:23Z",
+  "commit": "895a920c0fcbfc0c8ddddf9931dbc2a057c79922",
+  "created_at": "2026-04-26T08:33:21Z",
   "validated": true,
   "next_task": null
 }

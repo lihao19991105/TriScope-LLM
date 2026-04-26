@@ -527,6 +527,41 @@ The Markdown text is for humans; the fenced JSON block is the source of truth.
       "next_task_if_not_validated": "dualscope-qwen2p5-7b-response-generation-blocker-closure"
     },
     {
+      "task_id": "dualscope-qwen2p5-7b-response-generation-repair",
+      "purpose": "Repair the partially validated Qwen2.5-7B first-slice response-generation path by adding runtime resource guards and honest blocker artifacts before any 7B model load.",
+      "expected_inputs": [
+        ".plans/dualscope-qwen2p5-7b-response-generation-repair.md",
+        ".plans/dualscope-qwen2p5-7b-first-slice-response-generation.md",
+        "src/eval/dualscope_qwen2p5_7b_first_slice_response_generation.py",
+        "scripts/build_dualscope_qwen2p5_7b_first_slice_response_generation.py",
+        "docs/dualscope_qwen2p5_7b_first_slice_response_generation.md"
+      ],
+      "expected_outputs": [
+        ".plans/dualscope-qwen2p5-7b-response-generation-repair.md",
+        ".reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-response-generation-repair.json",
+        "outputs/dualscope_qwen2p5_7b_first_slice_response_generation/default"
+      ],
+      "branch_name_suggestion": "codex/qwen2p5-7b-response-generation-repair",
+      "prompt_template": "Continue DualScope-LLM task `{task_id}`. Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, DUALSCOPE_TASK_QUEUE.md, and the Qwen2.5-7B response-generation partial verdict first. Scope the work to the response-generation repair only: selected-GPU memory preflight, CUDA/device recording, CPU fallback guard, honest blocker artifacts, docs, validation, and tracked verdict registry. Do not train, do not run a full matrix, do not fabricate responses/logprobs/metrics, do not modify benchmark truth or gates, do not continue route_c, and do not generate 199+. Follow AGENTS.md PR workflow without auto merge, force push, branch deletion, or remote rewrite.",
+      "completion_verdicts": {
+        "validated": [
+          "Qwen2.5-7B response-generation repair validated"
+        ],
+        "partially_validated": [
+          "Partially validated"
+        ],
+        "not_validated": [
+          "Not validated"
+        ]
+      },
+      "verdict_artifacts": [
+        "outputs/dualscope_qwen2p5_7b_first_slice_response_generation/default/dualscope_qwen2p5_7b_first_slice_response_generation_verdict.json"
+      ],
+      "next_task_if_validated": "dualscope-qwen2p5-7b-label-aligned-metric-computation",
+      "next_task_if_partially_validated": "dualscope-qwen2p5-7b-response-generation-repair",
+      "next_task_if_not_validated": "dualscope-qwen2p5-7b-response-generation-blocker-closure"
+    },
+    {
       "task_id": "dualscope-qwen2p5-7b-label-aligned-metric-computation",
       "purpose": "Compute label-aligned metrics for Qwen2.5-7B first-slice if responses and scores are available.",
       "expected_inputs": [

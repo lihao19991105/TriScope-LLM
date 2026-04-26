@@ -5,5 +5,5 @@
   "commit": "dbb4d948e4421d2dda04393dc0b352204175b056",
   "created_at": "2026-04-26T08:15:23Z",
   "validated": false,
-  "next_task": null
+  "next_task": "dualscope-qwen2p5-7b-response-generation-repair"
 }

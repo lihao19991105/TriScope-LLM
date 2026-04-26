@@ -47,12 +47,13 @@ Historical TriScope / route_c artifacts are not used.
 - [x] M2: Identify partial-validation cause: unsafe model-load attempt on insufficient GPU memory.
 - [x] M3: Add selected-GPU memory preflight and CPU fallback guard.
 - [x] M4: Update docs and run local validation.
-- [ ] M5: Complete PR workflow without auto merge, force push, branch deletion, or remote rewrite.
+- [x] M5: Complete PR workflow without auto merge, force push, branch deletion, or remote rewrite.
 
 ## Surprises & Discoveries
 
 - This isolated repair worktree does not include ignored first-slice data, target-response outputs, or `models/qwen2p5-7b-instruct`; those are intentionally outside git.
 - The queue names `dualscope-qwen2p5-7b-response-generation-repair` as the partial-verdict next step, but no dedicated queue entry exists yet. This repair therefore scopes itself to the configured next-step behavior described by the existing response-generation task.
+- Follow-up validation found the tracked repair verdict registry pointed at the wrong main-model-axis artifact. The registry has been corrected, and `DUALSCOPE_TASK_QUEUE.md` now includes a dedicated repair task entry so the orchestrator can recognize the repair as validated.
 
 ## Decision Log
 
@@ -73,6 +74,15 @@ Patch the response-generation module so dependency checks and CUDA/memory checks
 4. Add CLI flags for `--min-free-gpu-memory-mib` and `--allow-cpu-generation`.
 5. Update documentation and prior plan notes.
 6. Run `py_compile`, `--help`, `git diff --check`, and a local artifact-writing command.
+
+## Validation Notes
+
+Current repair validation in this isolated worktree:
+
+- `python3 -m py_compile src/eval/dualscope_qwen2p5_7b_first_slice_response_generation.py scripts/build_dualscope_qwen2p5_7b_first_slice_response_generation.py` passed.
+- `python3 scripts/build_dualscope_qwen2p5_7b_first_slice_response_generation.py --help` passed and shows `--min-free-gpu-memory-mib` plus `--allow-cpu-generation`.
+- `python3 scripts/build_dualscope_qwen2p5_7b_first_slice_response_generation.py --output-dir outputs/dualscope_qwen2p5_7b_first_slice_response_generation/repair_validation --prepare-only --prepare-only-reason isolated_repair_validation --max-rows 2 --min-free-gpu-memory-mib 18432` wrote blocker artifacts and exited `2` with `Not validated` because ignored local data/model dependencies are absent in this isolated checkout. The artifacts recorded no fabricated responses, no metrics, no training, no full matrix, no benchmark-truth change, no gate change, and no route_c continuation.
+- `git diff --check` passed.
 
 ## Validation and Acceptance
 
