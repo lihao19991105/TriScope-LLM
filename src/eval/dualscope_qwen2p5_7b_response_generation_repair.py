@@ -51,14 +51,42 @@ def _repair_next_step(summary: dict[str, Any]) -> tuple[str, str]:
     return "dualscope-qwen2p5-7b-response-generation-repair", "missing_response_generation_artifacts"
 
 
-def _write_repair_artifacts(output_dir: Path, summary: dict[str, Any], rows_text: str = "") -> None:
+def _write_repair_artifacts(
+    output_dir: Path,
+    summary: dict[str, Any],
+    rows_text: str = "",
+    generation_summary: dict[str, Any] | None = None,
+) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     next_task = str(summary.get("next_task") or "dualscope-qwen2p5-7b-response-generation-repair")
     blocker_type = str(summary.get("blocker_type") or "")
     final_verdict = str(summary.get("final_verdict") or FINAL_PARTIAL)
+    generation_summary = generation_summary or {}
     write_json(output_dir / "response_generation_repair_summary.json", summary)
     write_json(output_dir / "response_generation_repair_blockers.json", {"blockers": summary.get("blockers") or []})
     (output_dir / "response_generation_repair_responses.jsonl").write_text(rows_text, encoding="utf-8")
+    write_json(output_dir / "qwen2p5_7b_generation_summary.json", generation_summary or summary)
+    write_json(
+        output_dir / "qwen2p5_7b_generation_capability_mode.json",
+        generation_summary.get("capability_mode") or {},
+    )
+    write_json(
+        output_dir / "qwen2p5_7b_generation_fallback_flags.json",
+        generation_summary.get("fallback_flags") or {},
+    )
+    write_json(
+        output_dir / "qwen2p5_7b_blocker.json",
+        {
+            "summary_status": "PASS" if not summary.get("blockers") else "BLOCKED",
+            "blocker_type": blocker_type,
+            "blockers": summary.get("blockers") or [],
+            "next_task": next_task,
+            "model_response_fabricated": False,
+            "logprobs_fabricated": False,
+            "metrics_computed": False,
+        },
+    )
+    (output_dir / "qwen2p5_7b_response_rows.jsonl").write_text(rows_text, encoding="utf-8")
     write_json(
         output_dir / "dualscope_qwen2p5_7b_response_generation_repair_verdict.json",
         {
@@ -216,5 +244,5 @@ def build_qwen2p5_7b_response_generation_repair(
     rows_text = ""
     if rows_source.exists():
         rows_text = rows_source.read_text(encoding="utf-8")
-    _write_repair_artifacts(output_dir, summary, rows_text)
+    _write_repair_artifacts(output_dir, summary, rows_text, generation_summary)
     return summary

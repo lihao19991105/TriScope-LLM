@@ -39,6 +39,7 @@ Historical TriScope / route_c artifacts are not used.
 - Runtime preflight in the Qwen2.5-7B response generator.
 - CLI options for selected-GPU memory threshold and explicit CPU fallback.
 - Updated documentation with `CUDA_DEVICE_ORDER=PCI_BUS_ID` and the new memory guard.
+- Dedicated repair artifacts for generation summary, capability mode, fallback flags, blocker JSON, and response rows.
 - Validation artifacts showing the repair path compiles and writes non-fabricated blockers when local ignored dependencies are unavailable.
 
 ## Progress
@@ -99,6 +100,7 @@ Current dedicated repair validation:
 - Current blockers are `missing_resource_materialization_dir`, `missing_labeled_pairs`, `missing_target_response_plan_rows`, and `target_response_plan_not_validated`; generated response rows are zero and no responses/logprobs/metrics were fabricated.
 - Current rerun in this isolated worktree recreated the ignored repo-local model binding to `/mnt/sda3/lh/models/qwen2p5-7b-instruct`, then reran the same bounded repair command. The model binding passed source audit, but the ignored labeled-pairs JSONL, target-response plan rows/verdict, and resource-materialization directory remain absent, so the repair verdict remains `Partially validated` with `blocker_type=missing_input` and next task `dualscope-qwen2p5-7b-response-input-artifact-repair`.
 - Latest analysis registry update wrote `.reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-response-generation-repair.json` with verdict `Partially validated`, `blocker_type=missing_input`, and next task `dualscope-qwen2p5-7b-response-input-artifact-repair`.
+- The repair output now also writes explicit alias artifacts `qwen2p5_7b_generation_summary.json`, `qwen2p5_7b_generation_capability_mode.json`, `qwen2p5_7b_generation_fallback_flags.json`, `qwen2p5_7b_blocker.json`, and `qwen2p5_7b_response_rows.jsonl` so downstream analysis can consume the repair package without relying only on first-slice output paths.
 
 ## Validation and Acceptance
 
