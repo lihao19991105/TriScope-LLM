@@ -57,6 +57,17 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--use-4bit", action="store_true", help="Request 4-bit loading if bitsandbytes is available.")
     parser.add_argument("--low-memory", action="store_true", default=True, help="Use low-memory loading options.")
     parser.add_argument(
+        "--min-free-gpu-memory-mib",
+        type=int,
+        default=0,
+        help="Minimum free memory required on the selected GPU before model load. 0 selects the task default.",
+    )
+    parser.add_argument(
+        "--allow-cpu-generation",
+        action="store_true",
+        help="Allow CPU fallback generation. Disabled by default to avoid impractical 7B CPU runs.",
+    )
+    parser.add_argument(
         "--max-rows",
         type=int,
         default=0,
@@ -97,6 +108,8 @@ def main() -> int:
         batch_size=args.batch_size,
         use_4bit=args.use_4bit,
         low_memory=args.low_memory,
+        min_free_gpu_memory_mib=args.min_free_gpu_memory_mib,
+        allow_cpu_generation=args.allow_cpu_generation,
         no_full_matrix=args.no_full_matrix,
         max_rows=args.max_rows if args.max_rows > 0 else None,
         prepare_only=args.prepare_only,
