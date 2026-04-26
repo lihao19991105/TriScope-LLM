@@ -4,7 +4,10 @@
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
+import os
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -73,11 +76,67 @@ def blocker_type_from_summary(summary: dict[str, Any]) -> str:
     if isinstance(blockers, list) and blockers:
         first = blockers[0]
         if isinstance(first, str) and first.strip():
-            return first.strip()
+            lowered = first.lower()
+            if "bitsandbytes" in lowered or "missing_" in lowered:
+                return "missing_dependency"
+            if "out of memory" in lowered or "oom" in lowered:
+                return "oom"
+            if "cuda_unavailable" in lowered:
+                return "torch_cuda_unavailable"
+            if "model_load_failed" in lowered:
+                return "model_load_failure"
+            if "logprob" in lowered:
+                return "logprob_unavailable"
+            return "runtime_error"
     mode = summary.get("response_generation_mode")
     if isinstance(mode, dict) and int(mode.get("row_count_generated") or 0) <= 0:
         return "runtime_error"
     return ""
+
+
+def collect_repair_environment_diagnostics() -> dict[str, Any]:
+    diagnostics: dict[str, Any] = {
+        "python_executable": sys.executable,
+        "python_version": sys.version,
+        "cuda_visible_devices": os.environ.get("CUDA_VISIBLE_DEVICES", ""),
+        "hf_home": os.environ.get("HF_HOME", ""),
+        "transformers_cache": os.environ.get("TRANSFORMERS_CACHE", ""),
+        "hf_hub_cache": os.environ.get("HF_HUB_CACHE", ""),
+        "tmpdir": os.environ.get("TMPDIR", ""),
+        "dependency_status": {
+            name: importlib.util.find_spec(name) is not None
+            for name in ("torch", "transformers", "accelerate", "bitsandbytes")
+        },
+    }
+    try:
+        import torch
+
+        diagnostics["torch"] = {
+            "version": torch.__version__,
+            "version_cuda": torch.version.cuda,
+            "cuda_available": torch.cuda.is_available(),
+            "cuda_device_count": torch.cuda.device_count() if torch.cuda.is_available() else 0,
+        }
+    except Exception as exc:
+        diagnostics["torch"] = {"import_error": f"{type(exc).__name__}: {exc}"}
+    try:
+        completed = subprocess.run(
+            ["nvidia-smi", "--query-gpu=index,name,memory.total,memory.free", "--format=csv,noheader,nounits"],
+            check=False,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=30,
+        )
+        diagnostics["nvidia_smi"] = {
+            "returncode": completed.returncode,
+            "passed": completed.returncode == 0,
+            "stdout": completed.stdout,
+            "stderr": completed.stderr,
+        }
+    except Exception as exc:
+        diagnostics["nvidia_smi"] = {"passed": False, "error": f"{type(exc).__name__}: {exc}"}
+    return diagnostics
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -165,6 +224,10 @@ def main() -> int:
                 "metrics_computed": False,
             },
         )
+    write_json(
+        args.output_dir / "qwen2p5_7b_alpaca_main_slice_response_generation_repair_environment.json",
+        collect_repair_environment_diagnostics(),
+    )
 
     verdict = REPAIR_VALIDATED if real_rows else PARTIAL if blocker_type else NOT_VALIDATED
     next_task = (
