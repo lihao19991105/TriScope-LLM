@@ -52,6 +52,11 @@ Post-analysis:
 - `outputs/dualscope_qwen2p5_7b_response_generation_repair/default/response_generation_repair_summary.json`
 - `outputs/dualscope_qwen2p5_7b_response_generation_repair/default/response_generation_repair_responses.jsonl`
 - `outputs/dualscope_qwen2p5_7b_response_generation_repair/default/response_generation_repair_blockers.json`
+- `outputs/dualscope_qwen2p5_7b_response_generation_repair/default/qwen2p5_7b_generation_summary.json`
+- `outputs/dualscope_qwen2p5_7b_response_generation_repair/default/qwen2p5_7b_generation_capability_mode.json`
+- `outputs/dualscope_qwen2p5_7b_response_generation_repair/default/qwen2p5_7b_generation_fallback_flags.json`
+- `outputs/dualscope_qwen2p5_7b_response_generation_repair/default/qwen2p5_7b_blocker.json`
+- `outputs/dualscope_qwen2p5_7b_response_generation_repair/default/qwen2p5_7b_response_rows.jsonl`
 - `outputs/dualscope_qwen2p5_7b_response_generation_repair/default/response_generation_repair_report.md`
 - `outputs/dualscope_qwen2p5_7b_response_generation_repair_analysis/default/dualscope_qwen2p5_7b_response_generation_repair_verdict.json`
 - `.reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-response-generation-repair.json`
