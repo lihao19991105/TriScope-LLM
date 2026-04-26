@@ -469,7 +469,9 @@ The Markdown text is for humans; the fenced JSON block is the source of truth.
       "prompt_template": "Continue DualScope-LLM task `{task_id}`. Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, DUALSCOPE_TASK_QUEUE.md, and the SCI3 model-axis upgrade artifacts first. Prepare a Qwen2.5-7B-Instruct first-slice response generation plan only. Use Stanford Alpaca first-slice, lexical trigger cftrigger, fixed target text, frozen Stage 1/2/3 protocol, and Qwen2.5-7B as the main experimental model. Do not execute the full matrix, do not claim responses exist, and do not fake paths, responses, logprobs, AUROC/F1/ASR/utility, benchmark truth, or gates. If 7B local resources are missing, write blockers and readiness checks. Final verdicts: Qwen2.5-7B first-slice response generation plan validated, Partially validated, or Not validated. Follow AGENTS.md PR workflow without auto merge, force push, branch deletion, or remote rewrite.",
       "completion_verdicts": {
         "validated": [
-          "Qwen2.5-7B first-slice response generation plan validated"
+          "Qwen2.5-7B first-slice response generation plan validated",
+          "First-slice response generation plan validated",
+          "Response generation plan validated"
         ],
         "partially_validated": [
           "Partially validated"
@@ -491,6 +493,8 @@ The Markdown text is for humans; the fenced JSON block is the source of truth.
       "purpose": "Run or prepare minimal Qwen2.5-7B response generation on Stanford Alpaca first-slice, lexical trigger, fixed target.",
       "expected_inputs": [
         "data/stanford_alpaca/first_slice/alpaca_first_slice_labeled_pairs.jsonl",
+        "models/qwen2p5-7b-instruct",
+        "outputs/dualscope_first_slice_target_response_generation_plan/default",
         "outputs/dualscope_qwen2p5_7b_first_slice_response_generation_plan/default",
         "outputs/dualscope_main_model_axis_upgrade_plan/default"
       ],
@@ -502,7 +506,7 @@ The Markdown text is for humans; the fenced JSON block is the source of truth.
         "outputs/dualscope_qwen2p5_7b_first_slice_response_generation/default"
       ],
       "branch_name_suggestion": "codex/dualscope-qwen2p5-7b-response-generation",
-      "prompt_template": "Continue DualScope-LLM task `{task_id}`. Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, DUALSCOPE_TASK_QUEUE.md, and the Qwen2.5-7B response generation plan first. Run or prepare minimal Qwen2.5-7B-Instruct response generation on Stanford Alpaca first-slice only. Use lexical trigger cftrigger and fixed target text. Prefer real local model execution if available and within 2x3090 constraints; otherwise record external-resource-required or blocker. Do not train, do not full finetune, do not LoRA/QLoRA train, do not run the full matrix, do not fake model paths, responses, logprobs, AUROC/F1/ASR/utility, benchmark truth, or gates. Output response artifacts, capability mode, fallback flags, blockers, and a final verdict: Qwen2.5-7B first-slice response generation validated, Partially validated, or Not validated. Follow AGENTS.md PR workflow without auto merge, force push, branch deletion, or remote rewrite.",
+      "prompt_template": "Continue DualScope-LLM task `{task_id}`. Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, DUALSCOPE_TASK_QUEUE.md, and the Qwen2.5-7B response generation plan first. Use local Qwen2.5-7B-Instruct at `/mnt/sda3/lh/models/qwen2p5-7b-instruct` through repo binding `models/qwen2p5-7b-instruct`, Stanford Alpaca first-slice labeled pairs, and target-response plan output `outputs/dualscope_first_slice_target_response_generation_plan/default`. Run or prepare minimal Qwen2.5-7B-Instruct response generation on Stanford Alpaca first-slice only: lexical trigger cftrigger, fixed target text, `batch_size=1`, `CUDA_VISIBLE_DEVICES=2,3`, and low-memory / 4-bit strategy if needed. Do not train, do not full finetune, do not LoRA/QLoRA train, and do not run the full matrix. If OOM, CUDA, model load, or logprobs are unavailable, write explicit blockers/fallback flags; do not fake model paths, responses, logprobs, AUROC/F1/ASR/utility, benchmark truth, or gates. Output response artifacts, capability mode, response_generation_mode, fallback flags, blockers, and a final verdict: Qwen2.5-7B first-slice response generation validated, Partially validated, or Not validated. Metrics are a later task; do not compute or claim metrics here. Do not continue route_c or generate 199+. Follow AGENTS.md PR workflow without auto merge, force push, branch deletion, or remote rewrite.",
       "completion_verdicts": {
         "validated": [
           "Qwen2.5-7B first-slice response generation validated"

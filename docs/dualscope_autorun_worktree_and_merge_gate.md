@@ -10,6 +10,7 @@ The scheduler checkout should remain clean. Each selected task can run inside an
 
 - `scripts/dualscope_task_worktree_runner.py`
   - Creates a task worktree from `main`.
+  - Materializes known ignored task dependencies into the worktree before `codex exec`.
   - Runs `codex exec --cd <worktree> --full-auto <prompt>`.
   - Runs local checks on changed Python files.
   - Commits task changes and calls `./scripts/codex-pr.sh`.
@@ -36,6 +37,42 @@ The scheduler checkout should remain clean. Each selected task can run inside an
 - SSH remote rewrites are not performed.
 - PR #14 is blocked by the merge gate by default.
 - Benchmark truth, gates, route_c continuations, 199+ plans, secrets, and credential files are forbidden by merge-gate file scope checks.
+
+## Worktree Dependency Materialization
+
+Some SCI3 task inputs are intentionally ignored by git, including local dataset JSONL files, runtime `outputs/` artifacts, and local model bindings. The worktree runner keeps the scheduler checkout clean while copying only the minimum known dependencies into each task worktree.
+
+For Qwen2.5-7B first-slice tasks, the runner materializes:
+
+- `data/stanford_alpaca/first_slice/alpaca_first_slice_labeled_pairs.jsonl`
+- `data/stanford_alpaca/first_slice/alpaca_first_slice_source.jsonl`
+- `outputs/dualscope_first_slice_target_response_generation_plan/default`
+- `outputs/dualscope_main_model_axis_upgrade_plan/default`
+- `outputs/dualscope_qwen2p5_7b_first_slice_response_generation_plan/default` when present
+- `models/qwen2p5-7b-instruct -> /mnt/sda3/lh/models/qwen2p5-7b-instruct`
+
+The runner also passes the mounted-storage execution environment to `codex exec`:
+
+- `HF_HOME=/mnt/sda3/lh/huggingface`
+- `TRANSFORMERS_CACHE=/mnt/sda3/lh/huggingface/transformers`
+- `HF_HUB_CACHE=/mnt/sda3/lh/huggingface/hub`
+- `TMPDIR=/mnt/sda3/lh/tmp`
+- `CUDA_VISIBLE_DEVICES=2,3`
+
+Materialization artifacts are written to:
+
+- `outputs/dualscope_task_worktree_runner/default/dualscope_worktree_dependency_materialization.json`
+- `outputs/dualscope_task_worktree_runner/default/dualscope_worktree_dependency_materialization_report.md`
+
+## Tracked Verdict Registry
+
+Large `outputs/` trees remain ignored. Each completed task can persist a lightweight, git-tracked verdict under:
+
+```text
+.reports/dualscope_task_verdicts/<task_id>.json
+```
+
+The task orchestrator scans this registry before ignored output verdicts. This prevents completed tasks from being selected repeatedly when their full runtime artifacts are intentionally not committed.
 
 ## Typical Dry Run
 
