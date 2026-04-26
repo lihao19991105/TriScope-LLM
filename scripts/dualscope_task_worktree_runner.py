@@ -472,7 +472,7 @@ def find_output_verdict(worktree_path: Path, task_id: str) -> dict[str, Any] | N
     task_token = task_id.replace("-", "_")
     candidates = sorted(outputs_dir.glob("**/*verdict.json"))
     preferred = [path for path in candidates if task_token in str(path)]
-    for path in preferred + [path for path in candidates if path not in preferred]:
+    for path in preferred:
         try:
             payload = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
@@ -484,7 +484,6 @@ def find_output_verdict(worktree_path: Path, task_id: str) -> dict[str, Any] | N
 
 
 def persist_task_verdict_registry(worktree_path: Path, task_id: str, proxy: str) -> dict[str, Any]:
-    output_verdict = find_output_verdict(worktree_path, task_id)
     registry_dir = worktree_path / DEFAULT_VERDICT_REGISTRY_DIR
     registry_path = registry_dir / f"{task_id}.json"
     result: dict[str, Any] = {
@@ -497,6 +496,25 @@ def persist_task_verdict_registry(worktree_path: Path, task_id: str, proxy: str)
         "validated": False,
         "next_task": TASK_NEXT_TASK_OVERRIDES.get(task_id),
     }
+    if registry_path.exists():
+        try:
+            existing_payload = json.loads(registry_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            existing_payload = None
+        if isinstance(existing_payload, dict) and existing_payload.get("task_id") == task_id and existing_payload.get("verdict"):
+            result.update(
+                {
+                    "summary_status": "PASS",
+                    "reason": "existing_task_registry_preserved",
+                    "source_output_dir": existing_payload.get("source_output_dir"),
+                    "verdict": existing_payload.get("verdict"),
+                    "validated": bool(existing_payload.get("validated")),
+                    "commit": existing_payload.get("commit"),
+                }
+            )
+            return result
+
+    output_verdict = find_output_verdict(worktree_path, task_id)
     if not output_verdict:
         result["reason"] = "no_output_verdict_found"
         return result
