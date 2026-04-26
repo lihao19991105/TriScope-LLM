@@ -18,6 +18,8 @@ from typing import Any
 DEFAULT_OUTPUT_DIR = Path("outputs/dualscope_task_worktree_runner/default")
 DEFAULT_WORKTREE_ROOT = Path("/tmp/dualscope-worktrees")
 DEFAULT_PROXY = "http://127.0.0.1:18080"
+DEFAULT_EXPERIMENT_GATE_OUTPUT_DIR = Path("outputs/dualscope_experiment_execution_gate/default")
+DEFAULT_EXPERIMENT_GATE_SCRIPT = Path("scripts/dualscope_experiment_execution_gate.py")
 DEFAULT_CODEX_EXTRA_ARGS = "--cd {worktree_path} --full-auto"
 DEFAULT_QWEN25_7B_MODEL_DIR = Path("/mnt/sda3/lh/models/qwen2p5-7b-instruct")
 DEFAULT_VERDICT_REGISTRY_DIR = Path(".reports/dualscope_task_verdicts")
@@ -205,6 +207,37 @@ def run_json_command(command: list[str], cwd: Path, proxy: str, timeout: int = 1
     except json.JSONDecodeError:
         payload = None
     return result, payload
+
+
+def run_experiment_execution_gate(worktree_path: Path, task_id: str, proxy: str) -> dict[str, Any]:
+    if not worktree_path.exists():
+        return {"summary_status": "SKIPPED", "reason": "worktree_missing", "execution_gate_passed": False}
+    command = [
+        "python3",
+        str(DEFAULT_EXPERIMENT_GATE_SCRIPT),
+        "--task-id",
+        task_id,
+        "--worktree-dir",
+        str(worktree_path),
+        "--output-dir",
+        str(DEFAULT_EXPERIMENT_GATE_OUTPUT_DIR),
+    ]
+    result = run_command(command, cwd=Path.cwd(), proxy=proxy, timeout=180)
+    decision_path = DEFAULT_EXPERIMENT_GATE_OUTPUT_DIR / "experiment_execution_gate_decision.json"
+    try:
+        decision = json.loads(decision_path.read_text(encoding="utf-8")) if decision_path.exists() else {}
+    except (OSError, json.JSONDecodeError):
+        decision = {}
+    return {
+        "summary_status": "PASS" if result["returncode"] == 0 else "FAIL",
+        "schema_version": "dualscope/task-worktree-runner-experiment-execution-gate-result/v1",
+        "command": command_row("experiment_execution_gate", result),
+        "artifact_dir": str(DEFAULT_EXPERIMENT_GATE_OUTPUT_DIR),
+        "decision": decision,
+        "execution_gate_passed": bool(decision.get("execution_gate_passed")),
+        "merge_allowed_by_execution_gate": bool(decision.get("merge_allowed_by_execution_gate")),
+        "reason": decision.get("reason"),
+    }
 
 
 def has_codex_review_evidence(pr: dict[str, Any]) -> bool:
@@ -663,6 +696,7 @@ def main() -> int:
             "dualscope_task_worktree_runner_test_results.json",
             "dualscope_worktree_dependency_materialization.json",
             "dualscope_task_worktree_runner_verdict_registry_result.json",
+            "dualscope_task_worktree_runner_experiment_execution_gate_result.json",
         ]:
             write_json(args.output_dir / name, {"summary_status": "SKIPPED", "reason": summary["stop_reason"]})
         (args.output_dir / "dualscope_worktree_dependency_materialization_report.md").write_text(
@@ -696,6 +730,7 @@ def main() -> int:
             "dualscope_task_worktree_runner_test_results.json",
             "dualscope_worktree_dependency_materialization.json",
             "dualscope_task_worktree_runner_verdict_registry_result.json",
+            "dualscope_task_worktree_runner_experiment_execution_gate_result.json",
         ]:
             write_json(args.output_dir / name, {"summary_status": "SKIPPED", "reason": "dry_run"})
         (args.output_dir / "dualscope_worktree_dependency_materialization_report.md").write_text(
@@ -756,10 +791,28 @@ def main() -> int:
         },
     )
 
-    verdict_registry_result = (
-        persist_task_verdict_registry(worktree_path, args.task_id, args.proxy)
+    experiment_gate_result = (
+        run_experiment_execution_gate(worktree_path, args.task_id, args.proxy)
         if worktree_path.exists() and codex_result.get("summary_status") == "PASS"
         else {"summary_status": "SKIPPED", "reason": codex_result.get("reason") or "codex_exec_not_passed"}
+    )
+    write_json(args.output_dir / "dualscope_task_worktree_runner_experiment_execution_gate_result.json", experiment_gate_result)
+    experiment_gate_passed = bool(
+        experiment_gate_result.get("summary_status") in {"PASS", "SKIPPED"}
+        and experiment_gate_result.get("decision", {}).get("merge_allowed_by_execution_gate", True)
+    )
+
+    verdict_registry_result = (
+        persist_task_verdict_registry(worktree_path, args.task_id, args.proxy)
+        if worktree_path.exists() and codex_result.get("summary_status") == "PASS" and experiment_gate_passed
+        else {
+            "summary_status": "SKIPPED",
+            "reason": (
+                "experiment_execution_gate_failed"
+                if codex_result.get("summary_status") == "PASS" and not experiment_gate_passed
+                else codex_result.get("reason") or "codex_exec_not_passed"
+            ),
+        }
     )
     write_json(args.output_dir / "dualscope_task_worktree_runner_verdict_registry_result.json", verdict_registry_result)
 
@@ -803,6 +856,12 @@ def main() -> int:
         pr_result = {"summary_status": "SKIPPED", "reason": "no_changes"}
     elif not tests_passed:
         pr_result = {"summary_status": "SKIPPED", "reason": "tests_failed"}
+    elif not experiment_gate_passed:
+        pr_result = {
+            "summary_status": "SKIPPED",
+            "reason": "experiment_execution_gate_failed",
+            "experiment_execution_gate": experiment_gate_result,
+        }
     else:
         add_result = run_command(["git", "add", "-A"], cwd=worktree_path, proxy=args.proxy, timeout=120)
         commit_result = run_command(["git", "commit", "-m", f"Add DualScope task package for {args.task_id}"], cwd=worktree_path, proxy=args.proxy, timeout=180)
@@ -876,6 +935,8 @@ def main() -> int:
         "dependency_materialization_status": materialization.get("summary_status"),
         "dependency_materialization_blocker": materialization.get("blocker_if_any"),
         "verdict_registry_result": verdict_registry_result,
+        "experiment_execution_gate_result": experiment_gate_result,
+        "experiment_execution_gate_passed": experiment_gate_passed,
         "whether_codex_review_triggered": pr_result.get("whether_codex_review_triggered", False),
         "cleanup_allowed_after_merge": args.cleanup_worktree and not args.keep_worktree,
         "dangerous_actions": {

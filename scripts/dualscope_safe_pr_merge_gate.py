@@ -15,9 +15,16 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from src.eval.dualscope_experiment_execution_gate_common import EXECUTION_REQUIRED_TASKS
+
 
 DEFAULT_OUTPUT_DIR = Path("outputs/dualscope_safe_pr_merge_gate/default")
 DEFAULT_PROXY = "http://127.0.0.1:18080"
+DEFAULT_EXECUTION_GATE_DECISION_PATH = Path("outputs/dualscope_experiment_execution_gate/default/experiment_execution_gate_decision.json")
 DETAIL_FIELDS = "number,title,url,state,reviewDecision,statusCheckRollup,reviews,comments,headRefName,baseRefName,files"
 FAIL_CONCLUSIONS = {"FAILURE", "ERROR", "CANCELLED", "TIMED_OUT", "ACTION_REQUIRED", "STARTUP_FAILURE"}
 PENDING_STATUSES = {"QUEUED", "IN_PROGRESS", "PENDING", "REQUESTED", "WAITING", "EXPECTED"}
@@ -276,6 +283,71 @@ def has_codex_review(pr: dict[str, Any]) -> bool:
     return bool(analyze_codex_review(pr)["codex_review_present"])
 
 
+def infer_execution_task_id(pr: dict[str, Any]) -> str | None:
+    for item in pr.get("files") or []:
+        if not isinstance(item, dict):
+            continue
+        path = str(item.get("path") or "")
+        prefix = ".reports/dualscope_task_verdicts/"
+        suffix = ".json"
+        if path.startswith(prefix) and path.endswith(suffix):
+            return path[len(prefix) : -len(suffix)]
+    for key in ("headRefName", "title"):
+        text = str(pr.get(key) or "")
+        for task_id in EXECUTION_REQUIRED_TASKS:
+            if task_id in text:
+                return task_id
+    return None
+
+
+def read_execution_gate_decision(path: Path, task_id: str | None) -> dict[str, Any]:
+    if not task_id or task_id not in EXECUTION_REQUIRED_TASKS:
+        return {
+            "summary_status": "SKIPPED",
+            "task_id": task_id,
+            "gate_required": False,
+            "execution_gate_passed": True,
+            "merge_allowed_by_execution_gate": True,
+            "reason": "task_not_execution_required",
+            "decision_path": str(path),
+        }
+    if not path.exists():
+        return {
+            "summary_status": "FAIL",
+            "task_id": task_id,
+            "gate_required": True,
+            "execution_gate_passed": False,
+            "merge_allowed_by_execution_gate": False,
+            "reason": "execution_gate_decision_missing",
+            "decision_path": str(path),
+        }
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        return {
+            "summary_status": "FAIL",
+            "task_id": task_id,
+            "gate_required": True,
+            "execution_gate_passed": False,
+            "merge_allowed_by_execution_gate": False,
+            "reason": f"execution_gate_decision_unreadable:{type(exc).__name__}",
+            "decision_path": str(path),
+        }
+    if not isinstance(payload, dict):
+        payload = {"summary_status": "FAIL", "reason": "execution_gate_decision_not_object"}
+    expected_task = payload.get("task_id")
+    if expected_task != task_id:
+        payload = {
+            **payload,
+            "summary_status": "FAIL",
+            "gate_required": True,
+            "execution_gate_passed": False,
+            "merge_allowed_by_execution_gate": False,
+            "reason": f"execution_gate_task_mismatch:{expected_task!r}",
+        }
+    return {**payload, "decision_path": str(path)}
+
+
 def count_requested_changes(pr: dict[str, Any]) -> int:
     count = 0
     if str(pr.get("reviewDecision") or "").upper() == "CHANGES_REQUESTED":
@@ -406,6 +478,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--require-no-failing-checks", type=bool_arg, default=True, help="Require no failing checks. Default: true.")
     parser.add_argument("--allowed-file-patterns", action="append", help="Comma-separated additional/replacement allowed file patterns.")
     parser.add_argument("--forbidden-file-patterns", action="append", help="Comma-separated additional/replacement forbidden file patterns.")
+    parser.add_argument(
+        "--execution-gate-decision",
+        type=Path,
+        default=DEFAULT_EXECUTION_GATE_DECISION_PATH,
+        help=f"Experiment execution gate decision path. Default: {DEFAULT_EXECUTION_GATE_DECISION_PATH}",
+    )
     parser.add_argument("--proxy", default=DEFAULT_PROXY, help=f"HTTP(S)/ALL proxy. Default: {DEFAULT_PROXY}")
     return parser
 
@@ -484,6 +562,9 @@ def main() -> int:
     write_json(args.output_dir / "dualscope_safe_pr_merge_gate_file_scope_check.json", file_scope)
     write_json(args.output_dir / "dualscope_safe_pr_merge_gate_review_check.json", review_check)
     write_json(args.output_dir / "dualscope_safe_pr_merge_gate_ci_check.json", ci_check)
+    execution_task_id = infer_execution_task_id(pr_status)
+    execution_gate = read_execution_gate_decision(args.execution_gate_decision, execution_task_id)
+    write_json(args.output_dir / "dualscope_safe_pr_merge_gate_execution_gate_check.json", execution_gate)
 
     if args.pr == 14:
         blockers.append({"kind": "blocked_legacy_pr", "message": "PR #14 is explicitly excluded from unattended merge."})
@@ -497,6 +578,13 @@ def main() -> int:
         blockers.append({"kind": "requested_changes", "message": "PR has requested changes."})
     if args.require_no_failing_checks and ci_check.get("failing_checks"):
         blockers.append({"kind": "failing_checks", "message": "PR has failing CI checks."})
+    if execution_gate.get("gate_required") and not execution_gate.get("merge_allowed_by_execution_gate"):
+        blockers.append(
+            {
+                "kind": "experiment_execution_gate_failed",
+                "message": str(execution_gate.get("reason") or "Experiment execution gate did not pass."),
+            }
+        )
     codex_review_required = args.require_codex_review and not args.allow_auto_merge_without_review
     review_missing_but_user_authorized = bool(
         args.allow_auto_merge_without_review
@@ -551,6 +639,10 @@ def main() -> int:
         "failing_checks": ci_check.get("failing_checks") or [],
         "ci_state": ci_check.get("ci_state"),
         "file_scope_allowed": file_scope.get("file_scope_allowed"),
+        "execution_task_id": execution_task_id,
+        "experiment_execution_gate": execution_gate,
+        "experiment_execution_gate_passed": execution_gate.get("execution_gate_passed"),
+        "merge_allowed_by_execution_gate": execution_gate.get("merge_allowed_by_execution_gate"),
         "blocked_files": file_scope.get("blocked_files", []),
         "allowed_outputs_artifacts": file_scope.get("allowed_outputs_artifacts", []),
         "allowed_verdict_registry_files": file_scope.get("allowed_verdict_registry_files", []),
