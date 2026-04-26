@@ -346,17 +346,22 @@ def build_metric_blocker_closure(
         runtime_audit=runtime_audit,
     )
     blocked_categories = [name for name, payload in categories.items() if payload.get("blocked")]
+    detection_computed = detection.get("summary_status") == "PASS"
+    asr_computed = asr.get("summary_status") == "PASS"
+    clean_utility_computed = utility.get("summary_status") == "PASS"
     metrics_available = (
-        detection.get("summary_status") == "PASS"
-        and asr.get("summary_status") == "PASS"
-        and utility.get("summary_status") == "PASS"
+        detection_computed
+        and asr_computed
+        and clean_utility_computed
     )
+    partial_metric_progress = detection_computed or asr_computed
     repair_only = bool(blocked_categories) and set(blocked_categories).issubset(
         {
             "missing_final_risk_score",
             "missing_detection_label_alignment",
             "missing_asr_inputs",
             "missing_utility_inputs",
+            "missing_response_artifacts",
             "logprob_unavailable_fallback",
             "runtime_errors",
         }
@@ -366,7 +371,7 @@ def build_metric_blocker_closure(
         final_verdict = FINAL_VALIDATED
         next_task = "dualscope-qwen2p5-7b-first-slice-result-package"
         summary_status = "PASS"
-    elif repair_only:
+    elif repair_only and partial_metric_progress:
         final_verdict = FINAL_PARTIAL
         next_task = "dualscope-qwen2p5-7b-metric-computation-repair"
         summary_status = "PARTIAL"
@@ -386,9 +391,10 @@ def build_metric_blocker_closure(
         "prior_metric_task_verdict": prior.get("verdict"),
         "metric_cli_final_verdict": metric_summary.get("final_verdict"),
         "metric_cli_aligned_row_count": metric_summary.get("aligned_metric_row_count", 0),
-        "detection_metrics_computed": detection.get("summary_status") == "PASS",
-        "asr_computed": asr.get("summary_status") == "PASS",
-        "clean_utility_computed": utility.get("summary_status") == "PASS",
+        "detection_metrics_computed": detection_computed,
+        "asr_computed": asr_computed,
+        "clean_utility_computed": clean_utility_computed,
+        "partial_metric_progress": partial_metric_progress,
         "blocked_categories": blocked_categories,
         "benchmark_truth_changed": False,
         "gate_changed": False,

@@ -650,6 +650,45 @@ The Markdown text is for humans; the fenced JSON block is the source of truth.
       "next_task_if_not_validated": "dualscope-qwen2p5-7b-metric-blocker-closure"
     },
     {
+      "task_id": "dualscope-qwen2p5-7b-metric-computation-repair",
+      "purpose": "Repair the partially validated Qwen2.5-7B label-aligned metric computation by preserving real computed detection/ASR metrics, documenting unavailable clean utility inputs, and producing a metric package that can safely feed the first-slice result package.",
+      "expected_inputs": [
+        ".plans/dualscope-qwen2p5-7b-metric-blocker-closure.md",
+        ".reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-label-aligned-metric-computation.json",
+        ".reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-metric-blocker-closure.json",
+        "outputs/dualscope_qwen2p5_7b_label_aligned_metric_computation/default",
+        "outputs/dualscope_qwen2p5_7b_metric_blocker_closure/default",
+        "outputs/dualscope_qwen2p5_7b_first_slice_response_generation/default"
+      ],
+      "expected_outputs": [
+        ".plans/dualscope-qwen2p5-7b-metric-computation-repair.md",
+        "docs/dualscope_qwen2p5_7b_metric_computation_repair.md",
+        ".reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-metric-computation-repair.json",
+        "outputs/dualscope_qwen2p5_7b_metric_computation_repair/default",
+        "outputs/dualscope_qwen2p5_7b_metric_computation_repair_analysis/default"
+      ],
+      "branch_name_suggestion": "codex/qwen2p5-7b-metric-computation-repair",
+      "prompt_template": "Continue DualScope-LLM task `{task_id}`. Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, DUALSCOPE_TASK_QUEUE.md, Qwen2.5-7B metric computation artifacts, and metric blocker closure artifacts first. This is a metric repair task, not a plan-only task. Preserve and audit real computed metrics from `outputs/dualscope_qwen2p5_7b_label_aligned_metric_computation/default`: detection metrics and ASR may be reported only if their artifact status is PASS and they were computed from real Qwen2.5-7B response rows. Clean utility must remain blocked unless explicit utility success/reference-match fields exist. Produce a repair package under `outputs/dualscope_qwen2p5_7b_metric_computation_repair/default` that includes a metric availability matrix, real metric summary, unavailable metric blockers, limitations, and next-step recommendation. If the existing metric CLI has not been run in the current worktree, run `.venv/bin/python scripts/build_dualscope_qwen2p5_7b_label_aligned_metric_computation.py --labeled-pairs data/stanford_alpaca/first_slice/alpaca_first_slice_labeled_pairs.jsonl --response-dir outputs/dualscope_qwen2p5_7b_first_slice_response_generation/default --condition-level-dir outputs/dualscope_minimal_first_slice_condition_level_rerun/default --output-dir outputs/dualscope_qwen2p5_7b_label_aligned_metric_computation/default --no-full-matrix` or an equivalent supported invocation. Do not infer clean utility from free text. Do not fabricate AUROC, AUPRC, F1, accuracy, ASR, clean utility, responses, logprobs, labels, or final_risk_score. Do not modify benchmark truth or gates, do not continue route_c, do not generate 199+, do not run a full matrix, and do not train models. Final verdicts: `Qwen2.5-7B metric computation repair validated`, `Partially validated`, or `Not validated`. If detection metrics and ASR are real and clean utility blocker is explicit, next task may be `dualscope-qwen2p5-7b-first-slice-result-package` with limitations. If essential detection metrics are unavailable, route back to `dualscope-qwen2p5-7b-metric-blocker-closure`. Follow AGENTS.md PR workflow without force push, branch deletion, remote rewrite, or merging unrelated PRs.",
+      "completion_verdicts": {
+        "validated": [
+          "Qwen2.5-7B metric computation repair validated"
+        ],
+        "partially_validated": [
+          "Partially validated"
+        ],
+        "not_validated": [
+          "Not validated"
+        ]
+      },
+      "verdict_artifacts": [
+        "outputs/dualscope_qwen2p5_7b_metric_computation_repair/default/dualscope_qwen2p5_7b_metric_computation_repair_verdict.json",
+        "outputs/dualscope_qwen2p5_7b_metric_computation_repair_analysis/default/dualscope_qwen2p5_7b_metric_computation_repair_verdict.json"
+      ],
+      "next_task_if_validated": "dualscope-qwen2p5-7b-first-slice-result-package",
+      "next_task_if_partially_validated": "dualscope-qwen2p5-7b-first-slice-result-package",
+      "next_task_if_not_validated": "dualscope-qwen2p5-7b-metric-blocker-closure"
+    },
+    {
       "task_id": "dualscope-qwen2p5-7b-first-slice-result-package",
       "purpose": "Package Qwen2.5-7B first-slice results and limitations.",
       "expected_inputs": [
