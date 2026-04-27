@@ -108,6 +108,36 @@ ADV_BENCH_SMALL_SLICE_REQUIRED_FIELDS = {
     "source_index",
 }
 ADV_BENCH_SMALL_SLICE_RESPONSE_FIELDS = {"reference_response", "expected_behavior"}
+JBB_SMALL_SLICE_PATH = "data/jbb/small_slice/jbb_small_slice_source.jsonl"
+JBB_SMALL_SLICE_SOURCE_DATASET = "JailbreakBench/JBB-Behaviors"
+JBB_SMALL_SLICE_MAX_ROWS = 32
+JBB_SMALL_SLICE_REQUIRED_FIELDS = {
+    "sample_id",
+    "dataset_id",
+    "source_dataset",
+    "source_url",
+    "source_split",
+    "source_index",
+    "behavior_category",
+    "behavior_text",
+    "trigger_family",
+    "trigger_text",
+    "target_family",
+    "target_descriptor",
+    "split",
+    "license_status",
+    "safety_notes",
+    "readiness_notes",
+}
+JBB_SMALL_SLICE_FALSE_FIELDS = {
+    "benchmark_truth_changed",
+    "data_fabricated",
+    "model_output_fabricated",
+    "model_response_fabricated",
+    "labels_fabricated",
+    "logprobs_fabricated",
+    "metrics_fabricated",
+}
 BENCHMARK_TRUTH_MUTATION_MARKERS = {
     "benchmark truth mutation",
     "benchmark_truth_mutation",
@@ -370,6 +400,87 @@ def validate_advbench_small_slice_file(
     return check
 
 
+def validate_jbb_small_slice_file(
+    path: str,
+    pr: dict[str, Any],
+    repo_full_name: str | None,
+    proxy: str,
+) -> dict[str, Any]:
+    check: dict[str, Any] = {
+        "path": path,
+        "valid": False,
+        "schema_valid": False,
+        "reason": "",
+        "row_count": 0,
+        "max_rows": JBB_SMALL_SLICE_MAX_ROWS,
+        "source_dataset": None,
+        "required_fields": sorted(JBB_SMALL_SLICE_REQUIRED_FIELDS),
+        "false_fields": sorted(JBB_SMALL_SLICE_FALSE_FIELDS),
+    }
+    if path != JBB_SMALL_SLICE_PATH:
+        check["reason"] = "not_authorized_jbb_small_slice_path"
+        return check
+    if not path.endswith(".jsonl"):
+        check["reason"] = "jbb_small_slice_not_jsonl"
+        return check
+
+    content = fetch_pr_file_text(path, pr.get("headRefName"), repo_full_name, proxy)
+    if content is None:
+        check["reason"] = "unable_to_fetch_jbb_small_slice"
+        return check
+
+    lines = content.splitlines()
+    check["row_count"] = len(lines)
+    if len(lines) > JBB_SMALL_SLICE_MAX_ROWS:
+        check["reason"] = "jbb_small_slice_row_count_exceeds_32"
+        return check
+
+    source_datasets: set[str] = set()
+    row_errors: list[dict[str, Any]] = []
+    for index, line in enumerate(lines, start=1):
+        if not line.strip():
+            row_errors.append({"line": index, "reason": "blank_line"})
+            continue
+        try:
+            parsed = json.loads(line)
+        except json.JSONDecodeError as exc:
+            row_errors.append({"line": index, "reason": "invalid_json", "detail": str(exc)})
+            continue
+        if not isinstance(parsed, dict):
+            row_errors.append({"line": index, "reason": "json_row_not_object"})
+            continue
+        missing = sorted(JBB_SMALL_SLICE_REQUIRED_FIELDS.difference(parsed))
+        if missing:
+            row_errors.append({"line": index, "reason": "missing_required_fields", "fields": missing})
+        source_dataset = parsed.get("source_dataset")
+        source_datasets.add(str(source_dataset))
+        if source_dataset != JBB_SMALL_SLICE_SOURCE_DATASET:
+            row_errors.append(
+                {
+                    "line": index,
+                    "reason": "invalid_source_dataset",
+                    "source_dataset": source_dataset,
+                }
+            )
+        true_flags = sorted(field for field in JBB_SMALL_SLICE_FALSE_FIELDS if parsed.get(field) is True)
+        if true_flags:
+            row_errors.append({"line": index, "reason": "forbidden_true_flag", "fields": true_flags})
+        if has_benchmark_truth_mutation_marker(parsed):
+            row_errors.append({"line": index, "reason": "benchmark_truth_mutation_marker_present"})
+
+    check["source_dataset"] = JBB_SMALL_SLICE_SOURCE_DATASET if source_datasets == {JBB_SMALL_SLICE_SOURCE_DATASET} else sorted(source_datasets)
+    if row_errors:
+        check["reason"] = "jbb_small_slice_schema_invalid"
+        check["row_errors"] = row_errors[:20]
+        check["row_error_count"] = len(row_errors)
+        return check
+
+    check["valid"] = True
+    check["schema_valid"] = True
+    check["reason"] = "jbb_small_slice_valid"
+    return check
+
+
 def gh_pr_view(pr: int, repo: str | None, proxy: str) -> dict[str, Any]:
     command = ["gh", "pr", "view", str(pr), "--json", DETAIL_FIELDS]
     if repo:
@@ -572,12 +683,15 @@ def check_file_scope(
     allowed_dualscope_docs = []
     allowed_advbench_small_slice_files = []
     advbench_small_slice_checks = []
+    allowed_jbb_small_slice_files = []
+    jbb_small_slice_checks = []
     for path in files:
         allowed = any(fnmatch.fnmatch(path, pattern) for pattern in allowed_patterns)
         matched_forbidden = [pattern for pattern in forbidden_patterns if fnmatch.fnmatch(path, pattern)]
         if is_benign_gate_path_exception(path):
             matched_forbidden = [pattern for pattern in matched_forbidden if pattern != "*gate*"]
         advbench_small_slice_check: dict[str, Any] | None = None
+        jbb_small_slice_check: dict[str, Any] | None = None
         if path == ADV_BENCH_SMALL_SLICE_PATH:
             advbench_small_slice_check = validate_advbench_small_slice_file(path, pr, repo_full_name, proxy)
             advbench_small_slice_checks.append(advbench_small_slice_check)
@@ -586,6 +700,14 @@ def check_file_scope(
                 allowed_advbench_small_slice_files.append(path)
             else:
                 matched_forbidden.append(advbench_small_slice_check["reason"])
+        if path == JBB_SMALL_SLICE_PATH:
+            jbb_small_slice_check = validate_jbb_small_slice_file(path, pr, repo_full_name, proxy)
+            jbb_small_slice_checks.append(jbb_small_slice_check)
+            if jbb_small_slice_check["valid"]:
+                allowed = True
+                allowed_jbb_small_slice_files.append(path)
+            else:
+                matched_forbidden.append(jbb_small_slice_check["reason"])
         verdict_registry_check: dict[str, Any] | None = None
         if path.startswith(".reports/"):
             verdict_registry_check = validate_verdict_registry_file(path, pr, repo_full_name, proxy)
@@ -602,6 +724,7 @@ def check_file_scope(
             "forbidden_patterns": matched_forbidden,
             "verdict_registry_check": verdict_registry_check,
             "advbench_small_slice_check": advbench_small_slice_check,
+            "jbb_small_slice_check": jbb_small_slice_check,
         }
         rows.append(row)
         if allowed and path.startswith("outputs/"):
@@ -613,6 +736,7 @@ def check_file_scope(
     blocked_files = sorted({row["path"] for row in forbidden + not_allowed})
     file_scope_allowed = not forbidden and not not_allowed
     advbench_small_slice_check = advbench_small_slice_checks[0] if advbench_small_slice_checks else {}
+    jbb_small_slice_check = jbb_small_slice_checks[0] if jbb_small_slice_checks else {}
     return {
         "summary_status": "PASS" if file_scope_allowed else "FAIL",
         "file_scope_allowed": file_scope_allowed,
@@ -627,6 +751,11 @@ def check_file_scope(
         "advbench_small_slice_row_count": advbench_small_slice_check.get("row_count"),
         "advbench_small_slice_schema_valid": advbench_small_slice_check.get("schema_valid"),
         "advbench_small_slice_source_dataset": advbench_small_slice_check.get("source_dataset"),
+        "allowed_jbb_small_slice_files": allowed_jbb_small_slice_files,
+        "jbb_small_slice_checks": jbb_small_slice_checks,
+        "jbb_small_slice_row_count": jbb_small_slice_check.get("row_count"),
+        "jbb_small_slice_schema_valid": jbb_small_slice_check.get("schema_valid"),
+        "jbb_small_slice_source_dataset": jbb_small_slice_check.get("source_dataset"),
         "forbidden_patterns": forbidden_patterns,
         "files": rows,
         "forbidden_files": forbidden,
@@ -839,6 +968,10 @@ def main() -> int:
         "advbench_small_slice_row_count": file_scope.get("advbench_small_slice_row_count"),
         "advbench_small_slice_schema_valid": file_scope.get("advbench_small_slice_schema_valid"),
         "advbench_small_slice_source_dataset": file_scope.get("advbench_small_slice_source_dataset"),
+        "allowed_jbb_small_slice_files": file_scope.get("allowed_jbb_small_slice_files", []),
+        "jbb_small_slice_row_count": file_scope.get("jbb_small_slice_row_count"),
+        "jbb_small_slice_schema_valid": file_scope.get("jbb_small_slice_schema_valid"),
+        "jbb_small_slice_source_dataset": file_scope.get("jbb_small_slice_source_dataset"),
         "dangerous_actions": {
             "auto_merge_default": False,
             "force_push": False,
