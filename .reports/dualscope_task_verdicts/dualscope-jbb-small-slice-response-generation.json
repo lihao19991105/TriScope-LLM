@@ -1,0 +1,18 @@
+{
+  "task_id": "dualscope-jbb-small-slice-response-generation",
+  "verdict": "Partially validated",
+  "source_output_dir": "outputs/dualscope_jbb_small_slice_response_generation/default",
+  "created_at": "2026-04-27T11:30:23Z",
+  "validated": false,
+  "partially_validated": true,
+  "next_task": "dualscope-jbb-small-slice-response-generation-repair",
+  "dataset_id": "jbb",
+  "response_row_count": 0,
+  "blocked_row_count": 16,
+  "blocker_type": "torch_cuda_unavailable",
+  "model_response_fabricated": false,
+  "logprobs_fabricated": false,
+  "metrics_computed": false,
+  "benchmark_truth_changed": false,
+  "gate_changed": false
+}

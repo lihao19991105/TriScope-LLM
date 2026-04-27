@@ -1,0 +1,18 @@
+{
+  "task_id": "dualscope-jbb-small-slice-result-package",
+  "verdict": "Partially validated",
+  "source_output_dir": "outputs/dualscope_jbb_small_slice_result_package/default",
+  "created_at": "2026-04-27T11:30:51Z",
+  "validated": false,
+  "partially_validated": true,
+  "next_task": "dualscope-jbb-small-slice-result-package-repair",
+  "dataset_id": "jbb",
+  "response_row_count": 0,
+  "metrics_computed": false,
+  "asr": null,
+  "refusal_like_rate": null,
+  "clean_utility_computed": false,
+  "without_logprobs_fallback": true,
+  "full_matrix_executed": false,
+  "metrics_fabricated": false
+}
