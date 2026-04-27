@@ -1,0 +1,27 @@
+{
+  "dependency_status": {
+    "torch": true,
+    "transformers": true,
+    "bitsandbytes": false,
+    "accelerate": false
+  },
+  "runtime_preflight": {
+    "summary_status": "BLOCKED",
+    "selected_device": "cpu",
+    "selection": {
+      "summary_status": "FAIL",
+      "reason": "cuda_unavailable",
+      "selected_device": "cpu",
+      "selected_visible_index": null,
+      "selected_physical_index": null,
+      "selected_free_mib": null,
+      "visible_physical_indices": [],
+      "nvidia_smi_result": null
+    },
+    "min_free_gpu_memory_mib": 18432,
+    "allow_cpu_generation": false,
+    "blockers": [
+      "cuda_unavailable_cpu_generation_disabled"
+    ]
+  }
+}
