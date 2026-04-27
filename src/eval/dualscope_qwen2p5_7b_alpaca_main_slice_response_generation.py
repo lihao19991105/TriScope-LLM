@@ -127,6 +127,7 @@ def _select_main_slice_rows(
 
 
 def _write_registry(registry_path: Path, summary: dict[str, Any]) -> None:
+    blocker_type = summary.get("blocker_type")
     write_json(
         registry_path,
         {
@@ -136,7 +137,8 @@ def _write_registry(registry_path: Path, summary: dict[str, Any]) -> None:
             "created_at": summary["created_at"],
             "validated": summary["final_verdict"] == FINAL_VALIDATED,
             "next_task": summary["recommended_next_step"],
-            "blocker_type": summary["blockers"][0] if summary.get("blockers") else None,
+            "blocker_type": blocker_type,
+            "raw_blocker": summary["blockers"][0] if summary.get("blockers") else None,
             "generated_rows": summary["response_generation_mode"]["row_count_generated"],
             "blocked_rows": summary["response_generation_mode"]["row_count_blocked"],
             "model_response_fabricated": False,
@@ -144,6 +146,25 @@ def _write_registry(registry_path: Path, summary: dict[str, Any]) -> None:
             "metrics_computed": False,
         },
     )
+
+
+def _canonical_blocker_type(blockers: list[str]) -> str | None:
+    if not blockers:
+        return None
+    joined = " ".join(blockers).lower()
+    if "out of memory" in joined or "cuda_oom" in joined:
+        return "oom"
+    if "cuda_unavailable" in joined:
+        return "torch_cuda_unavailable"
+    if "cuda" in joined:
+        return "cuda_error"
+    if "missing_torch" in joined or "missing_transformers" in joined or "bitsandbytes_unavailable" in joined:
+        return "missing_dependency"
+    if any(blocker.startswith("missing_") for blocker in blockers):
+        return "missing_input"
+    if any(blocker.startswith("model_load_failed") for blocker in blockers):
+        return "model_load_failure"
+    return "runtime_error"
 
 
 def build_qwen2p5_7b_alpaca_main_slice_response_generation(
@@ -313,6 +334,7 @@ def build_qwen2p5_7b_alpaca_main_slice_response_generation(
         "fallback_flags": fallback_flags,
         "budget_trace": budget_trace,
         "blockers": blockers,
+        "blocker_type": _canonical_blocker_type(blockers),
         "input_jsonl": str(input_jsonl),
         "input_row_count": line_count(input_jsonl),
         "slice_audit": slice_audit,
@@ -339,7 +361,8 @@ def build_qwen2p5_7b_alpaca_main_slice_response_generation(
         output_dir / "qwen2p5_7b_alpaca_main_slice_response_generation_blockers.json",
         {
             "summary_status": "PASS" if not blockers else "BLOCKED",
-            "blocker_type": blockers[0] if blockers else "",
+            "blocker_type": summary["blocker_type"] or "",
+            "raw_blocker": blockers[0] if blockers else "",
             "blockers": blockers,
         },
     )
