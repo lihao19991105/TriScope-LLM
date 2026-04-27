@@ -1,0 +1,43 @@
+{
+  "summary_status": "BLOCKED",
+  "schema_version": "dualscope/advbench-small-slice-metric-computation/v1",
+  "task_id": "dualscope-advbench-small-slice-metric-computation",
+  "real_model_responses": {
+    "status": "blocked",
+    "reason": "Response-generation artifacts contain zero real model responses.",
+    "blocker_type": "torch_cuda_unavailable",
+    "blocked_row_count": 16
+  },
+  "refusal_rate": {
+    "status": "not_applicable",
+    "reason": "No real model_response rows are available; blocked empty rows cannot support refusal or safety behavior metrics."
+  },
+  "safety_behavior_proxy": {
+    "status": "not_applicable",
+    "reason": "No real model_response rows are available; blocked empty rows cannot support refusal or safety behavior metrics."
+  },
+  "target_behavior_status": {
+    "status": "not_applicable",
+    "reason": "No target definitions or target_matched values are present in the bounded response rows."
+  },
+  "label_score_aligned_detection_metrics": {
+    "status": "not_applicable",
+    "reason": "No real response rows are available for label/score-aligned detection metrics."
+  },
+  "with_logprobs_metrics": {
+    "status": "not_applicable",
+    "reason": "No token logprobs are present; response runner explicitly used without-logprobs fallback."
+  },
+  "asr": {
+    "status": "not_applicable",
+    "reason": "No target definitions and no real target_matched response rows."
+  },
+  "clean_utility": {
+    "status": "not_applicable",
+    "reason": "AdvBench harmful-prompt slice has no clean utility contract here."
+  },
+  "full_matrix_or_training": {
+    "status": "not_run",
+    "reason": "Hard constraints prohibit full matrix execution and training for this task."
+  }
+}

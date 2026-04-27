@@ -1,0 +1,112 @@
+{
+  "summary_status": "PARTIAL",
+  "schema_version": "dualscope/advbench-small-slice-metric-computation/v1",
+  "task_id": "dualscope-advbench-small-slice-metric-computation",
+  "created_at": "2026-04-27T09:23:48Z",
+  "response_availability": {
+    "summary_status": "PASS",
+    "schema_version": "dualscope/advbench-small-slice-metric-computation/v1",
+    "metric_name": "response_availability",
+    "response_jsonl_row_count": 16,
+    "selected_row_count_from_verdict": null,
+    "generated_row_count_from_verdict": 0,
+    "blocked_row_count_from_verdict": 16,
+    "real_response_row_count": 0,
+    "blocked_row_count": 16,
+    "fabricated_row_count": 0,
+    "response_availability_rate": 0.0,
+    "blocked_rate": 1.0,
+    "blocker_counts": {
+      "cuda_unavailable_cpu_generation_disabled": 16
+    },
+    "model_response_fabricated": false
+  },
+  "cost_fallback_summary": {
+    "summary_status": "PASS",
+    "schema_version": "dualscope/advbench-small-slice-metric-computation/v1",
+    "metric_name": "cost_fallback_summary",
+    "row_count": 16,
+    "generated_token_count_available_rows": 0,
+    "generated_token_count_sum": null,
+    "average_generated_tokens_per_real_response": null,
+    "without_logprobs_fallback_row_count": 16,
+    "without_logprobs_fallback_rate": 1.0,
+    "logprobs_available_row_count": 0,
+    "logprobs_available_rate": 0.0,
+    "with_logprobs_metrics_status": "not_applicable",
+    "with_logprobs_metric_blocker": "No token logprobs are present in bounded response rows.",
+    "source_blocker_type": "torch_cuda_unavailable",
+    "source_blockers": [
+      "cuda_unavailable_cpu_generation_disabled"
+    ],
+    "runtime_elapsed_seconds": null
+  },
+  "refusal_rate_and_safety_behavior_proxy": {
+    "summary_status": "NOT_APPLICABLE",
+    "schema_version": "dualscope/advbench-small-slice-metric-computation/v1",
+    "metric_name": "refusal_rate_and_safety_behavior_proxy",
+    "reason": "No real model_response rows are available; blocked empty rows cannot support refusal or safety behavior metrics.",
+    "real_response_row_count": 0,
+    "metrics_computed": false,
+    "refusal_rate": null,
+    "safety_behavior_proxy": {
+      "status": "not_applicable",
+      "safe_refusal_proxy_rate": null,
+      "unsafe_non_refusal_proxy_rate": null,
+      "proxy_limit": "Lexical refusal proxy only; not a substitute for a full safety classifier."
+    }
+  },
+  "target_behavior_status": {
+    "summary_status": "NOT_APPLICABLE",
+    "schema_version": "dualscope/advbench-small-slice-metric-computation/v1",
+    "metric_name": "target_behavior_status",
+    "reason": "No target definitions or target_matched values are present in the bounded response rows.",
+    "target_definitions_present": false,
+    "target_matched_field_present": false,
+    "metrics_computed": false
+  },
+  "label_score_aligned_detection_metrics": {
+    "summary_status": "NOT_APPLICABLE",
+    "schema_version": "dualscope/advbench-small-slice-metric-computation/v1",
+    "metric_name": "label_score_aligned_detection_metrics",
+    "reason": "No real response rows are available for label/score-aligned detection metrics.",
+    "real_response_row_count": 0,
+    "label_aligned_real_response_row_count": 0,
+    "score_label_aligned_real_response_row_count": 0,
+    "auroc": null,
+    "f1": null,
+    "tpr_at_fpr_1pct": null,
+    "precision": null,
+    "recall": null,
+    "metrics_computed": false
+  },
+  "unsupported_or_blocked_performance_metrics": {
+    "summary_status": "NOT_APPLICABLE",
+    "schema_version": "dualscope/advbench-small-slice-metric-computation/v1",
+    "metric_name": "unsupported_or_blocked_performance_metrics",
+    "auroc": {
+      "status": "not_applicable",
+      "reason": "No aligned labels and final_risk_score on real response rows."
+    },
+    "f1": {
+      "status": "not_applicable",
+      "reason": "No aligned labels, final_risk_score, and threshold on real response rows."
+    },
+    "asr": {
+      "status": "not_applicable",
+      "reason": "No target definitions and no real target_matched response rows."
+    },
+    "clean_utility": {
+      "status": "not_applicable",
+      "reason": "AdvBench harmful-prompt slice has no clean utility contract here."
+    },
+    "with_logprobs_metrics": {
+      "status": "not_applicable",
+      "reason": "No logprobs are present in the bounded artifacts."
+    },
+    "full_paper_performance": {
+      "status": "not_applicable",
+      "reason": "This is a blocked bounded small-slice artifact package, not full-matrix evidence."
+    }
+  }
+}

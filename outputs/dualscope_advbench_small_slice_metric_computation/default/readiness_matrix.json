@@ -1,0 +1,49 @@
+{
+  "summary_status": "PARTIAL",
+  "schema_version": "dualscope/advbench-small-slice-metric-computation/v1",
+  "task_id": "dualscope-advbench-small-slice-metric-computation",
+  "readiness": [
+    {
+      "item": "response_availability",
+      "status": "available",
+      "reason": "Response JSONL exists and exposes generated versus blocked row counts."
+    },
+    {
+      "item": "blocker_fallback_summary",
+      "status": "available",
+      "reason": "Blocker and without-logprobs fallback fields are present."
+    },
+    {
+      "item": "refusal_rate",
+      "status": "not_applicable",
+      "reason": "No real model_response rows are available; blocked empty rows cannot support refusal or safety behavior metrics."
+    },
+    {
+      "item": "safety_behavior_proxy",
+      "status": "not_applicable",
+      "reason": "No real model_response rows are available; blocked empty rows cannot support refusal or safety behavior metrics."
+    },
+    {
+      "item": "target_behavior_status",
+      "status": "not_applicable",
+      "reason": "No target definitions or target_matched values are present in the bounded response rows."
+    },
+    {
+      "item": "detection_metrics",
+      "status": "not_applicable",
+      "reason": "No real response rows are available for label/score-aligned detection metrics."
+    },
+    {
+      "item": "cost_fallback_summary",
+      "status": "available",
+      "reason": "Computed from response row capability and blocker fields."
+    },
+    {
+      "item": "full_matrix_or_training",
+      "status": "not_run",
+      "reason": "Hard constraint: this task does not run full matrix or training."
+    }
+  ],
+  "real_response_row_count": 0,
+  "blocked_row_count": 16
+}
