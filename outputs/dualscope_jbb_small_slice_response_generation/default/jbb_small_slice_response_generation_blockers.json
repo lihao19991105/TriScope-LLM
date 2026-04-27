@@ -1,5 +1,5 @@
 {
-  "schema_version": "dualscope/advbench-small-slice-response-generation/v1",
+  "schema_version": "dualscope/jbb-small-slice-response-generation/v1",
   "summary_status": "BLOCKED",
   "blocker_type": "missing_model_dir",
   "blockers": [

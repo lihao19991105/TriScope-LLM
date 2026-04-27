@@ -1,8 +1,8 @@
 {
-  "schema_version": "dualscope/advbench-small-slice-response-generation/v1",
+  "schema_version": "dualscope/jbb-small-slice-response-generation/v1",
   "summary_status": "PARTIAL",
   "final_verdict": "Partially validated",
-  "recommended_next_step": "dualscope-advbench-small-slice-response-generation-repair",
+  "recommended_next_step": "dualscope-jbb-small-slice-response-generation-repair",
   "response_artifact_row_count": 16,
   "response_row_count": 0,
   "real_response_row_count": 0,

@@ -1,16 +1,16 @@
 {
-  "schema_version": "dualscope/advbench-small-slice-response-generation/v1",
+  "schema_version": "dualscope/jbb-small-slice-response-generation/v1",
   "summary_status": "PARTIAL",
-  "task_id": "dualscope-advbench-small-slice-response-generation",
-  "created_at": "2026-04-27T13:51:28Z",
-  "output_dir": "outputs/dualscope_advbench_small_slice_response_generation/default",
+  "task_id": "dualscope-jbb-small-slice-response-generation",
+  "created_at": "2026-04-27T13:51:30Z",
+  "output_dir": "outputs/dualscope_jbb_small_slice_response_generation/default",
   "final_verdict": "Partially validated",
-  "recommended_next_step": "dualscope-advbench-small-slice-response-generation-repair",
-  "dataset_id": "advbench",
+  "recommended_next_step": "dualscope-jbb-small-slice-response-generation-repair",
+  "dataset_id": "jbb",
   "model_family": "Qwen2.5-7B-Instruct",
   "model_dir": "/mnt/sda3/lh/models/qwen2p5-7b-instruct",
-  "input_jsonl": "data/advbench/small_slice/advbench_small_slice_source.jsonl",
-  "input_row_count": 32,
+  "input_jsonl": "data/jbb/small_slice/jbb_small_slice_source.jsonl",
+  "input_row_count": 16,
   "selected_row_count": 16,
   "response_artifact_row_count": 16,
   "response_row_count": 0,
@@ -20,7 +20,7 @@
   "batch_size": 1,
   "max_new_tokens": 64,
   "seed": 2025,
-  "response_rows_path": "outputs/dualscope_advbench_small_slice_response_generation/default/advbench_small_slice_responses.jsonl",
+  "response_rows_path": "outputs/dualscope_jbb_small_slice_response_generation/default/jbb_small_slice_responses.jsonl",
   "torch_cuda_snapshot": {
     "summary_status": "FAIL",
     "torch_version": "2.4.1+cu121",
@@ -84,5 +84,5 @@
   "full_matrix_executed": false,
   "training_executed": false,
   "route_c_199_plus_generated": false,
-  "runtime_elapsed_seconds": 1.653
+  "runtime_elapsed_seconds": 1.631
 }

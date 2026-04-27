@@ -26,6 +26,7 @@ from src.eval.dualscope_qwen2p5_7b_first_slice_response_generation import (
 
 MODEL_FAMILY = "Qwen2.5-7B-Instruct"
 DEFAULT_MODEL_DIR = Path("/mnt/sda3/lh/models/qwen2p5-7b-instruct")
+REPO_MODEL_BINDING = Path("models/qwen2p5-7b-instruct")
 DEFAULT_JBB_SOURCE_URL = (
     "https://huggingface.co/datasets/JailbreakBench/JBB-Behaviors/"
     "resolve/main/data/harmful-behaviors.csv"
@@ -419,8 +420,26 @@ def _torch_cuda_snapshot() -> dict[str, Any]:
         }
 
 
+def _model_dir_binding_status(model_dir: Path) -> dict[str, Any]:
+    binding_exists = REPO_MODEL_BINDING.exists() or REPO_MODEL_BINDING.is_symlink()
+    return {
+        "expected_model_dir": str(DEFAULT_MODEL_DIR),
+        "received_model_dir": str(model_dir),
+        "uses_expected_model_dir": model_dir == DEFAULT_MODEL_DIR,
+        "repo_binding_path": str(REPO_MODEL_BINDING),
+        "repo_binding_exists": binding_exists,
+        "repo_binding_is_symlink": REPO_MODEL_BINDING.is_symlink(),
+        "repo_binding_resolved_path": str(REPO_MODEL_BINDING.resolve(strict=False)) if binding_exists else "",
+        "worktree_relative_model_dir_fallback_used": False,
+    }
+
+
 def _canonical_blocker_type(blockers: list[str], torch_snapshot: dict[str, Any]) -> str:
     joined = " ".join(blockers).lower()
+    if "missing_model_dir" in blockers:
+        return "missing_model_dir"
+    if "missing_input_jsonl" in blockers:
+        return "missing_input"
     if not torch_snapshot.get("cuda_available") and ("cuda" in joined or not blockers):
         return "torch_cuda_unavailable"
     if "out of memory" in joined or "cuda_oom" in joined or "oom" in joined:
@@ -432,6 +451,19 @@ def _canonical_blocker_type(blockers: list[str], torch_snapshot: dict[str, Any])
     if blockers:
         return "runtime_error"
     return ""
+
+
+def _write_external_gpu_generation_aliases(
+    *,
+    spec: BenchmarkSpec,
+    summary: dict[str, Any],
+    blockers_payload: dict[str, Any],
+    verdict: dict[str, Any],
+) -> None:
+    alias_dir = Path(f"outputs/dualscope_{spec.dataset_id}_small_slice_external_gpu_generation/default")
+    write_json(alias_dir / f"{spec.dataset_id}_external_gpu_generation_summary.json", summary)
+    write_json(alias_dir / f"{spec.dataset_id}_external_gpu_generation_blockers.json", blockers_payload)
+    write_json(alias_dir / f"{spec.dataset_id}_external_gpu_generation_verdict.json", verdict)
 
 
 def build_benchmark_small_slice_external_gpu_generation(
@@ -458,6 +490,8 @@ def build_benchmark_small_slice_external_gpu_generation(
         raise ValueError("Benchmark response generation requires 1 <= --max-new-tokens <= 64.")
     if not allow_without_logprobs:
         raise ValueError("--allow-without-logprobs is required; logprobs are not claimed.")
+    if not model_dir.is_absolute():
+        raise ValueError("--model-dir must be an absolute path; worktree-relative model paths are not allowed.")
 
     started = time.time()
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -525,7 +559,9 @@ def build_benchmark_small_slice_external_gpu_generation(
         "input_jsonl": str(input_jsonl),
         "input_row_count": len(source_rows),
         "selected_row_count": len(selected_rows),
+        "response_artifact_row_count": len(output_rows),
         "response_row_count": generated_count,
+        "real_response_row_count": generated_count,
         "blocked_row_count": blocked_count,
         "max_examples": max_examples,
         "batch_size": batch_size,
@@ -535,6 +571,7 @@ def build_benchmark_small_slice_external_gpu_generation(
         "torch_cuda_snapshot": torch_snapshot,
         "nvidia_smi_snapshot": nvidia_smi_snapshot(),
         "model_path_status": model_path_status(model_dir),
+        "model_dir_binding_status": _model_dir_binding_status(model_dir),
         "runtime": runtime,
         "blocker_type": blocker_type,
         "blockers": blockers,
@@ -562,7 +599,9 @@ def build_benchmark_small_slice_external_gpu_generation(
         "summary_status": summary_status,
         "final_verdict": final_verdict,
         "recommended_next_step": next_task,
+        "response_artifact_row_count": len(output_rows),
         "response_row_count": generated_count,
+        "real_response_row_count": generated_count,
         "blocker_type": "" if generated_count else blocker_type,
         "model_response_fabricated": False,
         "logprobs_fabricated": False,
@@ -577,7 +616,9 @@ def build_benchmark_small_slice_external_gpu_generation(
         "partially_validated": summary_status == "PARTIAL",
         "next_task": next_task,
         "dataset_id": spec.dataset_id,
+        "response_artifact_row_count": len(output_rows),
         "response_row_count": generated_count,
+        "real_response_row_count": generated_count,
         "blocked_row_count": blocked_count,
         "blocker_type": "" if generated_count else blocker_type,
         "model_response_fabricated": False,
@@ -592,6 +633,12 @@ def build_benchmark_small_slice_external_gpu_generation(
     write_json(output_dir / f"{spec.dataset_id}_small_slice_response_generation_summary.json", summary)
     write_json(output_dir / f"{spec.dataset_id}_small_slice_response_generation_blockers.json", blockers_payload)
     write_json(output_dir / f"{spec.dataset_id}_small_slice_response_generation_verdict.json", verdict)
+    _write_external_gpu_generation_aliases(
+        spec=spec,
+        summary=summary,
+        blockers_payload=blockers_payload,
+        verdict=verdict,
+    )
     write_markdown(
         output_dir / f"{spec.dataset_id}_small_slice_response_generation_report.md",
         f"DualScope {spec.display_name} Small-Slice Response Generation",

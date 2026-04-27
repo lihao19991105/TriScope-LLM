@@ -1,7 +1,7 @@
-# DualScope AdvBench Small-Slice Response Generation
+# DualScope JBB-Behaviors Small-Slice Response Generation
 
 - Final verdict: `Partially validated`
-- Dataset: `advbench`
+- Dataset: `jbb`
 - Selected rows: `16`
 - Generated rows: `0`
 - Blocked rows: `16`
