@@ -22,6 +22,10 @@ ALPACA_MAIN_SLICE_RESPONSE_REPAIR_TASK = "dualscope-qwen2p5-7b-alpaca-main-slice
 ALPACA_MAIN_SLICE_RESPONSE_DEPENDENCY_REPAIR_TASK = (
     "dualscope-qwen2p5-7b-alpaca-main-slice-response-dependency-repair"
 )
+WORKTREE_RUNTIME_READINESS_REPAIR_TASK = "dualscope-worktree-gpu-bnb-input-readiness-repair"
+ALPACA_MAIN_SLICE_BOUNDED_RESPONSE_RETRY_TASK = (
+    "dualscope-qwen2p5-7b-alpaca-main-slice-bounded-response-generation-retry"
+)
 VALID_BLOCKER_TYPES = {
     "oom",
     "model_load_failure",
@@ -31,8 +35,17 @@ VALID_BLOCKER_TYPES = {
     "torch_cuda_unavailable",
     "accelerate_unavailable",
     "missing_dependency",
+    "requested_4bit_but_bitsandbytes_unavailable",
     "logprob_unavailable",
     "missing_input",
+    "missing_input_jsonl",
+    "missing_labeled_pairs",
+    "missing_model_dir",
+    "missing_target_response_plan_dir",
+    "missing_alpaca_main_slice_plan_dir",
+    "nvidia_smi_unavailable",
+    "hf_home_not_writable",
+    "tmpdir_not_writable",
     "runtime_error",
 }
 EXECUTION_REQUIRED_TASKS = {
@@ -40,6 +53,8 @@ EXECUTION_REQUIRED_TASKS = {
     ALPACA_MAIN_SLICE_RESPONSE_TASK,
     ALPACA_MAIN_SLICE_RESPONSE_REPAIR_TASK,
     ALPACA_MAIN_SLICE_RESPONSE_DEPENDENCY_REPAIR_TASK,
+    WORKTREE_RUNTIME_READINESS_REPAIR_TASK,
+    ALPACA_MAIN_SLICE_BOUNDED_RESPONSE_RETRY_TASK,
 }
 
 
@@ -123,6 +138,31 @@ REQUIRED_ARTIFACTS: dict[str, RequiredArtifactSpec] = {
                 "qwen2p5_7b_alpaca_main_slice_response_generation_repair_blockers.json"
             ),
             Path("outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation_repair/default/blockers.json"),
+        ),
+    ),
+    WORKTREE_RUNTIME_READINESS_REPAIR_TASK: RequiredArtifactSpec(
+        response_paths=(),
+        blocker_paths=(
+            Path("outputs/dualscope_worktree_gpu_bnb_input_readiness_repair/default/runtime_readiness_blockers.json"),
+        ),
+    ),
+    ALPACA_MAIN_SLICE_BOUNDED_RESPONSE_RETRY_TASK: RequiredArtifactSpec(
+        response_paths=(
+            Path(
+                "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation/default/"
+                "qwen2p5_7b_alpaca_main_slice_responses.jsonl"
+            ),
+            Path(
+                "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation/default/"
+                "qwen2p5_7b_alpaca_main_slice_response_rows.jsonl"
+            ),
+        ),
+        blocker_paths=(
+            Path(
+                "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation/default/"
+                "qwen2p5_7b_alpaca_main_slice_response_generation_blockers.json"
+            ),
+            Path("outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation/default/blockers.json"),
         ),
     ),
 }
@@ -285,10 +325,22 @@ def evaluate_experiment_execution_gate(
     blocker_type = next((item for item in blocker_types if item in VALID_BLOCKER_TYPES), blocker_types[0] if blocker_types else "")
     blocker_artifact_present = bool(blocker_type)
     blocker_type_valid = blocker_type in VALID_BLOCKER_TYPES
+    readiness_verdict = read_json(
+        worktree_dir
+        / "outputs/dualscope_worktree_gpu_bnb_input_readiness_repair/default/runtime_readiness_verdict.json"
+    )
+    readiness_validated = (
+        task_id == WORKTREE_RUNTIME_READINESS_REPAIR_TASK
+        and isinstance(readiness_verdict, dict)
+        and readiness_verdict.get("final_verdict") == "Worktree GPU/BnB/input readiness validated"
+    )
 
     if not gate_required:
         passed = True
         reason = "task_not_execution_required"
+    elif readiness_validated:
+        passed = True
+        reason = "runtime_readiness_validated"
     elif response_artifact_present:
         passed = True
         reason = "response_artifact_present"
@@ -314,6 +366,7 @@ def evaluate_experiment_execution_gate(
         "response_row_count": response_row_count,
         "blocker_artifact_present": blocker_artifact_present,
         "blocker_type": blocker_type,
+        "runtime_readiness_validated": readiness_validated,
         **scope,
         "execution_gate_passed": passed,
         "merge_allowed_by_execution_gate": passed,
