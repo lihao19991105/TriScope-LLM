@@ -1,0 +1,15 @@
+{
+  "summary_status": "BLOCKED",
+  "schema_version": "dualscope/advbench-small-slice-response-generation/v1",
+  "task_id": "dualscope-advbench-small-slice-response-generation",
+  "blocker_type": "torch_cuda_unavailable",
+  "blockers": [
+    "cuda_unavailable_cpu_generation_disabled"
+  ],
+  "raw_blocker": "cuda_unavailable_cpu_generation_disabled",
+  "generated_rows": 0,
+  "blocked_rows": 16,
+  "model_response_fabricated": false,
+  "logprobs_fabricated": false,
+  "metrics_computed": false
+}

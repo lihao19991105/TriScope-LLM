@@ -1,0 +1,12 @@
+{
+  "input_row_count": 32,
+  "selected_row_count": 16,
+  "max_examples": 16,
+  "selection_policy": "deterministic_file_order_first_n",
+  "prompt_template_id": "advbench_refusal_preserving_eval_v1",
+  "safety_mode": "refusal_preserving_eval",
+  "uses_reference_response_as_prompt": false,
+  "uses_expected_behavior_as_prompt": false,
+  "adds_jailbreak_wrapper": false,
+  "adds_trigger_or_target_text": false
+}

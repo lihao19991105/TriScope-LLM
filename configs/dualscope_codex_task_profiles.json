@@ -1,0 +1,143 @@
+{
+  "schema_version": "dualscope/codex-task-profiles/v1",
+  "selected_model": "gpt-5.5",
+  "valid_efforts": [
+    "medium",
+    "high",
+    "xhigh"
+  ],
+  "required_config_key": "model_reasoning_effort",
+  "forbidden_parameters": [
+    "--reasoning-effort",
+    "reasoning_effort"
+  ],
+  "effort_rules": {
+    "medium": [
+      "status",
+      "progress",
+      "docs",
+      "prompt",
+      "queue-docs",
+      "report",
+      "small-edit"
+    ],
+    "high": [
+      "autorun",
+      "long-autorun",
+      "pr-workflow",
+      "code-fix",
+      "cli-fix",
+      "artifact-fix",
+      "metric-computation",
+      "response-generation",
+      "dataset-materialization",
+      "blocker-repair",
+      "safe-merge-check",
+      "result-package"
+    ],
+    "xhigh": [
+      "root-cause",
+      "architecture",
+      "gate-design",
+      "execution-gate",
+      "safe-merge-gate",
+      "worktree-runner",
+      "task-orchestrator",
+      "blocker-loop",
+      "experiment-design",
+      "paper-method",
+      "paper-writing",
+      "complex-debug",
+      "external-gpu"
+    ]
+  },
+  "task_types": {
+    "status": "medium",
+    "long-autorun": "high",
+    "root-cause": "xhigh",
+    "safe-merge-gate": "xhigh",
+    "execution-gate": "xhigh",
+    "task-orchestrator": "xhigh",
+    "worktree-runner": "xhigh",
+    "external-gpu": "xhigh",
+    "dataset-materialization": "high",
+    "response-generation": "high",
+    "metric-computation": "high",
+    "result-package": "high",
+    "paper-method": "xhigh",
+    "paper-writing": "xhigh"
+  },
+  "profiles": {
+    "status": {
+      "effort": "medium",
+      "purpose": "Check current experiment progress, open PRs, next task, blockers, and main workspace state.",
+      "prompt_template": "Inspect DualScope status only. Report current branch, dirty paths, open PRs excluding PR #14 handling, latest task selection, blockers, and next safe action. Do not modify files unless explicitly requested."
+    },
+    "long-autorun": {
+      "effort": "high",
+      "purpose": "Start long DualScope autorun from clean main.",
+      "command_template": ".venv/bin/python scripts/dualscope_autorun_loop.py \\\n  --execute \\\n  --use-worktrees \\\n  --enable-safe-auto-merge \\\n  --safe-merge-current-task-pr \\\n  --allow-auto-merge-without-review \\\n  --max-iterations 30 \\\n  --max-minutes 360 \\\n  --allow-review-pending-continue \\\n  --stop-on-requested-changes \\\n  --stop-on-failing-checks \\\n  --codex-extra-args \"--cd {worktree_path} --full-auto --model gpt-5.5 -c model_reasoning_effort=\\\"high\\\"\" \\\n  --output-dir outputs/dualscope_autorun_loop/default",
+      "prompt_template": "Run or prepare the long DualScope autorun command from clean main. Use worktrees, safe auto merge, stop on requested changes or failing checks, and do not run GPU generation inside CUDA-invisible Codex sandbox. Long autorun uses high effort, not xhigh."
+    },
+    "root-cause": {
+      "effort": "xhigh",
+      "purpose": "Analyze complex blockers and identify minimal safe repair.",
+      "prompt_template": "Perform root-cause analysis for the provided blocker. Read logs, verdict registries, task selection, PR gate output, and worktree runner output. Produce a minimal repair plan or stop on non-auto-fixable blockers."
+    },
+    "safe-merge-gate": {
+      "effort": "xhigh",
+      "purpose": "Repair safe merge gate allowlist, diagnostics, and PR merge false positives.",
+      "prompt_template": "Diagnose and repair safe merge gate blockers only when they are narrow allowlist or diagnostics false positives. Do not weaken benchmark truth, route_c, data, secret, or gate semantic protections."
+    },
+    "execution-gate": {
+      "effort": "xhigh",
+      "purpose": "Repair experiment execution gate enforcement.",
+      "prompt_template": "Ensure execution-required tasks have real response, metric, result, materialization, or synthesis artifacts, or explicit blocker JSON. Do not allow plan/docs/registry-only PRs to count as experiment completion."
+    },
+    "task-orchestrator": {
+      "effort": "xhigh",
+      "purpose": "Repair queue routing, prompt availability, verdict registry, and next_task errors.",
+      "prompt_template": "Diagnose task orchestrator routing. Fix missing prompts, verdict registry selection, partial repair loops, next_task errors, and queue entries without bypassing blockers or fabricating artifacts."
+    },
+    "worktree-runner": {
+      "effort": "xhigh",
+      "purpose": "Repair worktree dependency materialization, readonly refs, temp clone fallback, and PR fallback.",
+      "prompt_template": "Diagnose worktree runner failures, dependency materialization, clean main detection, readonly refs, temp clone fallback, PR creation fallback, and runtime dirty classification."
+    },
+    "external-gpu": {
+      "effort": "xhigh",
+      "purpose": "Move real Qwen2.5-7B generation to host GPU-visible shell or external runner.",
+      "prompt_template": "Use external GPU runner design for real Qwen2.5-7B generation. First verify host nvidia-smi and torch.cuda. If unavailable, stop. If available, run bounded external generation and write real responses or explicit blockers."
+    },
+    "dataset-materialization": {
+      "effort": "high",
+      "purpose": "Materialize bounded AdvBench or JBB small slices with schema and provenance checks.",
+      "prompt_template": "Materialize only authorized bounded dataset slices. Enforce row limits, schema checks, provenance, blocker JSON, and no full dataset commits. Do not bypass gated permissions or fabricate rows."
+    },
+    "response-generation": {
+      "effort": "high",
+      "purpose": "Run bounded real Qwen2.5-7B response generation or record explicit blockers.",
+      "prompt_template": "Run bounded response generation only in an allowed GPU-visible environment. Use safety-aware prompts, max_examples limits, batch_size=1, max_new_tokens limits, without-logprobs fallback, and explicit blocker artifacts."
+    },
+    "metric-computation": {
+      "effort": "high",
+      "purpose": "Compute real available metrics without fabricating blocked metrics.",
+      "prompt_template": "Compute only metrics supported by real artifacts. Report blocked AUROC, F1, ASR, clean utility, or logprob metrics explicitly when unavailable. Do not promote placeholders."
+    },
+    "result-package": {
+      "effort": "high",
+      "purpose": "Package real results, blocked metrics, limitations, and next steps.",
+      "prompt_template": "Create result packages that separate real metrics, fallback evidence, blockers, and limitations. Do not claim full matrix or full paper performance."
+    },
+    "paper-method": {
+      "effort": "xhigh",
+      "purpose": "Design paper methodology, threat model, experiments, and ablations.",
+      "prompt_template": "Work on DualScope methodology, threat model, experimental matrix, ablations, cost analysis, and with/without-logprobs design. Keep claims aligned with actual artifacts."
+    },
+    "paper-writing": {
+      "effort": "xhigh",
+      "purpose": "Draft or revise paper text, proposal text, and experiment analysis.",
+      "prompt_template": "Write or revise paper text using honest evidence boundaries. Do not turn bounded smoke or blocked metrics into full performance claims."
+    }
+  }
+}
