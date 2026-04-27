@@ -1,0 +1,14 @@
+{
+  "task_id": "dualscope-advbench-small-slice-download-repair",
+  "verdict": "AdvBench small-slice download repair validated",
+  "validated": true,
+  "source_output_dir": "outputs/dualscope_advbench_small_slice_materialization/default",
+  "data_output_path": "data/advbench/small_slice/advbench_small_slice_source.jsonl",
+  "row_count": 32,
+  "source_dataset": "walledai/AdvBench",
+  "repair_for": "dualscope-advbench-small-slice-materialization",
+  "next_task": "dualscope-advbench-small-slice-response-generation-plan",
+  "data_fabricated": false,
+  "benchmark_truth_changed": false,
+  "gate_changed": false
+}
