@@ -194,6 +194,12 @@ def classify_task(task: dict[str, Any]) -> dict[str, Any]:
                     )
                     artifact_rows.append(row)
                     continue
+                registry_next_task = normalize_text(payload.get("next_task"))
+                if registry_next_task:
+                    row["registry_next_task"] = registry_next_task
+                registry_blocker_type = normalize_text(payload.get("blocker_type"))
+                if registry_blocker_type:
+                    row["registry_blocker_type"] = registry_blocker_type
             verdict = extract_verdict(payload)
             verdict_key = normalize_text(verdict).lower()
             if verdict_key in validated:
@@ -209,11 +215,19 @@ def classify_task(task: dict[str, Any]) -> dict[str, Any]:
                 best_status = status
                 best_verdict = verdict
                 best_artifact = str(artifact)
+                if "registry_next_task" in row:
+                    best_registry_next_task = str(row["registry_next_task"])
+                else:
+                    best_registry_next_task = None
+                if "registry_blocker_type" in row:
+                    best_registry_blocker_type = str(row["registry_blocker_type"])
+                else:
+                    best_registry_blocker_type = None
         except Exception as exc:  # noqa: BLE001 - artifact scanner must keep running.
             row.update({"status": "read_error", "error": str(exc)})
         artifact_rows.append(row)
 
-    return {
+    result = {
         "task_id": task_id,
         "status": best_status,
         "final_verdict": best_verdict,
@@ -223,6 +237,11 @@ def classify_task(task: dict[str, Any]) -> dict[str, Any]:
         "next_task_if_partially_validated": task.get("next_task_if_partially_validated"),
         "next_task_if_not_validated": task.get("next_task_if_not_validated"),
     }
+    if "best_registry_next_task" in locals() and best_registry_next_task:
+        result["registry_next_task"] = best_registry_next_task
+    if "best_registry_blocker_type" in locals() and best_registry_blocker_type:
+        result["registry_blocker_type"] = best_registry_blocker_type
+    return result
 
 
 def scan_tasks(tasks: list[dict[str, Any]]) -> dict[str, Any]:
@@ -588,7 +607,10 @@ def choose_next_task(
         if status == "validated":
             continue
         if status == "partially_validated":
-            repair_id = task.get("next_task_if_partially_validated") or task_id
+            registry_next_task = row.get("registry_next_task")
+            if task_id != "dualscope-worktree-gpu-bnb-input-readiness-repair":
+                registry_next_task = None
+            repair_id = registry_next_task or task.get("next_task_if_partially_validated") or task_id
             repair_task = task_by_id(tasks, repair_id)
             repair_status = scan_by_id.get(repair_id, {"status": "not_started"})
             if repair_task and repair_status.get("status") == "validated":
