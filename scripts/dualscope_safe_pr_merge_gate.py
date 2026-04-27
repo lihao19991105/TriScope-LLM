@@ -85,6 +85,30 @@ CODEX_REVIEW_PHRASES = (
     "did not find any major issues",
     "no major issues",
 )
+ADV_BENCH_SMALL_SLICE_PATH = "data/advbench/small_slice/advbench_small_slice_source.jsonl"
+ADV_BENCH_SMALL_SLICE_SOURCE_DATASET = "walledai/AdvBench"
+ADV_BENCH_SMALL_SLICE_MAX_ROWS = 32
+ADV_BENCH_SMALL_SLICE_REQUIRED_FIELDS = {
+    "sample_id",
+    "dataset_id",
+    "instruction",
+    "input",
+    "source_dataset",
+    "source_split",
+    "source_index",
+}
+ADV_BENCH_SMALL_SLICE_RESPONSE_FIELDS = {"reference_response", "expected_behavior"}
+BENCHMARK_TRUTH_MUTATION_MARKERS = {
+    "benchmark truth mutation",
+    "benchmark_truth_mutation",
+    "benchmark-truth-mutation",
+    "benchmark truth mutated",
+    "benchmark_truth_mutated",
+    "benchmark-truth-mutated",
+    "truth mutation",
+    "truth_mutation",
+    "truth-mutated",
+}
 
 
 def utc_now() -> str:
@@ -185,6 +209,24 @@ def fetch_pr_file_json(path: str, head_ref: str | None, repo_full_name: str | No
     return parsed if isinstance(parsed, dict) else None
 
 
+def fetch_pr_file_text(path: str, head_ref: str | None, repo_full_name: str | None, proxy: str) -> str | None:
+    if not head_ref or not repo_full_name:
+        return None
+    result = run_command(
+        ["gh", "api", f"repos/{repo_full_name}/contents/{path}", "--method", "GET", "-f", f"ref={head_ref}"],
+        proxy=proxy,
+        timeout=120,
+    )
+    if result["returncode"] != 0:
+        return None
+    try:
+        payload = json.loads(result.get("stdout") or "{}")
+        content = str(payload.get("content") or "").replace("\n", "")
+        return base64.b64decode(content).decode("utf-8")
+    except Exception:
+        return None
+
+
 def validate_verdict_registry_file(path: str, pr: dict[str, Any], repo_full_name: str | None, proxy: str) -> dict[str, Any]:
     row: dict[str, Any] = {"path": path, "valid": False, "reason": ""}
     if not fnmatch.fnmatch(path, ".reports/dualscope_task_verdicts/*.json"):
@@ -211,6 +253,111 @@ def validate_verdict_registry_file(path: str, pr: dict[str, Any], repo_full_name
         }
     )
     return row
+
+
+def iter_json_string_values(value: Any) -> list[str]:
+    if isinstance(value, str):
+        return [value]
+    if isinstance(value, dict):
+        values: list[str] = []
+        for key, item in value.items():
+            values.append(str(key))
+            values.extend(iter_json_string_values(item))
+        return values
+    if isinstance(value, list):
+        values = []
+        for item in value:
+            values.extend(iter_json_string_values(item))
+        return values
+    return []
+
+
+def has_benchmark_truth_mutation_marker(row: dict[str, Any]) -> bool:
+    for value in iter_json_string_values(row):
+        lowered = value.lower()
+        if any(marker in lowered for marker in BENCHMARK_TRUTH_MUTATION_MARKERS):
+            return True
+    return False
+
+
+def validate_advbench_small_slice_file(
+    path: str,
+    pr: dict[str, Any],
+    repo_full_name: str | None,
+    proxy: str,
+) -> dict[str, Any]:
+    check: dict[str, Any] = {
+        "path": path,
+        "valid": False,
+        "schema_valid": False,
+        "reason": "",
+        "row_count": 0,
+        "max_rows": ADV_BENCH_SMALL_SLICE_MAX_ROWS,
+        "source_dataset": None,
+        "required_fields": sorted(ADV_BENCH_SMALL_SLICE_REQUIRED_FIELDS),
+        "required_one_of_fields": sorted(ADV_BENCH_SMALL_SLICE_RESPONSE_FIELDS),
+    }
+    if path != ADV_BENCH_SMALL_SLICE_PATH:
+        check["reason"] = "not_authorized_advbench_small_slice_path"
+        return check
+    if not path.endswith(".jsonl"):
+        check["reason"] = "advbench_small_slice_not_jsonl"
+        return check
+
+    content = fetch_pr_file_text(path, pr.get("headRefName"), repo_full_name, proxy)
+    if content is None:
+        check["reason"] = "unable_to_fetch_advbench_small_slice"
+        return check
+
+    lines = content.splitlines()
+    check["row_count"] = len(lines)
+    if len(lines) > ADV_BENCH_SMALL_SLICE_MAX_ROWS:
+        check["reason"] = "advbench_small_slice_row_count_exceeds_32"
+        return check
+
+    source_datasets: set[str] = set()
+    row_errors: list[dict[str, Any]] = []
+    for index, line in enumerate(lines, start=1):
+        if not line.strip():
+            row_errors.append({"line": index, "reason": "blank_line"})
+            continue
+        try:
+            parsed = json.loads(line)
+        except json.JSONDecodeError as exc:
+            row_errors.append({"line": index, "reason": "invalid_json", "detail": str(exc)})
+            continue
+        if not isinstance(parsed, dict):
+            row_errors.append({"line": index, "reason": "json_row_not_object"})
+            continue
+        missing = sorted(ADV_BENCH_SMALL_SLICE_REQUIRED_FIELDS.difference(parsed))
+        if missing:
+            row_errors.append({"line": index, "reason": "missing_required_fields", "fields": missing})
+        if not any(field in parsed for field in ADV_BENCH_SMALL_SLICE_RESPONSE_FIELDS):
+            row_errors.append({"line": index, "reason": "missing_reference_response_or_expected_behavior"})
+        source_dataset = parsed.get("source_dataset")
+        source_datasets.add(str(source_dataset))
+        if source_dataset != ADV_BENCH_SMALL_SLICE_SOURCE_DATASET:
+            row_errors.append(
+                {
+                    "line": index,
+                    "reason": "invalid_source_dataset",
+                    "source_dataset": source_dataset,
+                }
+            )
+        if has_benchmark_truth_mutation_marker(parsed):
+            row_errors.append({"line": index, "reason": "benchmark_truth_mutation_marker_present"})
+
+    check["source_dataset"] = ADV_BENCH_SMALL_SLICE_SOURCE_DATASET if source_datasets == {ADV_BENCH_SMALL_SLICE_SOURCE_DATASET} else sorted(source_datasets)
+    if row_errors:
+        check["reason"] = "advbench_small_slice_schema_invalid"
+        check["row_errors"] = row_errors[:20]
+        check["row_error_count"] = len(row_errors)
+        return check
+
+    check["valid"] = True
+    check["schema_valid"] = True
+    check["reason"] = "advbench_small_slice_valid"
+    return check
 
 
 def gh_pr_view(pr: int, repo: str | None, proxy: str) -> dict[str, Any]:
@@ -413,11 +560,22 @@ def check_file_scope(
     allowed_verdict_registry_files = []
     invalid_verdict_registry_files = []
     allowed_dualscope_docs = []
+    allowed_advbench_small_slice_files = []
+    advbench_small_slice_checks = []
     for path in files:
         allowed = any(fnmatch.fnmatch(path, pattern) for pattern in allowed_patterns)
         matched_forbidden = [pattern for pattern in forbidden_patterns if fnmatch.fnmatch(path, pattern)]
         if is_benign_gate_path_exception(path):
             matched_forbidden = [pattern for pattern in matched_forbidden if pattern != "*gate*"]
+        advbench_small_slice_check: dict[str, Any] | None = None
+        if path == ADV_BENCH_SMALL_SLICE_PATH:
+            advbench_small_slice_check = validate_advbench_small_slice_file(path, pr, repo_full_name, proxy)
+            advbench_small_slice_checks.append(advbench_small_slice_check)
+            if advbench_small_slice_check["valid"]:
+                allowed = True
+                allowed_advbench_small_slice_files.append(path)
+            else:
+                matched_forbidden.append(advbench_small_slice_check["reason"])
         verdict_registry_check: dict[str, Any] | None = None
         if path.startswith(".reports/"):
             verdict_registry_check = validate_verdict_registry_file(path, pr, repo_full_name, proxy)
@@ -433,6 +591,7 @@ def check_file_scope(
             "allowed": allowed,
             "forbidden_patterns": matched_forbidden,
             "verdict_registry_check": verdict_registry_check,
+            "advbench_small_slice_check": advbench_small_slice_check,
         }
         rows.append(row)
         if allowed and path.startswith("outputs/"):
@@ -443,6 +602,7 @@ def check_file_scope(
             not_allowed.append(row)
     blocked_files = sorted({row["path"] for row in forbidden + not_allowed})
     file_scope_allowed = not forbidden and not not_allowed
+    advbench_small_slice_check = advbench_small_slice_checks[0] if advbench_small_slice_checks else {}
     return {
         "summary_status": "PASS" if file_scope_allowed else "FAIL",
         "file_scope_allowed": file_scope_allowed,
@@ -452,11 +612,17 @@ def check_file_scope(
         "allowed_verdict_registry_files": allowed_verdict_registry_files,
         "invalid_verdict_registry_files": invalid_verdict_registry_files,
         "allowed_dualscope_docs": allowed_dualscope_docs,
+        "allowed_advbench_small_slice_files": allowed_advbench_small_slice_files,
+        "advbench_small_slice_checks": advbench_small_slice_checks,
+        "advbench_small_slice_row_count": advbench_small_slice_check.get("row_count"),
+        "advbench_small_slice_schema_valid": advbench_small_slice_check.get("schema_valid"),
+        "advbench_small_slice_source_dataset": advbench_small_slice_check.get("source_dataset"),
         "forbidden_patterns": forbidden_patterns,
         "files": rows,
         "forbidden_files": forbidden,
         "not_allowed_files": not_allowed,
         "blocked_files": blocked_files,
+        "blocked_data_files": sorted(path for path in blocked_files if path.startswith("data/")),
     }
 
 
@@ -655,9 +821,14 @@ def main() -> int:
         "experiment_execution_gate_passed": execution_gate.get("execution_gate_passed"),
         "merge_allowed_by_execution_gate": execution_gate.get("merge_allowed_by_execution_gate"),
         "blocked_files": file_scope.get("blocked_files", []),
+        "blocked_data_files": file_scope.get("blocked_data_files", []),
         "allowed_outputs_artifacts": file_scope.get("allowed_outputs_artifacts", []),
         "allowed_verdict_registry_files": file_scope.get("allowed_verdict_registry_files", []),
         "allowed_dualscope_docs": file_scope.get("allowed_dualscope_docs", []),
+        "allowed_advbench_small_slice_files": file_scope.get("allowed_advbench_small_slice_files", []),
+        "advbench_small_slice_row_count": file_scope.get("advbench_small_slice_row_count"),
+        "advbench_small_slice_schema_valid": file_scope.get("advbench_small_slice_schema_valid"),
+        "advbench_small_slice_source_dataset": file_scope.get("advbench_small_slice_source_dataset"),
         "dangerous_actions": {
             "auto_merge_default": False,
             "force_push": False,
