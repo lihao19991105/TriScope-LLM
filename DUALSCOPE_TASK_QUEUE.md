@@ -1604,6 +1604,8 @@ The Markdown text is for humans; the fenced JSON block is the source of truth.
       "expected_outputs": [
         ".plans/dualscope-qwen2p5-7b-behavior-shift-target-smoke-response-generation.md",
         "docs/dualscope_qwen2p5_7b_behavior_shift_target_smoke_response_generation.md",
+        "src/eval/dualscope_qwen2p5_7b_behavior_shift_target_smoke_response_generation.py",
+        "scripts/build_dualscope_qwen2p5_7b_behavior_shift_target_smoke_response_generation.py",
         ".reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-behavior-shift-target-smoke-response-generation.json",
         "outputs/dualscope_qwen2p5_7b_behavior_shift_target_smoke_response_generation/default/behavior_shift_smoke_responses.jsonl",
         "outputs/dualscope_qwen2p5_7b_behavior_shift_target_smoke_response_generation/default/behavior_shift_smoke_summary.json",
