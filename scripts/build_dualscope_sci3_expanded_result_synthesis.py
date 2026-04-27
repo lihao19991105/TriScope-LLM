@@ -19,11 +19,15 @@ from src.eval.dualscope_benchmark_small_slice_external_gpu import (  # noqa: E40
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Build DualScope SCI3 expanded synthesis artifacts.")
-    parser.add_argument("--output-dir", type=Path, default=Path("outputs/dualscope_sci3_expanded_result_synthesis/default"))
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        default=Path("outputs/dualscope_sci3_expanded_result_synthesis_package/default"),
+    )
     parser.add_argument(
         "--registry-path",
         type=Path,
-        default=Path(".reports/dualscope_task_verdicts/dualscope-sci3-expanded-result-synthesis.json"),
+        default=Path(".reports/dualscope_task_verdicts/dualscope-sci3-expanded-result-synthesis-package.json"),
     )
     parser.add_argument("--seed", type=int, default=2025, help="Recorded for reproducibility; synthesis is deterministic.")
     return parser
