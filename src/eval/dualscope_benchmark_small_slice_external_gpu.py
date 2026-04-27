@@ -142,6 +142,10 @@ def spec_for(dataset_id: str) -> BenchmarkSpec:
     return BENCHMARK_SPECS[normalized]
 
 
+def verdict_display_name(spec: BenchmarkSpec) -> str:
+    return "JBB" if spec.dataset_id == "jbb" else spec.display_name
+
+
 def _first_string(row: dict[str, Any], keys: Iterable[str]) -> str:
     for key in keys:
         value = row.get(key)
@@ -726,8 +730,9 @@ def build_benchmark_small_slice_metrics(
             "average_extra_latency",
         ],
     }
-    final_verdict = f"{spec.display_name} small-slice metrics validated" if metrics_computed else "Partially validated"
-    next_task = spec.package_task_id if metrics_computed else f"{spec.metric_task_id}-repair"
+    final_verdict = f"{verdict_display_name(spec)} small-slice metrics validated" if metrics_computed else "Partially validated"
+    # Packaging is still useful for honest blocker reporting when all response rows are blocked.
+    next_task = spec.package_task_id
     summary = {
         "schema_version": availability["schema_version"],
         "summary_status": "PASS" if metrics_computed else "PARTIAL",
@@ -739,7 +744,9 @@ def build_benchmark_small_slice_metrics(
         "dataset_id": spec.dataset_id,
         "response_dir": str(response_dir),
         "response_rows_path": str(response_path),
+        "response_artifact_row_count": len(response_rows),
         "response_row_count": len(response_rows),
+        "real_response_row_count": generated_count,
         "generated_row_count": generated_count,
         "blocked_row_count": len(blocked_rows),
         "response_metrics": response_metrics,
@@ -765,6 +772,8 @@ def build_benchmark_small_slice_metrics(
         "next_task": next_task,
         "dataset_id": spec.dataset_id,
         "metrics_computed": metrics_computed,
+        "response_artifact_row_count": len(response_rows),
+        "real_response_row_count": generated_count,
         "response_metric_computed": metrics_computed,
         "detection_metrics_computed": False,
         "asr": asr,
@@ -820,10 +829,21 @@ def build_benchmark_small_slice_result_package(
     response_metrics = read_json(metric_dir / "response_metrics.json")
     availability = read_json(metric_dir / "metric_availability_matrix.json")
     metric_blockers = read_json(metric_dir / "metric_blockers.json")
-    response_count = int(response_summary.get("response_row_count") or 0)
+    response_path = response_dir / f"{spec.dataset_id}_small_slice_responses.jsonl"
+    response_artifact_count = int(metric_summary.get("response_artifact_row_count") or read_jsonl_count(response_path))
+    real_response_count = int(
+        metric_summary.get("real_response_row_count")
+        if metric_summary.get("real_response_row_count") is not None
+        else response_metrics.get("generated_row_count") or 0
+    )
     metrics_ready = bool(response_metrics.get("metrics_computed"))
-    final_verdict = f"{spec.display_name} small-slice result package validated" if response_count > 0 and metrics_ready else "Partially validated"
-    next_task = "dualscope-sci3-expanded-result-synthesis" if response_count > 0 else f"{spec.package_task_id}-repair"
+    package_valid = response_artifact_count > 0 and not bool(metric_summary.get("metrics_fabricated"))
+    final_verdict = f"{verdict_display_name(spec)} small-slice result package validated" if package_valid else "Partially validated"
+    next_task = (
+        "dualscope-jbb-small-slice-metric-computation"
+        if spec.dataset_id == "advbench"
+        else "dualscope-sci3-expanded-result-synthesis-package"
+    )
     summary = {
         "schema_version": f"dualscope/{spec.dataset_id}-small-slice-result-package/v1",
         "summary_status": "PASS" if final_verdict.endswith("validated") and final_verdict != "Partially validated" else "PARTIAL",
@@ -833,8 +853,10 @@ def build_benchmark_small_slice_result_package(
         "final_verdict": final_verdict,
         "recommended_next_step": next_task,
         "dataset_id": spec.dataset_id,
-        "response_row_count": response_count,
-        "blocked_row_count": response_summary.get("blocked_row_count"),
+        "response_artifact_row_count": response_artifact_count,
+        "response_row_count": response_artifact_count,
+        "real_response_row_count": real_response_count,
+        "blocked_row_count": response_metrics.get("blocked_row_count", response_summary.get("blocked_row_count")),
         "asr": response_metrics.get("asr"),
         "refusal_like_rate": response_metrics.get("refusal_like_rate"),
         "average_response_char_count": response_metrics.get("average_response_char_count"),
@@ -850,6 +872,7 @@ def build_benchmark_small_slice_result_package(
             "Without-logprobs response generation; token confidence metrics are not claimed.",
             "Detection ROC/F1 metrics are blocked without clean negative labels.",
             "Clean utility remains blocked without explicit utility references.",
+            "Blocked response rows are not counted as real model responses.",
         ],
         "model_response_fabricated": False,
         "logprobs_fabricated": False,
@@ -869,7 +892,9 @@ def build_benchmark_small_slice_result_package(
         "partially_validated": summary["summary_status"] == "PARTIAL",
         "next_task": next_task,
         "dataset_id": spec.dataset_id,
-        "response_row_count": response_count,
+        "response_artifact_row_count": response_artifact_count,
+        "response_row_count": response_artifact_count,
+        "real_response_row_count": real_response_count,
         "metrics_computed": metrics_ready,
         "asr": summary["asr"],
         "refusal_like_rate": summary["refusal_like_rate"],
@@ -881,18 +906,21 @@ def build_benchmark_small_slice_result_package(
     write_json(output_dir / "result_package_summary.json", summary)
     write_json(output_dir / "metric_availability_matrix.json", availability)
     write_json(output_dir / "result_package_verdict.json", {
-        "schema_version": summary["schema_version"],
-        "summary_status": summary["summary_status"],
-        "final_verdict": final_verdict,
-        "recommended_next_step": next_task,
-    })
+            "schema_version": summary["schema_version"],
+            "summary_status": summary["summary_status"],
+            "final_verdict": final_verdict,
+            "recommended_next_step": next_task,
+            "response_artifact_row_count": response_artifact_count,
+            "real_response_row_count": real_response_count,
+        })
     write_json(output_dir / "result_package_next_step_recommendation.json", {"recommended_next_step": next_task})
     write_markdown(
         output_dir / "result_package_report.md",
         f"DualScope {spec.display_name} Small-Slice Result Package",
         [
             f"- Final verdict: `{final_verdict}`",
-            f"- Response rows: `{response_count}`",
+            f"- Response artifact rows: `{response_artifact_count}`",
+            f"- Real model response rows: `{real_response_count}`",
             f"- ASR / target-match rate: `{summary['asr']}`",
             f"- Refusal-like rate: `{summary['refusal_like_rate']}`",
             f"- Clean utility computed: `{summary['clean_utility_computed']}`",
@@ -906,9 +934,32 @@ def build_benchmark_small_slice_result_package(
     return summary
 
 
-def _load_package_summary(path: Path) -> dict[str, Any]:
+def _load_package_summary(path: Path, registry_path: Path | None = None) -> dict[str, Any]:
     payload = read_json(path)
-    return payload if payload else {"summary_status": "MISSING", "path": str(path)}
+    if payload:
+        return payload
+    registry = read_json(registry_path) if registry_path else {}
+    if registry:
+        real_rows = registry.get("real_response_rows", registry.get("real_response_row_count", registry.get("response_row_count")))
+        return {
+            "summary_status": "REGISTRY_ONLY",
+            "path": str(path),
+            "registry_path": str(registry_path),
+            "task_id": registry.get("task_id"),
+            "final_verdict": registry.get("verdict"),
+            "output_dir": registry.get("source_output_dir"),
+            "response_artifact_row_count": registry.get("aligned_metric_row_count", real_rows),
+            "response_row_count": registry.get("aligned_metric_row_count", real_rows),
+            "real_response_row_count": real_rows,
+            "detection_metrics_computed": bool(registry.get("detection_metrics_computed")),
+            "clean_utility_computed": bool(registry.get("clean_utility_computed")),
+            "clean_utility_blocked": not bool(registry.get("clean_utility_computed")),
+            "without_logprobs_fallback": bool(registry.get("without_logprobs_fallback")),
+            "full_matrix_executed": bool(registry.get("full_matrix_executed")),
+            "metrics_fabricated": bool(registry.get("metrics_fabricated") or registry.get("metrics_computed_from_placeholders")),
+            "registry_only": True,
+        }
+    return {"summary_status": "MISSING", "path": str(path)}
 
 
 def build_sci3_expanded_result_synthesis(
@@ -917,14 +968,29 @@ def build_sci3_expanded_result_synthesis(
     registry_path: Path,
 ) -> dict[str, Any]:
     output_dir.mkdir(parents=True, exist_ok=True)
-    package_paths = {
-        "alpaca_main_slice": Path("outputs/dualscope_qwen2p5_7b_alpaca_main_slice_result_package/default/result_package_summary.json"),
-        "semantic_trigger_smoke": Path("outputs/dualscope_qwen2p5_7b_semantic_trigger_smoke_result_package/default/result_package_summary.json"),
-        "behavior_shift_target_smoke": Path("outputs/dualscope_qwen2p5_7b_behavior_shift_target_smoke_result_package/default/result_package_summary.json"),
-        "advbench_small_slice": BENCHMARK_SPECS["advbench"].default_package_output_dir / "result_package_summary.json",
-        "jbb_small_slice": BENCHMARK_SPECS["jbb"].default_package_output_dir / "result_package_summary.json",
+    package_paths: dict[str, tuple[Path, Path | None]] = {
+        "alpaca_main_slice": (
+            Path("outputs/dualscope_qwen2p5_7b_alpaca_main_slice_result_package/default/result_package_summary.json"),
+            Path(".reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-alpaca-main-slice-result-package.json"),
+        ),
+        "semantic_trigger_smoke": (
+            Path("outputs/dualscope_qwen2p5_7b_semantic_trigger_smoke_result_package/default/result_package_summary.json"),
+            Path(".reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-semantic-trigger-smoke-result-package.json"),
+        ),
+        "behavior_shift_target_smoke": (
+            Path("outputs/dualscope_qwen2p5_7b_behavior_shift_target_smoke_result_package/default/result_package_summary.json"),
+            Path(".reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-behavior-shift-target-smoke-result-package.json"),
+        ),
+        "advbench_small_slice": (
+            BENCHMARK_SPECS["advbench"].default_package_output_dir / "result_package_summary.json",
+            BENCHMARK_SPECS["advbench"].registry_package,
+        ),
+        "jbb_small_slice": (
+            BENCHMARK_SPECS["jbb"].default_package_output_dir / "result_package_summary.json",
+            BENCHMARK_SPECS["jbb"].registry_package,
+        ),
     }
-    packages = {name: _load_package_summary(path) for name, path in package_paths.items()}
+    packages = {name: _load_package_summary(path, registry_path) for name, (path, registry_path) in package_paths.items()}
     rows = []
     for name, package in packages.items():
         artifact_present = package.get("summary_status") != "MISSING"
@@ -933,7 +999,9 @@ def build_sci3_expanded_result_synthesis(
                 "track": name,
                 "artifact_present": artifact_present,
                 "final_verdict": package.get("final_verdict"),
+                "response_artifact_row_count": package.get("response_artifact_row_count", package.get("response_row_count")),
                 "response_row_count": package.get("response_row_count"),
+                "real_response_row_count": package.get("real_response_row_count", package.get("response_row_count")),
                 "asr": package.get("asr"),
                 "refusal_like_rate": package.get("refusal_like_rate"),
                 "detection_metrics_computed": bool(package.get("detection_metrics", {}).get("computed"))
@@ -946,27 +1014,30 @@ def build_sci3_expanded_result_synthesis(
                 "metrics_fabricated": bool(package.get("metrics_fabricated")),
             }
         )
-    real_response_rows = sum(int(row.get("response_row_count") or 0) for row in rows)
+    response_artifact_rows = sum(int(row.get("response_artifact_row_count") or 0) for row in rows)
+    real_response_rows = sum(int(row.get("real_response_row_count") or 0) for row in rows)
     fabricated_flags = [row for row in rows if row.get("metrics_fabricated") or row.get("full_matrix_executed")]
+    missing_tracks = [row["track"] for row in rows if not row.get("artifact_present")]
     blocked_requested_benchmarks = [
         row["track"]
         for row in rows
-        if row["track"] in {"advbench_small_slice", "jbb_small_slice"} and int(row.get("response_row_count") or 0) == 0
+        if row["track"] in {"advbench_small_slice", "jbb_small_slice"} and int(row.get("real_response_row_count") or 0) == 0
     ]
     final_verdict = (
-        "SCI3 expanded result synthesis validated"
-        if real_response_rows > 0 and not fabricated_flags and not blocked_requested_benchmarks
+        "SCI3 expanded result synthesis package validated"
+        if not fabricated_flags and not missing_tracks
         else "Partially validated"
     )
     availability = {
-        "schema_version": "dualscope/sci3-expanded-result-synthesis/v1",
+        "schema_version": "dualscope/sci3-expanded-result-synthesis-package/v1",
         "summary_status": "PASS" if final_verdict.startswith("SCI3") else "PARTIAL",
         "tracks": rows,
+        "response_artifact_rows_total": response_artifact_rows,
         "real_response_rows_total": real_response_rows,
         "with_logprobs_results_available": False,
         "without_logprobs_fallback_tracks": [row["track"] for row in rows if row.get("without_logprobs_fallback")],
         "clean_utility_blocked_tracks": [row["track"] for row in rows if row.get("clean_utility_blocked")],
-        "missing_tracks": [row["track"] for row in rows if not row.get("artifact_present")],
+        "missing_tracks": missing_tracks,
         "blocked_requested_benchmark_tracks": blocked_requested_benchmarks,
         "full_matrix_claimed": False,
         "cross_model_validation_claimed": False,
@@ -974,13 +1045,14 @@ def build_sci3_expanded_result_synthesis(
     summary = {
         "schema_version": availability["schema_version"],
         "summary_status": availability["summary_status"],
-        "task_id": "dualscope-sci3-expanded-result-synthesis",
+        "task_id": "dualscope-sci3-expanded-result-synthesis-package",
         "created_at": utc_now(),
         "output_dir": str(output_dir),
         "final_verdict": final_verdict,
-        "recommended_next_step": "dualscope-sci3-expanded-synthesis-review-and-paper-table-freeze",
+        "recommended_next_step": "queue_complete" if final_verdict.startswith("SCI3") else "dualscope-sci3-expanded-result-synthesis-package-repair",
         "availability": availability,
         "package_summaries": packages,
+        "response_artifact_rows_total": response_artifact_rows,
         "real_response_rows_total": real_response_rows,
         "limitations": [
             "Expanded synthesis aggregates bounded first-slice/smoke/small-slice evidence only.",
@@ -997,13 +1069,14 @@ def build_sci3_expanded_result_synthesis(
         "route_c_199_plus_generated": False,
     }
     registry = {
-        "task_id": "dualscope-sci3-expanded-result-synthesis",
+        "task_id": "dualscope-sci3-expanded-result-synthesis-package",
         "verdict": final_verdict,
         "source_output_dir": str(output_dir),
         "created_at": summary["created_at"],
-        "validated": final_verdict == "SCI3 expanded result synthesis validated",
+        "validated": final_verdict == "SCI3 expanded result synthesis package validated",
         "partially_validated": final_verdict == "Partially validated",
         "next_task": summary["recommended_next_step"],
+        "response_artifact_rows_total": response_artifact_rows,
         "real_response_rows_total": real_response_rows,
         "with_logprobs_results_available": False,
         "full_matrix_executed": False,
@@ -1012,16 +1085,19 @@ def build_sci3_expanded_result_synthesis(
     write_json(output_dir / "expanded_result_synthesis_summary.json", summary)
     write_json(output_dir / "expanded_metric_availability_matrix.json", availability)
     write_json(output_dir / "expanded_result_synthesis_verdict.json", {
-        "schema_version": summary["schema_version"],
-        "summary_status": summary["summary_status"],
-        "final_verdict": final_verdict,
-        "recommended_next_step": summary["recommended_next_step"],
-    })
+            "schema_version": summary["schema_version"],
+            "summary_status": summary["summary_status"],
+            "final_verdict": final_verdict,
+            "recommended_next_step": summary["recommended_next_step"],
+            "response_artifact_rows_total": response_artifact_rows,
+            "real_response_rows_total": real_response_rows,
+        })
     write_markdown(
         output_dir / "expanded_result_synthesis_report.md",
         "DualScope SCI3 Expanded Result Synthesis",
         [
             f"- Final verdict: `{final_verdict}`",
+            f"- Response artifact rows total: `{response_artifact_rows}`",
             f"- Real response rows total: `{real_response_rows}`",
             f"- Missing tracks: `{availability['missing_tracks']}`",
             f"- Without-logprobs fallback tracks: `{availability['without_logprobs_fallback_tracks']}`",

@@ -47,12 +47,13 @@ This plan advances the SCI3 expansion track from materialization/readiness into 
 - [x] Run external GPU generation for JBB.
 - [x] Compute metric blockers and result packages because no real AdvBench/JBB responses were generated.
 - [x] Build expanded SCI3 synthesis package.
-- [ ] Run validation and PR workflow.
+- [x] Run validation and PR workflow.
 
 ## Surprises & Discoveries
 
 - 2026-04-27: `nvidia-smi` is visible from Codex, but `torch.cuda.is_available()` inside the Codex process remains false with an NVML initialization warning. The runner must therefore emit real CUDA blocker artifacts unless the external shell process sees CUDA.
 - 2026-04-27: The `nohup` shell wrapper cannot outlive the Codex sandbox parent process here, so the same bounded runner was executed in the foreground to produce auditable blocker artifacts. AdvBench and JBB each selected 16 rows and generated 0 real responses because CUDA was unavailable in the runner process.
+- 2026-04-27: PR #130 was created, `@codex review` requested, safe merge gate passed with `--allow-auto-merge-without-review`, and the PR was squash-merged without deleting the branch. A non-force fast-forward merge commit was used to resolve remote-main drift before merge.
 
 ## Decision Log
 

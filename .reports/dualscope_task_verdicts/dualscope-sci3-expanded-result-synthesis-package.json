@@ -1,0 +1,14 @@
+{
+  "task_id": "dualscope-sci3-expanded-result-synthesis-package",
+  "verdict": "SCI3 expanded result synthesis package validated",
+  "source_output_dir": "outputs/dualscope_sci3_expanded_result_synthesis_package/default",
+  "created_at": "2026-04-27T13:22:34Z",
+  "validated": true,
+  "partially_validated": false,
+  "next_task": "queue_complete",
+  "response_artifact_rows_total": 80,
+  "real_response_rows_total": 48,
+  "with_logprobs_results_available": false,
+  "full_matrix_executed": false,
+  "metrics_fabricated": false
+}
