@@ -100,6 +100,8 @@
 
 当前已确认 GPU/CUDA 在宿主机 shell 可见，但在 `codex exec` isolated worktree 中不可见。因此下一步是 `dualscope-external-gpu-runner-for-qwen2p5-7b-generation`：真实 Qwen2.5-7B bounded generation 迁移到普通 shell / `nohup` 外部 runner 执行，Codex 只负责脚本、artifact 检查、registry、PR 与后续 routing。该 runner 必须产生真实 response 或真实 blocker，不得伪造 response/logprob/metric，不得 full matrix 或训练。
 
+当前 bounded Alpaca main-slice 已完成 16 条真实 Qwen2.5-7B response、可计算 detection metrics、ASR、without-logprobs fallback 与结果包；clean utility 仍真实 blocked。下一阶段入口是 `dualscope-sci3-semantic-behavior-expansion-track`：按小步执行 semantic trigger smoke、behavior-shift target smoke、AdvBench/JBB small-slice materialization 与 expanded synthesis。response generation、metric computation、result package 与 dataset materialization 任务必须真实执行 CLI/runner 或输出明确 blocker artifacts；不得用 plan/docs/registry-only PR 伪装实验完成。
+
 ---
 
 ## 1. What an ExecPlan Is
