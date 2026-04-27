@@ -26,3 +26,18 @@ Out of scope:
 - `python3 -m py_compile scripts/build_dualscope_worktree_gpu_bnb_input_readiness_repair.py`
 - `python3 -m py_compile src/eval/dualscope_task_orchestrator_common.py`
 - Task orchestrator selects `dualscope-worktree-gpu-bnb-input-readiness-repair` from the current closure state.
+
+## Progress
+
+- [x] M1: Read AGENTS, PLANS, master plan, task queue, and previous Alpaca main-slice blocker closure.
+- [x] M2: Verify `.venv`, `.venv/bin/python`, torch, CUDA visibility, `nvidia-smi`, transformers, accelerate, bitsandbytes, input files, plan outputs, model binding, and cache/tmp paths.
+- [x] M3: Run the readiness CLI with `CUDA_VISIBLE_DEVICES=2,3`, `CUDA_DEVICE_ORDER=PCI_BUS_ID`, `/mnt/sda3/lh` HuggingFace cache paths, `TMPDIR=/mnt/sda3/lh/tmp`, and `--attempt-pip-install`.
+- [x] M4: Write runtime readiness artifacts and tracked verdict registry.
+
+## Current Result
+
+Final verdict: `Partially validated`.
+
+The worktree is not ready for bounded response generation. PyTorch imports from `.venv/bin/python`, but `torch.cuda.is_available()` is `False`, `torch.cuda.device_count()` is `0`, and `nvidia-smi` returns code `9` because it cannot communicate with the NVIDIA driver. The bitsandbytes install attempt failed through the proxy, so `quantization_fallback=true`; however this is not the only blocker. The Alpaca main-slice plan output directory is absent, and `HF_HOME`, `HF_HUB_CACHE`, and `TRANSFORMERS_CACHE` are not writable from this runtime.
+
+Next task: `dualscope-worktree-gpu-readiness-blocker-closure`.

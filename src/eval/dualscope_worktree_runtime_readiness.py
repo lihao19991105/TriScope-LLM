@@ -95,6 +95,7 @@ def path_status(path: Path) -> dict[str, Any]:
         "is_file": path.is_file(),
         "is_dir": path.is_dir(),
         "is_symlink": path.is_symlink(),
+        "writable": os.access(path, os.W_OK) if path.exists() else False,
         "resolved": str(path.resolve()) if path.exists() or path.is_symlink() else "",
     }
 
@@ -109,6 +110,8 @@ def check_worktree_runtime_readiness(
     model_dir: Path,
     repo_model_symlink: Path,
     hf_home: Path,
+    hf_hub_cache: Path,
+    transformers_cache: Path,
     tmpdir: Path,
     registry_path: Path,
     attempt_pip_install: bool,
@@ -123,6 +126,7 @@ def check_worktree_runtime_readiness(
         ["nvidia-smi", "--query-gpu=index,name,memory.total,memory.free", "--format=csv,noheader,nounits"],
         timeout=30,
     )
+    gpu_blocker = (not bool(torch_check.get("cuda_available"))) or nvidia_smi.get("returncode") != 0
 
     pip_install_result: dict[str, Any] | None = None
     if not deps.get("bitsandbytes") and attempt_pip_install:
@@ -148,6 +152,8 @@ def check_worktree_runtime_readiness(
         blockers.append("nvidia_smi_unavailable")
 
     input_paths = {
+        "venv": path_status(Path(".venv")),
+        "venv_python": path_status(Path(".venv/bin/python")),
         "labeled_pairs": path_status(labeled_pairs),
         "source_jsonl": path_status(source_jsonl),
         "target_response_plan_dir": path_status(target_response_plan_dir),
@@ -155,26 +161,39 @@ def check_worktree_runtime_readiness(
         "model_dir": path_status(model_dir),
         "repo_model_symlink": path_status(repo_model_symlink),
         "hf_home": path_status(hf_home),
+        "hf_hub_cache": path_status(hf_hub_cache),
+        "transformers_cache": path_status(transformers_cache),
         "tmpdir": path_status(tmpdir),
     }
     for key, status in input_paths.items():
-        if key.endswith("_dir") or key in {"model_dir", "hf_home", "tmpdir"}:
+        if key.endswith("_dir") or key in {"model_dir", "hf_home", "hf_hub_cache", "transformers_cache", "tmpdir"}:
             if not status["is_dir"]:
                 blockers.append(f"missing_{key}")
+        elif key == "venv_python":
+            if not status["is_file"]:
+                blockers.append("missing_venv_python")
         elif not status["exists"]:
             blockers.append(f"missing_{key}")
     if repo_model_symlink.is_symlink() and repo_model_symlink.resolve() != model_dir.resolve():
         blockers.append("model_symlink_target_mismatch")
     if not os.access(hf_home, os.W_OK):
         blockers.append("hf_home_not_writable")
+    if not os.access(hf_hub_cache, os.W_OK):
+        blockers.append("hf_hub_cache_not_writable")
+    if not os.access(transformers_cache, os.W_OK):
+        blockers.append("transformers_cache_not_writable")
     if not os.access(tmpdir, os.W_OK):
         blockers.append("tmpdir_not_writable")
 
     quantization_fallback = not deps.get("bitsandbytes")
-    response_retry_allowed = not blockers or (blockers == [] and quantization_fallback)
+    fallback_only = quantization_fallback and not blockers
+    response_retry_allowed = not blockers
     if blockers:
         verdict = PARTIAL_VERDICT
         next_task = "dualscope-worktree-gpu-readiness-blocker-closure"
+    elif fallback_only:
+        verdict = PARTIAL_VERDICT
+        next_task = "dualscope-qwen2p5-7b-alpaca-main-slice-bounded-response-generation-retry"
     else:
         verdict = READY_VERDICT
         next_task = "dualscope-qwen2p5-7b-alpaca-main-slice-bounded-response-generation-retry"
@@ -186,10 +205,20 @@ def check_worktree_runtime_readiness(
         "created_at": utc_now(),
         "final_verdict": verdict,
         "recommended_next_step": next_task,
+        "fallback_only": fallback_only,
+        "gpu_blocker": gpu_blocker,
         "quantization_fallback": quantization_fallback,
         "response_retry_allowed": response_retry_allowed,
         "blockers": blockers,
         "warnings": warnings,
+        "runtime_environment": {
+            "CUDA_VISIBLE_DEVICES": os.environ.get("CUDA_VISIBLE_DEVICES", ""),
+            "CUDA_DEVICE_ORDER": os.environ.get("CUDA_DEVICE_ORDER", ""),
+            "HF_HOME": os.environ.get("HF_HOME", ""),
+            "HF_HUB_CACHE": os.environ.get("HF_HUB_CACHE", ""),
+            "TRANSFORMERS_CACHE": os.environ.get("TRANSFORMERS_CACHE", ""),
+            "TMPDIR": os.environ.get("TMPDIR", ""),
+        },
         "dependency_status": deps,
         "torch_cuda_check": torch_check,
         "nvidia_smi": nvidia_smi,
@@ -201,7 +230,10 @@ def check_worktree_runtime_readiness(
     }
 
     write_json(output_dir / "runtime_readiness_summary.json", summary)
-    write_json(output_dir / "worktree_cuda_check.json", {"torch": torch_check, "nvidia_smi": nvidia_smi})
+    write_json(
+        output_dir / "worktree_cuda_check.json",
+        {"torch": torch_check, "nvidia_smi": nvidia_smi, "gpu_blocker": gpu_blocker},
+    )
     write_json(output_dir / "worktree_python_dependency_check.json", deps)
     write_json(
         output_dir / "bitsandbytes_check.json",
@@ -227,7 +259,10 @@ def check_worktree_runtime_readiness(
             "summary_status": summary["summary_status"],
             "final_verdict": verdict,
             "recommended_next_step": next_task,
+            "fallback_only": fallback_only,
+            "gpu_blocker": gpu_blocker,
             "quantization_fallback": quantization_fallback,
+            "response_retry_allowed": response_retry_allowed,
             "blockers": blockers,
         },
     )
@@ -239,7 +274,10 @@ def check_worktree_runtime_readiness(
             "source_output_dir": str(output_dir),
             "validated": verdict == READY_VERDICT,
             "next_task": next_task,
+            "fallback_only": fallback_only,
+            "gpu_blocker": gpu_blocker,
             "quantization_fallback": quantization_fallback,
+            "response_retry_allowed": response_retry_allowed,
             "blocker_type": blockers[0] if blockers else None,
             "model_response_fabricated": False,
             "logprobs_fabricated": False,
@@ -256,6 +294,12 @@ def check_worktree_runtime_readiness(
         f"- NVIDIA-SMI passed: `{nvidia_smi.get('passed')}`",
         f"- bitsandbytes available: `{deps.get('bitsandbytes')}`",
         f"- Quantization fallback: `{quantization_fallback}`",
+        f"- Response retry allowed: `{response_retry_allowed}`",
+        f"- GPU blocker: `{gpu_blocker}`",
+        f"- HF_HOME: `{os.environ.get('HF_HOME', '')}`",
+        f"- HF_HUB_CACHE: `{os.environ.get('HF_HUB_CACHE', '')}`",
+        f"- TRANSFORMERS_CACHE: `{os.environ.get('TRANSFORMERS_CACHE', '')}`",
+        f"- TMPDIR: `{os.environ.get('TMPDIR', '')}`",
         f"- Blockers: `{blockers}`",
         f"- Warnings: `{warnings}`",
         "",

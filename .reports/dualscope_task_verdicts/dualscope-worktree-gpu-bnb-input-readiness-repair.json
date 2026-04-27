@@ -1,0 +1,15 @@
+{
+  "task_id": "dualscope-worktree-gpu-bnb-input-readiness-repair",
+  "verdict": "Partially validated",
+  "source_output_dir": "outputs/dualscope_worktree_gpu_bnb_input_readiness_repair/default",
+  "validated": false,
+  "next_task": "dualscope-worktree-gpu-readiness-blocker-closure",
+  "fallback_only": false,
+  "gpu_blocker": true,
+  "quantization_fallback": true,
+  "response_retry_allowed": false,
+  "blocker_type": "torch_cuda_unavailable",
+  "model_response_fabricated": false,
+  "logprobs_fabricated": false,
+  "metrics_computed": false
+}
