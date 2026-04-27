@@ -1,9 +1,0 @@
-{
-  "task_id": "dualscope-sci3-main-experiment-expansion-plan",
-  "verdict": "Partially validated",
-  "source_output_dir": "outputs/dualscope_sci3_main_experiment_expansion_plan/default",
-  "commit": "b05787b474b7aa8685dfab70fcdb1aefb215ceb7",
-  "created_at": "2026-04-26T13:14:26Z",
-  "validated": false,
-  "next_task": null
-}

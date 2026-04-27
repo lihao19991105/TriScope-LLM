@@ -1,5 +1,0 @@
-template_name: "minimal_v1"
-description: "Minimal confidence prompt for capturing token-level generation scores."
-instruction: "Answer the query directly. Keep the answer short and concrete."
-query_label: "Query"
-answer_label: "Answer"

@@ -1,9 +1,0 @@
-{
-  "task_id": "dualscope-cross-model-validation-plan-repair",
-  "verdict": "Cross-model validation plan repair validated",
-  "source_output_dir": "outputs/dualscope_cross_model_validation_plan_repair/default",
-  "commit": "506e8fde7243addca172ff096a44dd38512f54f9",
-  "created_at": "2026-04-26T14:00:33Z",
-  "validated": true,
-  "next_task": null
-}
