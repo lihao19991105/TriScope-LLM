@@ -38,8 +38,12 @@ DEFAULT_ALLOWED_PATTERNS = [
     "scripts/check_dualscope_*",
     "scripts/dualscope_*",
     "scripts/codex_smart_exec.sh",
+    "scripts/codex_dualscope_skill.sh",
     "docs/dualscope_*",
+    "docs/codex_dualscope_high_intensity_skill.md",
     "configs/codex_smart_effort_map.json",
+    "configs/dualscope_codex_task_profiles.json",
+    ".codex/skills/dualscope-high-intensity/SKILL.md",
     ".reports/dualscope_task_verdicts/*.json",
     "DUALSCOPE_MASTER_PLAN.md",
     "DUALSCOPE_TASK_QUEUE.md",
@@ -137,6 +141,12 @@ JBB_SMALL_SLICE_FALSE_FIELDS = {
     "labels_fabricated",
     "logprobs_fabricated",
     "metrics_fabricated",
+}
+DUALSCOPE_HIGH_INTENSITY_SKILL_PACK_FILES = {
+    ".codex/skills/dualscope-high-intensity/SKILL.md",
+    "configs/dualscope_codex_task_profiles.json",
+    "docs/codex_dualscope_high_intensity_skill.md",
+    "scripts/codex_dualscope_skill.sh",
 }
 BENCHMARK_TRUTH_MUTATION_MARKERS = {
     "benchmark truth mutation",
@@ -681,6 +691,7 @@ def check_file_scope(
     allowed_verdict_registry_files = []
     invalid_verdict_registry_files = []
     allowed_dualscope_docs = []
+    allowed_dualscope_skill_pack_files = []
     allowed_advbench_small_slice_files = []
     advbench_small_slice_checks = []
     allowed_jbb_small_slice_files = []
@@ -718,6 +729,8 @@ def check_file_scope(
                 invalid_verdict_registry_files.append(verdict_registry_check)
         if allowed and fnmatch.fnmatch(path, "docs/dualscope_*.md"):
             allowed_dualscope_docs.append(path)
+        if allowed and path in DUALSCOPE_HIGH_INTENSITY_SKILL_PACK_FILES:
+            allowed_dualscope_skill_pack_files.append(path)
         row = {
             "path": path,
             "allowed": allowed,
@@ -746,6 +759,7 @@ def check_file_scope(
         "allowed_verdict_registry_files": allowed_verdict_registry_files,
         "invalid_verdict_registry_files": invalid_verdict_registry_files,
         "allowed_dualscope_docs": allowed_dualscope_docs,
+        "allowed_dualscope_skill_pack_files": allowed_dualscope_skill_pack_files,
         "allowed_advbench_small_slice_files": allowed_advbench_small_slice_files,
         "advbench_small_slice_checks": advbench_small_slice_checks,
         "advbench_small_slice_row_count": advbench_small_slice_check.get("row_count"),
@@ -964,6 +978,7 @@ def main() -> int:
         "allowed_outputs_artifacts": file_scope.get("allowed_outputs_artifacts", []),
         "allowed_verdict_registry_files": file_scope.get("allowed_verdict_registry_files", []),
         "allowed_dualscope_docs": file_scope.get("allowed_dualscope_docs", []),
+        "allowed_dualscope_skill_pack_files": file_scope.get("allowed_dualscope_skill_pack_files", []),
         "allowed_advbench_small_slice_files": file_scope.get("allowed_advbench_small_slice_files", []),
         "advbench_small_slice_row_count": file_scope.get("advbench_small_slice_row_count"),
         "advbench_small_slice_schema_valid": file_scope.get("advbench_small_slice_schema_valid"),
