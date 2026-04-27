@@ -953,6 +953,16 @@ def main() -> int:
             "experiment_execution_gate": experiment_gate_result,
         }
     else:
+        git_identity_results = [
+            command_row(
+                "git_config_user_name",
+                run_command(["git", "config", "user.name", "Codex"], cwd=worktree_path, proxy=args.proxy, timeout=120),
+            ),
+            command_row(
+                "git_config_user_email",
+                run_command(["git", "config", "user.email", "codex@openai.com"], cwd=worktree_path, proxy=args.proxy, timeout=120),
+            ),
+        ]
         add_result = run_command(["git", "add", "-A"], cwd=worktree_path, proxy=args.proxy, timeout=120)
         commit_result = run_command(["git", "commit", "-m", f"Add DualScope task package for {args.task_id}"], cwd=worktree_path, proxy=args.proxy, timeout=180)
         codex_pr_result = run_command(["./scripts/codex-pr.sh"], cwd=worktree_path, proxy=args.proxy, timeout=300)
@@ -985,6 +995,7 @@ def main() -> int:
                 whether_codex_review_triggered = bool(existing_pr_check.get("analysis", {}).get("codex_review_evidence"))
         pr_result = {
             "summary_status": "PASS" if task_pr_url else "FAIL",
+            "git_identity": git_identity_results,
             "git_add": command_row("git_add", add_result),
             "git_commit": command_row("git_commit", commit_result),
             "codex_pr": command_row("codex_pr", codex_pr_result),

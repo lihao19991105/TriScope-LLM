@@ -56,6 +56,16 @@ DEFAULT_ALLOWED_OUTPUT_ARTIFACT_PATTERNS = [
     "outputs/dualscope_qwen2p5_7b_first_slice_result_package/default/*",
     "outputs/dualscope_sci3_main_experiment_expansion_plan/default/*",
     "outputs/dualscope_cross_model_validation_plan/default/*",
+    "outputs/dualscope_advbench_small_slice_response_generation_plan/default/*",
+    "outputs/dualscope_advbench_small_slice_response_generation/default/*",
+    "outputs/dualscope_advbench_small_slice_metric_computation/default/*",
+    "outputs/dualscope_advbench_small_slice_result_package/default/*",
+    "outputs/dualscope_jbb_small_slice_materialization/default/*",
+    "outputs/dualscope_jbb_small_slice_response_generation_plan/default/*",
+    "outputs/dualscope_jbb_small_slice_response_generation/default/*",
+    "outputs/dualscope_jbb_small_slice_metric_computation/default/*",
+    "outputs/dualscope_jbb_small_slice_result_package/default/*",
+    "outputs/dualscope_sci3_expanded_result_synthesis_package/default/*",
 ]
 DEFAULT_ALLOWED_PATTERNS.extend(DEFAULT_ALLOWED_OUTPUT_ARTIFACT_PATTERNS)
 BENIGN_GATE_PATH_EXCEPTIONS = {
