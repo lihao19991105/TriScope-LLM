@@ -325,7 +325,10 @@ def copy_dir_dependency(repo_root: Path, worktree_path: Path, relative_path: str
     source = repo_root / relative_path
     destination = worktree_path / relative_path
     if not source.exists() or not source.is_dir():
-        result["missing_dependencies"].append(relative_path)
+        if relative_path.startswith("outputs/"):
+            result.setdefault("optional_missing_dependencies", []).append(relative_path)
+        else:
+            result["missing_dependencies"].append(relative_path)
         return
     destination.parent.mkdir(parents=True, exist_ok=True)
     shutil.copytree(source, destination, dirs_exist_ok=True)
@@ -395,6 +398,7 @@ def materialize_worktree_dependencies(
         "symlinks_created": [],
         "generated_dependencies": [],
         "missing_dependencies": [],
+        "optional_missing_dependencies": [],
         "env": WORKTREE_EXEC_ENV,
         "env_dirs_ready": [],
         "blocker_if_any": None,
@@ -438,6 +442,7 @@ def render_dependency_report(result: dict[str, Any]) -> str:
             f"- Copied dirs: `{len(result.get('copied_dirs') or [])}`",
             f"- Symlinks created: `{len(result.get('symlinks_created') or [])}`",
             f"- Missing dependencies: `{len(result.get('missing_dependencies') or [])}`",
+            f"- Optional missing outputs: `{len(result.get('optional_missing_dependencies') or [])}`",
             f"- Blocker: `{result.get('blocker_if_any')}`",
             "",
         ]
