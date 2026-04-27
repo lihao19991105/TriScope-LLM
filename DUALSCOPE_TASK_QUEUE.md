@@ -1739,6 +1739,8 @@ The Markdown text is for humans; the fenced JSON block is the source of truth.
       "expected_outputs": [
         ".plans/dualscope-advbench-small-slice-materialization.md",
         "docs/dualscope_advbench_small_slice_materialization.md",
+        "src/eval/dualscope_advbench_small_slice_materialization.py",
+        "scripts/build_dualscope_advbench_small_slice_materialization.py",
         ".reports/dualscope_task_verdicts/dualscope-advbench-small-slice-materialization.json",
         "outputs/dualscope_advbench_small_slice_materialization/default/advbench_small_slice_manifest.json",
         "outputs/dualscope_advbench_small_slice_materialization/default/advbench_small_slice_schema_check.json",
