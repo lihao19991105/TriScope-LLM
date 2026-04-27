@@ -1203,9 +1203,51 @@ The Markdown text is for humans; the fenced JSON block is the source of truth.
       "verdict_artifacts": [
         "outputs/dualscope_worktree_gpu_readiness_blocker_closure/default/verdict.json"
       ],
-      "next_task_if_validated": "queue_complete",
+      "next_task_if_validated": "dualscope-external-gpu-runner-for-qwen2p5-7b-generation",
       "next_task_if_partially_validated": "queue_complete",
       "next_task_if_not_validated": "queue_complete"
+    },
+    {
+      "task_id": "dualscope-external-gpu-runner-for-qwen2p5-7b-generation",
+      "purpose": "Run bounded Qwen2.5-7B Alpaca main-slice response generation in an external GPU-visible shell runner instead of the codex exec sandbox.",
+      "expected_inputs": [
+        ".reports/dualscope_task_verdicts/dualscope-worktree-gpu-readiness-blocker-closure.json",
+        "data/stanford_alpaca/first_slice/alpaca_first_slice_labeled_pairs.jsonl",
+        "outputs/dualscope_first_slice_target_response_generation_plan/default",
+        "/mnt/sda3/lh/models/qwen2p5-7b-instruct",
+        "models/qwen2p5-7b-instruct"
+      ],
+      "expected_outputs": [
+        ".plans/dualscope-external-gpu-runner-for-qwen2p5-7b-generation.md",
+        "docs/dualscope_external_gpu_runner_qwen2p5_7b.md",
+        ".reports/dualscope_task_verdicts/dualscope-external-gpu-runner-for-qwen2p5-7b-generation.json",
+        "outputs/dualscope_qwen2p5_7b_external_gpu_generation/default/external_gpu_generation_summary.json",
+        "outputs/dualscope_qwen2p5_7b_external_gpu_generation/default/external_gpu_generation_responses.jsonl",
+        "outputs/dualscope_qwen2p5_7b_external_gpu_generation/default/external_gpu_generation_blockers.json",
+        "outputs/dualscope_qwen2p5_7b_external_gpu_generation/default/external_gpu_generation_report.md",
+        "outputs/dualscope_qwen2p5_7b_external_gpu_generation/default/external_gpu_generation_verdict.json",
+        "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation/default/qwen2p5_7b_alpaca_main_slice_responses.jsonl"
+      ],
+      "branch_name_suggestion": "codex/external-gpu-runner-qwen2p5-7b",
+      "prompt_template": "Continue DualScope-LLM task `{task_id}`. Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, DUALSCOPE_TASK_QUEUE.md, and the worktree GPU blocker closure first. This task exists because codex exec isolated worktrees cannot see CUDA, while the host shell can. Do not run real Qwen2.5-7B generation inside codex exec. Use the external runner `scripts/run_dualscope_qwen2p5_7b_external_gpu_generation.sh` from the normal shell/nohup environment with `CUDA_VISIBLE_DEVICES=2,3`, `CUDA_DEVICE_ORDER=PCI_BUS_ID`, `HF_HOME=/mnt/sda3/lh/huggingface`, `HF_HUB_CACHE=/mnt/sda3/lh/huggingface/hub`, `TRANSFORMERS_CACHE=/mnt/sda3/lh/huggingface/transformers`, and `TMPDIR=/mnt/sda3/lh/tmp`. The runner must call `.venv/bin/python scripts/build_dualscope_qwen2p5_7b_external_gpu_generation.py --model-dir /mnt/sda3/lh/models/qwen2p5-7b-instruct --labeled-pairs data/stanford_alpaca/first_slice/alpaca_first_slice_labeled_pairs.jsonl --target-response-plan-dir outputs/dualscope_first_slice_target_response_generation_plan/default --output-dir outputs/dualscope_qwen2p5_7b_external_gpu_generation/default --max-examples 8 --batch-size 1 --max-new-tokens 64 --device-map auto --allow-without-logprobs`. Success requires torch CUDA available in the external runner, model load success, and external response JSONL row_count > 0 with real model_response values; if generation succeeds, synchronize outputs to `outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation/default`. Qualified failure requires explicit blocker JSON for OOM, model_load_failure, cuda_error, torch_cuda_unavailable, missing_dependency, missing_input, or runtime_error. Do not fake responses, logprobs, labels, metrics, reviews, or CI. Do not train, do not full matrix, do not change benchmark truth or gates, do not route_c, do not generate 199+, and do not touch `/mnt/sda3/CoCoNut-Artifact`. Verdicts: `Qwen2.5-7B external GPU generation validated`, `Partially validated`, or `Not validated`. If validated, next task is `dualscope-qwen2p5-7b-alpaca-main-slice-metric-computation`; if OOM, route to `dualscope-qwen2p5-7b-external-gpu-oom-repair`; if model load fails, route to `dualscope-qwen2p5-7b-model-load-blocker-closure`; otherwise route to external runner repair.",
+      "completion_verdicts": {
+        "validated": [
+          "Qwen2.5-7B external GPU generation validated"
+        ],
+        "partially_validated": [
+          "Partially validated"
+        ],
+        "not_validated": [
+          "Not validated"
+        ]
+      },
+      "verdict_artifacts": [
+        "outputs/dualscope_qwen2p5_7b_external_gpu_generation/default/external_gpu_generation_verdict.json",
+        "outputs/dualscope_qwen2p5_7b_external_gpu_generation_analysis/default/external_gpu_generation_verdict.json"
+      ],
+      "next_task_if_validated": "dualscope-qwen2p5-7b-alpaca-main-slice-metric-computation",
+      "next_task_if_partially_validated": "dualscope-qwen2p5-7b-external-gpu-runner-repair",
+      "next_task_if_not_validated": "dualscope-qwen2p5-7b-external-gpu-runner-repair"
     },
     {
       "task_id": "dualscope-qwen2p5-7b-alpaca-main-slice-metric-computation",

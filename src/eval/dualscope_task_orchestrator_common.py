@@ -200,6 +200,18 @@ def classify_task(task: dict[str, Any]) -> dict[str, Any]:
                 registry_blocker_type = normalize_text(payload.get("blocker_type"))
                 if registry_blocker_type:
                     row["registry_blocker_type"] = registry_blocker_type
+            if (
+                source == "output_verdict_artifact"
+                and task_id == "dualscope-external-gpu-runner-for-qwen2p5-7b-generation"
+                and isinstance(payload, dict)
+                and (
+                    bool(payload.get("dry_run"))
+                    or normalize_text(payload.get("blocker_type")) == "dry_run_no_generation"
+                )
+            ):
+                row.update({"status": "dry_run_artifact_ignored", "reason": "readiness_only_external_gpu_dry_run"})
+                artifact_rows.append(row)
+                continue
             verdict = extract_verdict(payload)
             verdict_key = normalize_text(verdict).lower()
             if verdict_key in validated:

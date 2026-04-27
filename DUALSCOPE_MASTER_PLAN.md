@@ -162,6 +162,12 @@
 
 该阶段先修复 isolated worktree 中 `.venv`、CUDA/GPU、bitsandbytes 或 non-4bit fallback、input materialization、Qwen2.5-7B symlink、HF cache 和 TMPDIR 传递，再重新进入 bounded Alpaca main-slice response generation retry。该链仍不得 full matrix、不得训练、不得伪造 responses/logprobs/metrics。
 
+当前进一步确认：宿主机 shell / escalated Python 可见 RTX 3090 与 CUDA，但 `codex exec` isolated worktree 运行时不可见 CUDA。因此真实 Qwen2.5-7B bounded generation 必须迁移到外部 GPU-visible runner：
+
+- [.plans/dualscope-external-gpu-runner-for-qwen2p5-7b-generation.md](/home/lh/TriScope-LLM/.plans/dualscope-external-gpu-runner-for-qwen2p5-7b-generation.md)
+
+该 runner 由普通 shell / `nohup` 执行，不通过 `codex exec` sandbox。Codex 仍负责生成脚本、检查 artifacts、更新 registry、PR workflow 与后续 metric/result routing。外部 runner 只能生成真实 response 或真实 blocker，不得伪造 response/logprob/metric，也不得扩 full matrix。
+
 ### Current Submission Positioning
 
 当前论文目标应保持**稳妥、不夸大**：
