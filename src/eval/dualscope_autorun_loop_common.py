@@ -716,7 +716,7 @@ def run_task_worktree_runner(
     if not args.worktree_dependency_materialization:
         command.append("--no-materialize-dependencies")
     started = utc_now()
-    result = run_command(command, timeout=max(60, args.max_minutes * 60 + 300))
+    result = run_command(command, timeout=max(60, args.max_minutes * 60 + 300), extra_env=codex_process_env(args))
     summary_path = output_dir / "dualscope_task_worktree_runner_summary.json"
     pr_path = output_dir / "dualscope_task_worktree_runner_pr_creation_result.json"
     manifest_path = output_dir / "dualscope_task_worktree_runner_worktree_manifest.json"
