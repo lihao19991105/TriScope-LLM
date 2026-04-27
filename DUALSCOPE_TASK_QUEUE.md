@@ -2071,6 +2071,50 @@ The Markdown text is for humans; the fenced JSON block is the source of truth.
       }
     },
     {
+      "task_id": "dualscope-advbench-small-slice-result-package-repair",
+      "purpose": "Repair and compress the partially validated AdvBench result-package state into explicit evidence boundaries, blockers, and routeable next-step artifacts without fabricating unavailable metrics.",
+      "expected_inputs": [
+        ".reports/dualscope_task_verdicts/dualscope-advbench-small-slice-result-package.json",
+        ".reports/dualscope_task_verdicts/dualscope-advbench-small-slice-metric-computation-repair.json",
+        ".reports/dualscope_task_verdicts/dualscope-advbench-small-slice-response-generation-repair.json",
+        "outputs/dualscope_advbench_small_slice_result_package/default",
+        "outputs/dualscope_advbench_small_slice_metric_computation_repair/default",
+        "outputs/dualscope_advbench_small_slice_response_generation/default/advbench_small_slice_responses.jsonl"
+      ],
+      "expected_outputs": [
+        ".plans/dualscope-advbench-small-slice-result-package-repair.md",
+        "docs/dualscope_advbench_small_slice_result_package_repair.md",
+        "src/eval/dualscope_advbench_small_slice_result_package_repair.py",
+        "scripts/build_dualscope_advbench_small_slice_result_package_repair.py",
+        ".reports/dualscope_task_verdicts/dualscope-advbench-small-slice-result-package-repair.json",
+        "outputs/dualscope_advbench_small_slice_result_package_repair/default/advbench_small_slice_result_package_repair_summary.json",
+        "outputs/dualscope_advbench_small_slice_result_package_repair/default/advbench_small_slice_result_package_repair_evidence_boundary.json",
+        "outputs/dualscope_advbench_small_slice_result_package_repair/default/advbench_small_slice_result_package_repair_blocker_compression.json",
+        "outputs/dualscope_advbench_small_slice_result_package_repair/default/advbench_small_slice_result_package_repair_verdict.json",
+        "outputs/dualscope_advbench_small_slice_result_package_repair_analysis/default/advbench_small_slice_result_package_repair_verdict.json"
+      ],
+      "branch_name_suggestion": "codex/advbench-small-slice-result-package-repair",
+      "prompt_template": "Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, and DUALSCOPE_TASK_QUEUE.md first. This is a repair/compression task for the partially validated AdvBench result-package stage. Audit the prior result package, metric-computation repair package, response-generation repair registry, and response rows. If ignored source output directories are absent in the isolated worktree but response rows and registries exist, first rerun the supported metric-computation, metric-repair, and result-package CLIs to recreate source artifacts without changing benchmark truth. Preserve only artifact-supported materialization, response availability, and fallback summaries; keep refusal, target behavior, detection, ASR, clean utility, and with-logprobs metrics blocked unless real response rows and required fields exist. If zero real response rows caused the partial result package, route to response-generation blocker closure rather than JBB expansion. Generate the repair ExecPlan, docs, core builder, CLI, repair summary, evidence boundary, blocker compression, source audit, limitations, report, verdict, analysis mirror, and tracked registry. Do not fabricate responses, logprobs, AUROC/F1/ASR/clean utility, labels, benchmark truth, gates, route_c, or 199+. Do not run full matrix, train, force push, delete branches, or touch PR #14. Follow AGENTS.md PR workflow.",
+      "completion_verdicts": {
+        "validated": [
+          "AdvBench small-slice result package repair validated"
+        ],
+        "partially_validated": [
+          "Partially validated"
+        ],
+        "not_validated": [
+          "Not validated"
+        ]
+      },
+      "verdict_artifacts": [
+        "outputs/dualscope_advbench_small_slice_result_package_repair/default/advbench_small_slice_result_package_repair_verdict.json",
+        "outputs/dualscope_advbench_small_slice_result_package_repair_analysis/default/advbench_small_slice_result_package_repair_verdict.json"
+      ],
+      "next_task_if_validated": "dualscope-advbench-small-slice-response-generation-blocker-closure",
+      "next_task_if_partially_validated": "dualscope-advbench-small-slice-result-package-blocker-closure",
+      "next_task_if_not_validated": "dualscope-advbench-small-slice-result-package-blocker-closure"
+    },
+    {
       "task_id": "dualscope-jbb-small-slice-materialization",
       "purpose": "Materialize or validate a bounded JBB-Behaviors small-slice if available; otherwise output a real blocker without fabricating data.",
       "expected_inputs": [
