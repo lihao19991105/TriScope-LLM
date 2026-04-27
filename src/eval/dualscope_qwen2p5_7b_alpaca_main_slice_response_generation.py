@@ -332,9 +332,31 @@ def build_qwen2p5_7b_alpaca_main_slice_response_generation(
     write_json(output_dir / "blockers.json", {"summary_status": "PASS" if not blockers else "BLOCKED", "blockers": blockers})
     write_jsonl(output_dir / "selected_main_slice_rows.jsonl", selected_rows)
     write_jsonl(output_dir / "qwen2p5_7b_alpaca_main_slice_response_rows.jsonl", output_rows)
+    write_jsonl(output_dir / "qwen2p5_7b_alpaca_main_slice_responses.jsonl", output_rows)
     write_json(output_dir / "generation_summary.json", summary)
+    write_json(output_dir / "qwen2p5_7b_alpaca_main_slice_response_generation_summary.json", summary)
+    write_json(
+        output_dir / "qwen2p5_7b_alpaca_main_slice_response_generation_blockers.json",
+        {
+            "summary_status": "PASS" if not blockers else "BLOCKED",
+            "blocker_type": blockers[0] if blockers else "",
+            "blockers": blockers,
+        },
+    )
     write_json(
         output_dir / "verdict.json",
+        {
+            "summary_status": summary["summary_status"],
+            "schema_version": SCHEMA_VERSION,
+            "final_verdict": final_verdict,
+            "recommended_next_step": summary["recommended_next_step"],
+            "model_response_fabricated": False,
+            "logprobs_fabricated": False,
+            "metrics_computed": False,
+        },
+    )
+    write_json(
+        output_dir / "qwen2p5_7b_alpaca_main_slice_response_generation_verdict.json",
         {
             "summary_status": summary["summary_status"],
             "schema_version": SCHEMA_VERSION,
@@ -372,6 +394,10 @@ def build_qwen2p5_7b_alpaca_main_slice_response_generation(
         "",
     ]
     (output_dir / "dualscope_qwen2p5_7b_alpaca_main_slice_response_generation_report.md").write_text(
+        "\n".join(report_lines),
+        encoding="utf-8",
+    )
+    (output_dir / "qwen2p5_7b_alpaca_main_slice_response_generation_report.md").write_text(
         "\n".join(report_lines),
         encoding="utf-8",
     )

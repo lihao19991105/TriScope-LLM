@@ -35,6 +35,7 @@ DEFAULT_ALLOWED_PATTERNS = [
     "scripts/build_dualscope_*",
     "scripts/build_post_dualscope_*",
     "scripts/run_dualscope_*",
+    "scripts/check_dualscope_*",
     "scripts/dualscope_*",
     "docs/dualscope_*",
     ".reports/dualscope_task_verdicts/*.json",
