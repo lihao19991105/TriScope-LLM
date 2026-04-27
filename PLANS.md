@@ -98,6 +98,8 @@
 
 当前 Alpaca main-slice response generation 的第一轮真实执行链已闭环为 blocker documentation，而不是实验完成。新的入口是 `dualscope-worktree-gpu-bnb-input-readiness-repair`：先验证 isolated worktree 的 `.venv`、CUDA、bitsandbytes 或 non-4bit fallback、input materialization、model symlink 与 `/mnt/sda3/lh` cache/tmp 传递，再进入 `dualscope-qwen2p5-7b-alpaca-main-slice-bounded-response-generation-retry`。该重开链仍只允许 bounded main-slice，不允许 full matrix、训练、route_c、199+ 或伪造 response/logprob/metric。
 
+当前已确认 GPU/CUDA 在宿主机 shell 可见，但在 `codex exec` isolated worktree 中不可见。因此下一步是 `dualscope-external-gpu-runner-for-qwen2p5-7b-generation`：真实 Qwen2.5-7B bounded generation 迁移到普通 shell / `nohup` 外部 runner 执行，Codex 只负责脚本、artifact 检查、registry、PR 与后续 routing。该 runner 必须产生真实 response 或真实 blocker，不得伪造 response/logprob/metric，不得 full matrix 或训练。
+
 ---
 
 ## 1. What an ExecPlan Is
