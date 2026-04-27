@@ -71,6 +71,7 @@ python3 scripts/build_dualscope_jbb_small_slice_response_generation_repair.py \
 - 2026-04-27: Added JBB repair/compression module, CLI, documentation, compact row audit, availability matrix, blocker compression, verdict, and tracked repair registry.
 - 2026-04-27: Syntax validation passed. Repair audit completed with `JBB small-slice response generation repair validated`, preserving the CUDA visibility blocker and routing to blocker closure.
 - 2026-04-27: Opened PR #127 and requested Codex review. Safe merge gate check-only reported `file_scope_allowed=true` and blocked only on `codex_review_missing`; no merge, force push, branch deletion, remote rewrite, benchmark truth change, gate change, route_c continuation, or `199+` generation occurred.
+- 2026-04-27: Reran the bounded source response-generation CLI in this repair worktree and regenerated local artifact directories. The source task remains `Partially validated` with `generated_row_count=0`, `blocked_row_count=16`, and `blocker_type=torch_cuda_unavailable`; the repair audit remains validated and routes to `dualscope-jbb-small-slice-response-generation-blocker-closure`.
 
 ## Risks
 
