@@ -1,0 +1,17 @@
+{
+  "task_id": "dualscope-qwen2p5-7b-semantic-trigger-smoke-result-package",
+  "verdict": "Qwen2.5-7B semantic trigger smoke result package validated",
+  "source_output_dir": "outputs/dualscope_qwen2p5_7b_semantic_trigger_smoke_result_package/default",
+  "created_at": "2026-04-27T02:01:18Z",
+  "validated": true,
+  "partially_validated": false,
+  "next_task": "dualscope-qwen2p5-7b-behavior-shift-target-smoke-response-generation",
+  "response_row_count": 16,
+  "detection_metrics_computed": true,
+  "asr_computed": true,
+  "clean_utility_computed": false,
+  "without_logprobs_fallback": true,
+  "full_matrix_executed": false,
+  "model_response_fabricated": false,
+  "metrics_fabricated": false
+}
