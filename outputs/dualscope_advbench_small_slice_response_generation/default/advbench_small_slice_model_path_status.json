@@ -1,0 +1,11 @@
+{
+  "summary_status": "PASS",
+  "path": "/mnt/sda3/lh/models/qwen2p5-7b-instruct",
+  "exists": true,
+  "is_symlink": false,
+  "resolved_path": "/mnt/sda3/lh/models/qwen2p5-7b-instruct",
+  "has_config": true,
+  "has_generation_config": true,
+  "has_tokenizer": true,
+  "safetensor_shard_count": 4
+}

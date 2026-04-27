@@ -1,0 +1,18 @@
+{
+  "summary_status": "FAIL",
+  "cuda_visible_devices": "2,3",
+  "cuda_device_order": "PCI_BUS_ID",
+  "gpu_count": 0,
+  "gpus": [],
+  "command_result": {
+    "command": [
+      "nvidia-smi",
+      "--query-gpu=index,name,memory.total,memory.free",
+      "--format=csv,noheader"
+    ],
+    "returncode": 9,
+    "passed": false,
+    "stdout": "NVIDIA-SMI has failed because it couldn't communicate with the NVIDIA driver. Make sure that the latest NVIDIA driver is installed and running.\n\n",
+    "stderr": ""
+  }
+}
