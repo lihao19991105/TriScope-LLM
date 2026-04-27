@@ -96,6 +96,7 @@ Successful completion requires real non-empty model responses for all selected r
 - 2026-04-27: Added bounded JBB builder, CLI, host-side runner script, and documentation.
 - 2026-04-27: `python3 -m py_compile` passed for the new module and CLI.
 - 2026-04-27: Executed the bounded command with `CUDA_VISIBLE_DEVICES=2,3`, `batch_size=1`, `max_new_tokens=64`, and `allow_without_logprobs`. The run produced `Partially validated` blocker artifacts with `blocker_type=torch_cuda_unavailable`, `generated_row_count=0`, and `blocked_row_count=16`. No model responses, logprobs, metrics, benchmark truth, gates, training, route_c, or `199+` artifacts were fabricated or modified.
+- 2026-04-27: Repair pass rebuilt the bounded artifact directory in the isolated worktree and added `.plans/dualscope-jbb-small-slice-response-generation-repair.md` plus repair/compression artifacts. The response-generation source task remains `Partially validated`; the repair task is validated because it preserves the CUDA blocker and routes to blocker closure without fabricating responses.
 
 ## Risks
 
