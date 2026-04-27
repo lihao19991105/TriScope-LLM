@@ -23,7 +23,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run bounded AdvBench/JBB Qwen2.5-7B response generation.")
     parser.add_argument("--dataset-id", required=True, choices=["advbench", "jbb"])
     parser.add_argument("--input-jsonl", type=Path)
-    parser.add_argument("--model-dir", type=Path, default=DEFAULT_MODEL_DIR)
+    parser.add_argument(
+        "--model-dir",
+        type=Path,
+        default=DEFAULT_MODEL_DIR,
+        help=f"Absolute Qwen2.5-7B-Instruct model directory. Default: {DEFAULT_MODEL_DIR}",
+    )
     parser.add_argument("--output-dir", type=Path)
     parser.add_argument("--registry-path", type=Path)
     parser.add_argument("--seed", type=int, default=2025)
