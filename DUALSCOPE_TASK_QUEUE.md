@@ -1069,7 +1069,7 @@ The Markdown text is for humans; the fenced JSON block is the source of truth.
         "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation_blocker_closure/default"
       ],
       "branch_name_suggestion": "codex/qwen2p5-7b-alpaca-main-slice-response-generation-blocker-closure",
-      "prompt_template": "Continue DualScope-LLM task `{task_id}`. Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, DUALSCOPE_TASK_QUEUE.md, the bounded Alpaca response-generation, repair, and dependency-repair registries first. This is a blocker-closure task, not a response-generation task. Do not retry plan-only packaging and do not fabricate responses, logprobs, labels, metrics, reviews, or CI. Summarize the real blocker chain: zero bounded Alpaca main-slice response rows, the dependency repair attempt, missing_dependency / bitsandbytes install blocker if present, CUDA visibility diagnostics, missing input materialization diagnostics if present, and any safe retry recommendations. Produce a concise blocker report, blocker summary JSON, next manual action recommendation, and tracked registry. If the blocker is truly unresolved, verdict should be `Qwen2.5-7B Alpaca main-slice response generation blocker closed` with `validated=true` only for blocker documentation, not for response generation. The registry must state that no new model responses or metrics were produced. Next task is `queue_complete` unless a future user explicitly authorizes another resource repair. Never modify benchmark truth or gates, never continue route_c or generate 199+, never run a full matrix, and follow AGENTS.md PR workflow without force push, branch deletion, remote rewrite, or merging unrelated PRs.",
+      "prompt_template": "Continue DualScope-LLM task `{task_id}`. Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, DUALSCOPE_TASK_QUEUE.md, the bounded Alpaca response-generation, repair, and dependency-repair registries first. This is a blocker-closure task, not a response-generation task. Do not retry plan-only packaging and do not fabricate responses, logprobs, labels, metrics, reviews, or CI. Summarize the real blocker chain: zero bounded Alpaca main-slice response rows, the dependency repair attempt, missing_dependency / bitsandbytes install blocker if present, CUDA visibility diagnostics, missing input materialization diagnostics if present, and any safe retry recommendations. Produce a concise blocker report, blocker summary JSON, next manual action recommendation, and tracked registry. If the blocker is truly unresolved, verdict should be `Qwen2.5-7B Alpaca main-slice response generation blocker closed` with `validated=true` only for blocker documentation, not for response generation. The registry must state that no new model responses or metrics were produced. Next task is `dualscope-worktree-gpu-bnb-input-readiness-repair` because the user has explicitly authorized a new bounded runtime repair and response-generation retry chain. Never modify benchmark truth or gates, never continue route_c or generate 199+, never run a full matrix, and follow AGENTS.md PR workflow without force push, branch deletion, remote rewrite, or merging unrelated PRs.",
       "completion_verdicts": {
         "validated": [
           "Qwen2.5-7B Alpaca main-slice response generation blocker closed"
@@ -1083,6 +1083,125 @@ The Markdown text is for humans; the fenced JSON block is the source of truth.
       },
       "verdict_artifacts": [
         "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation_blocker_closure/default/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation_blocker_closure_verdict.json"
+      ],
+      "next_task_if_validated": "dualscope-worktree-gpu-bnb-input-readiness-repair",
+      "next_task_if_partially_validated": "queue_complete",
+      "next_task_if_not_validated": "queue_complete"
+    },
+    {
+      "task_id": "dualscope-worktree-gpu-bnb-input-readiness-repair",
+      "purpose": "Repair and verify isolated worktree runtime readiness for bounded Qwen2.5-7B Alpaca main-slice execution: .venv, CUDA, bitsandbytes or fallback, input materialization, model symlink, HF cache, and TMPDIR.",
+      "expected_inputs": [
+        "data/stanford_alpaca/first_slice/alpaca_first_slice_labeled_pairs.jsonl",
+        "data/stanford_alpaca/first_slice/alpaca_first_slice_source.jsonl",
+        "outputs/dualscope_first_slice_target_response_generation_plan/default",
+        "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_plan/default",
+        "models/qwen2p5-7b-instruct",
+        "/mnt/sda3/lh/models/qwen2p5-7b-instruct"
+      ],
+      "expected_outputs": [
+        ".plans/dualscope-worktree-gpu-bnb-input-readiness-repair.md",
+        "docs/dualscope_worktree_gpu_bnb_input_readiness_repair.md",
+        ".reports/dualscope_task_verdicts/dualscope-worktree-gpu-bnb-input-readiness-repair.json",
+        "outputs/dualscope_worktree_gpu_bnb_input_readiness_repair/default/runtime_readiness_summary.json",
+        "outputs/dualscope_worktree_gpu_bnb_input_readiness_repair/default/worktree_cuda_check.json",
+        "outputs/dualscope_worktree_gpu_bnb_input_readiness_repair/default/worktree_python_dependency_check.json",
+        "outputs/dualscope_worktree_gpu_bnb_input_readiness_repair/default/bitsandbytes_check.json",
+        "outputs/dualscope_worktree_gpu_bnb_input_readiness_repair/default/input_materialization_check.json",
+        "outputs/dualscope_worktree_gpu_bnb_input_readiness_repair/default/model_binding_check.json",
+        "outputs/dualscope_worktree_gpu_bnb_input_readiness_repair/default/runtime_readiness_blockers.json",
+        "outputs/dualscope_worktree_gpu_bnb_input_readiness_repair/default/runtime_readiness_report.md",
+        "outputs/dualscope_worktree_gpu_bnb_input_readiness_repair/default/runtime_readiness_verdict.json"
+      ],
+      "branch_name_suggestion": "codex/worktree-gpu-bnb-input-readiness-repair",
+      "prompt_template": "Continue DualScope-LLM task `{task_id}`. Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, DUALSCOPE_TASK_QUEUE.md, and the previous Alpaca main-slice blocker closure first. This is an execution-required runtime readiness repair task, not a plan/docs/registry-only task. Verify the isolated worktree runtime after dependency materialization: `.venv` symlink, `.venv/bin/python`, torch import, `torch.cuda.is_available()`, `torch.cuda.device_count()`, `CUDA_VISIBLE_DEVICES=2,3`, `CUDA_DEVICE_ORDER=PCI_BUS_ID`, `nvidia-smi`, transformers, accelerate, bitsandbytes, labeled pairs, source JSONL, target-response plan output, Alpaca main-slice plan output, repo model symlink, `/mnt/sda3/lh/models/qwen2p5-7b-instruct`, `HF_HOME=/mnt/sda3/lh/huggingface`, `HF_HUB_CACHE=/mnt/sda3/lh/huggingface/hub`, `TRANSFORMERS_CACHE=/mnt/sda3/lh/huggingface/transformers`, and `TMPDIR=/mnt/sda3/lh/tmp`. Run `.venv/bin/python scripts/build_dualscope_worktree_gpu_bnb_input_readiness_repair.py --attempt-pip-install` or the equivalent supported invocation. If bitsandbytes installation fails because the proxy refuses pip, record that blocker and set `quantization_fallback=true`; if CUDA and inputs are otherwise ready, route to bounded response generation without 4-bit. If CUDA is unavailable, write explicit GPU blocker artifacts. Do not generate model responses in this task, do not fake CUDA, bitsandbytes, model paths, responses, logprobs, labels, metrics, reviews, or CI. Do not modify benchmark truth or gates, do not continue route_c, do not generate 199+, do not touch `/mnt/sda3/CoCoNut-Artifact`, and do not download 7B under `/home/lh`. Final verdicts: `Worktree GPU/BnB/input readiness validated`, `Partially validated`, or `Not validated`. If validated or partially validated with quantization fallback only, next task is `dualscope-qwen2p5-7b-alpaca-main-slice-bounded-response-generation-retry`; if GPU is unavailable, route to `dualscope-worktree-gpu-readiness-blocker-closure`. Follow AGENTS.md PR workflow without force push, branch deletion, or remote rewrite.",
+      "completion_verdicts": {
+        "validated": [
+          "Worktree GPU/BnB/input readiness validated"
+        ],
+        "partially_validated": [
+          "Partially validated"
+        ],
+        "not_validated": [
+          "Not validated"
+        ]
+      },
+      "verdict_artifacts": [
+        "outputs/dualscope_worktree_gpu_bnb_input_readiness_repair/default/runtime_readiness_verdict.json"
+      ],
+      "next_task_if_validated": "dualscope-qwen2p5-7b-alpaca-main-slice-bounded-response-generation-retry",
+      "next_task_if_partially_validated": "dualscope-qwen2p5-7b-alpaca-main-slice-bounded-response-generation-retry",
+      "next_task_if_not_validated": "dualscope-worktree-gpu-readiness-blocker-closure"
+    },
+    {
+      "task_id": "dualscope-qwen2p5-7b-alpaca-main-slice-bounded-response-generation-retry",
+      "purpose": "Retry bounded Qwen2.5-7B Alpaca main-slice response generation after explicit worktree runtime readiness repair, producing real responses or explicit blocker artifacts only.",
+      "expected_inputs": [
+        ".reports/dualscope_task_verdicts/dualscope-worktree-gpu-bnb-input-readiness-repair.json",
+        "data/stanford_alpaca/first_slice/alpaca_first_slice_labeled_pairs.jsonl",
+        "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_plan/default",
+        "models/qwen2p5-7b-instruct",
+        "/mnt/sda3/lh/models/qwen2p5-7b-instruct"
+      ],
+      "expected_outputs": [
+        ".plans/dualscope-qwen2p5-7b-alpaca-main-slice-bounded-response-generation-retry.md",
+        "docs/dualscope_qwen2p5_7b_alpaca_main_slice_bounded_response_generation_retry.md",
+        ".reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-alpaca-main-slice-bounded-response-generation-retry.json",
+        "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation/default/qwen2p5_7b_alpaca_main_slice_responses.jsonl",
+        "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation/default/qwen2p5_7b_alpaca_main_slice_response_generation_summary.json",
+        "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation/default/qwen2p5_7b_alpaca_main_slice_response_generation_blockers.json",
+        "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation/default/qwen2p5_7b_alpaca_main_slice_response_generation_report.md",
+        "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation/default/qwen2p5_7b_alpaca_main_slice_response_generation_verdict.json"
+      ],
+      "branch_name_suggestion": "codex/qwen2p5-7b-alpaca-main-slice-bounded-response-generation-retry",
+      "prompt_template": "Continue DualScope-LLM task `{task_id}`. Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, DUALSCOPE_TASK_QUEUE.md, and the worktree runtime readiness registry first. This is an execution-required bounded response-generation retry. Do not create only plan/docs/registry/scaffold. Use Qwen2.5-7B at `/mnt/sda3/lh/models/qwen2p5-7b-instruct` through `models/qwen2p5-7b-instruct`, `HF_HOME=/mnt/sda3/lh/huggingface`, `HF_HUB_CACHE=/mnt/sda3/lh/huggingface/hub`, `TRANSFORMERS_CACHE=/mnt/sda3/lh/huggingface/transformers`, `TMPDIR=/mnt/sda3/lh/tmp`, `CUDA_VISIBLE_DEVICES=2,3`, and `CUDA_DEVICE_ORDER=PCI_BUS_ID`. Run `.venv/bin/python scripts/build_dualscope_qwen2p5_7b_alpaca_main_slice_response_generation.py --model-dir /mnt/sda3/lh/models/qwen2p5-7b-instruct --input-jsonl data/stanford_alpaca/first_slice/alpaca_first_slice_labeled_pairs.jsonl --plan-verdict .reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-alpaca-main-slice-plan.json --output-dir outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation/default --registry-path .reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-alpaca-main-slice-bounded-response-generation-retry.json --max-source-examples 16 --expected-response-rows 32 --batch-size 1 --max-new-tokens 64 --max-generation-attempts 32 --allow-without-logprobs`. Add `--load-in-4bit` only if bitsandbytes is available; otherwise use fp16/low-memory fallback. If OOM or runtime failure occurs, retry once with `--max-source-examples 4 --expected-response-rows 8 --max-new-tokens 32 --max-generation-attempts 8`. Success requires a response JSONL with row_count > 0 and real `model_response` values. Qualified failure requires blocker JSON with explicit blocker_type such as `oom`, `cuda_error`, `torch_cuda_unavailable`, `missing_dependency`, `model_load_failure`, `logprob_unavailable`, `missing_input`, or `runtime_error`. Do not fake responses, logprobs, labels, metrics, reviews, or CI. Do not compute metrics here. No full Alpaca, no full matrix, no training, no route_c, no 199+, no benchmark truth or gate changes. Verdicts: `Qwen2.5-7B Alpaca main-slice bounded response generation validated`, `Partially validated`, or `Not validated`. If validated, next task is `dualscope-qwen2p5-7b-alpaca-main-slice-metric-computation`; if partially validated, route to `dualscope-qwen2p5-7b-alpaca-main-slice-response-generation-repair`. Follow AGENTS.md PR workflow.",
+      "completion_verdicts": {
+        "validated": [
+          "Qwen2.5-7B Alpaca main-slice bounded response generation validated",
+          "Qwen2.5-7B Alpaca main-slice response generation validated"
+        ],
+        "partially_validated": [
+          "Partially validated"
+        ],
+        "not_validated": [
+          "Not validated"
+        ]
+      },
+      "verdict_artifacts": [
+        "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation/default/qwen2p5_7b_alpaca_main_slice_response_generation_verdict.json",
+        "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation/default/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation_verdict.json"
+      ],
+      "next_task_if_validated": "dualscope-qwen2p5-7b-alpaca-main-slice-metric-computation",
+      "next_task_if_partially_validated": "dualscope-qwen2p5-7b-alpaca-main-slice-response-generation-repair",
+      "next_task_if_not_validated": "dualscope-qwen2p5-7b-alpaca-main-slice-response-generation-blocker-closure"
+    },
+    {
+      "task_id": "dualscope-worktree-gpu-readiness-blocker-closure",
+      "purpose": "Truthfully close an unrepaired worktree GPU/CUDA runtime blocker without fabricating Qwen2.5-7B responses or metrics.",
+      "expected_inputs": [
+        ".reports/dualscope_task_verdicts/dualscope-worktree-gpu-bnb-input-readiness-repair.json",
+        "outputs/dualscope_worktree_gpu_bnb_input_readiness_repair/default"
+      ],
+      "expected_outputs": [
+        ".plans/dualscope-worktree-gpu-readiness-blocker-closure.md",
+        "docs/dualscope_worktree_gpu_readiness_blocker_closure.md",
+        ".reports/dualscope_task_verdicts/dualscope-worktree-gpu-readiness-blocker-closure.json"
+      ],
+      "branch_name_suggestion": "codex/worktree-gpu-readiness-blocker-closure",
+      "prompt_template": "Continue DualScope-LLM task `{task_id}`. Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, DUALSCOPE_TASK_QUEUE.md, and the worktree runtime readiness artifacts first. This is a blocker closure, not a generation task. Summarize the real GPU/CUDA/.venv/bitsandbytes/input blocker chain and manual action required. Do not fabricate responses, logprobs, metrics, CUDA success, reviews, or CI. Do not modify benchmark truth or gates, do not route_c, do not generate 199+, and do not touch `/mnt/sda3/CoCoNut-Artifact`. Verdicts: `Worktree GPU readiness blocker closed`, `Partially validated`, or `Not validated`. Next task is `queue_complete` unless a future user explicitly authorizes another resource repair. Follow AGENTS.md PR workflow.",
+      "completion_verdicts": {
+        "validated": [
+          "Worktree GPU readiness blocker closed"
+        ],
+        "partially_validated": [
+          "Partially validated"
+        ],
+        "not_validated": [
+          "Not validated"
+        ]
+      },
+      "verdict_artifacts": [
+        "outputs/dualscope_worktree_gpu_readiness_blocker_closure/default/verdict.json"
       ],
       "next_task_if_validated": "queue_complete",
       "next_task_if_partially_validated": "queue_complete",

@@ -29,6 +29,7 @@ WORKTREE_EXEC_ENV = {
     "HF_HUB_CACHE": "/mnt/sda3/lh/huggingface/hub",
     "TMPDIR": "/mnt/sda3/lh/tmp",
     "CUDA_VISIBLE_DEVICES": "2,3",
+    "CUDA_DEVICE_ORDER": "PCI_BUS_ID",
 }
 TASK_NEXT_TASK_OVERRIDES = {
     "dualscope-qwen2p5-7b-first-slice-response-generation-plan": "dualscope-qwen2p5-7b-first-slice-response-generation",
@@ -256,10 +257,13 @@ def should_materialize_qwen_dependencies(task_id: str) -> bool:
     normalized = task_id.lower()
     if "blocker-closure" in normalized:
         return False
+    if "worktree-gpu-bnb-input-readiness-repair" in normalized:
+        return True
     return "qwen2p5-7b" in normalized and (
         "first-slice" in normalized
         or "response-generation" in normalized
         or "response-dependency" in normalized
+        or "bounded-response-generation" in normalized
         or "metric" in normalized
         or "result-package" in normalized
     )
@@ -275,6 +279,8 @@ def qwen_output_dependencies_for_task(task_id: str) -> tuple[str, ...]:
     if (
         "response-generation" in normalized
         or "response-dependency" in normalized
+        or "bounded-response-generation" in normalized
+        or "worktree-gpu-bnb-input-readiness-repair" in normalized
         or "metric" in normalized
         or "result-package" in normalized
     ):

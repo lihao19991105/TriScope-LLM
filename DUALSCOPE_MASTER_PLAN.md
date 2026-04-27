@@ -156,6 +156,12 @@
 
 该阶段只做 small-step expansion：先规划 Qwen2.5-7B Stanford Alpaca main-slice，再做 bounded response generation，然后依次规划 semantic trigger smoke、behavior-shift target smoke、AdvBench small-slice readiness 与 JBB small-slice readiness。它明确不执行 full matrix，不把 8 条 first-slice response 声称为完整论文结果，不伪造 clean utility，不把 cross-model readiness 写成真实 Llama/Mistral 实验。
 
+当前 Alpaca main-slice response generation 已真实尝试并闭环记录 blocker，但这不代表 SCI3 扩展实验完成。新的 bounded runtime repair 入口是：
+
+- [.plans/dualscope-worktree-gpu-bnb-input-readiness-repair.md](/home/lh/TriScope-LLM/.plans/dualscope-worktree-gpu-bnb-input-readiness-repair.md)
+
+该阶段先修复 isolated worktree 中 `.venv`、CUDA/GPU、bitsandbytes 或 non-4bit fallback、input materialization、Qwen2.5-7B symlink、HF cache 和 TMPDIR 传递，再重新进入 bounded Alpaca main-slice response generation retry。该链仍不得 full matrix、不得训练、不得伪造 responses/logprobs/metrics。
+
 ### Current Submission Positioning
 
 当前论文目标应保持**稳妥、不夸大**：
