@@ -1,0 +1,13 @@
+{
+  "task_id": "dualscope-sci3-expanded-result-synthesis",
+  "verdict": "Partially validated",
+  "source_output_dir": "outputs/dualscope_sci3_expanded_result_synthesis/default",
+  "created_at": "2026-04-27T11:31:34Z",
+  "validated": false,
+  "partially_validated": true,
+  "next_task": "dualscope-sci3-expanded-synthesis-review-and-paper-table-freeze",
+  "real_response_rows_total": 32,
+  "with_logprobs_results_available": false,
+  "full_matrix_executed": false,
+  "metrics_fabricated": false
+}
