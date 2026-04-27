@@ -168,6 +168,12 @@
 
 该 runner 由普通 shell / `nohup` 执行，不通过 `codex exec` sandbox。Codex 仍负责生成脚本、检查 artifacts、更新 registry、PR workflow 与后续 metric/result routing。外部 runner 只能生成真实 response 或真实 blocker，不得伪造 response/logprob/metric，也不得扩 full matrix。
 
+当前 Qwen2.5-7B Alpaca bounded main-slice 已完成 16 条真实 response、检测指标、ASR、without-logprobs fallback 与 result package；clean utility 仍为真实 blocker。下一阶段入口是：
+
+- [.plans/dualscope-sci3-semantic-behavior-expansion-track.md](/home/lh/TriScope-LLM/.plans/dualscope-sci3-semantic-behavior-expansion-track.md)
+
+该阶段继续小步扩展：先执行 semantic trigger smoke response generation / metrics / package，再执行 behavior-shift target smoke response generation / metrics / package，随后进行 AdvBench 与 JBB bounded small-slice materialization 和 response-generation planning，最后输出 expanded SCI3 synthesis package。不得直接运行 full matrix、训练、伪造 logprobs/metrics/utility，或把 bounded smoke 结果写成完整论文性能。
+
 ### Current Submission Positioning
 
 当前论文目标应保持**稳妥、不夸大**：

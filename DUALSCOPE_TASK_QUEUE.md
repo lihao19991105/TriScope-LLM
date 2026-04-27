@@ -1455,6 +1455,468 @@ The Markdown text is for humans; the fenced JSON block is the source of truth.
       "next_task_if_validated": "queue_complete",
       "next_task_if_partially_validated": "dualscope-jbb-small-slice-readiness-plan-repair",
       "next_task_if_not_validated": "dualscope-jbb-small-slice-readiness-plan-blocker-closure"
+    },
+    {
+      "task_id": "dualscope-qwen2p5-7b-semantic-trigger-smoke-response-generation",
+      "purpose": "Run small-scale real Qwen2.5-7B semantic trigger smoke response generation using the external GPU runner or GPU-visible shell execution.",
+      "expected_inputs": [
+        ".reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-semantic-trigger-smoke-plan.json",
+        "data/stanford_alpaca/first_slice/alpaca_first_slice_labeled_pairs.jsonl",
+        "outputs/dualscope_first_slice_target_response_generation_plan/default",
+        "/mnt/sda3/lh/models/qwen2p5-7b-instruct",
+        "models/qwen2p5-7b-instruct"
+      ],
+      "expected_outputs": [
+        ".plans/dualscope-qwen2p5-7b-semantic-trigger-smoke-response-generation.md",
+        "docs/dualscope_qwen2p5_7b_semantic_trigger_smoke_response_generation.md",
+        ".reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-semantic-trigger-smoke-response-generation.json",
+        "outputs/dualscope_qwen2p5_7b_semantic_trigger_smoke_response_generation/default/semantic_trigger_smoke_responses.jsonl",
+        "outputs/dualscope_qwen2p5_7b_semantic_trigger_smoke_response_generation/default/semantic_trigger_smoke_summary.json",
+        "outputs/dualscope_qwen2p5_7b_semantic_trigger_smoke_response_generation/default/semantic_trigger_smoke_blockers.json",
+        "outputs/dualscope_qwen2p5_7b_semantic_trigger_smoke_response_generation/default/semantic_trigger_smoke_report.md",
+        "outputs/dualscope_qwen2p5_7b_semantic_trigger_smoke_response_generation/default/semantic_trigger_smoke_verdict.json"
+      ],
+      "branch_name_suggestion": "codex/qwen2p5-7b-semantic-trigger-smoke-response-generation",
+      "prompt_template": "Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, and DUALSCOPE_TASK_QUEUE.md first. Execute a bounded semantic trigger smoke response generation task, not a plan-only package. Use Qwen2.5-7B at `/mnt/sda3/lh/models/qwen2p5-7b-instruct`, Stanford Alpaca bounded slice, batch_size=1, max_examples 8 or 16, max_new_tokens=64, CUDA_VISIBLE_DEVICES=2,3, HF cache under `/mnt/sda3/lh`, and external GPU runner or GPU-visible shell if codex sandbox CUDA is unavailable. If semantic trigger spec is missing, create one minimal semantic phrase trigger spec only. Success requires `semantic_trigger_smoke_responses.jsonl` row_count > 0 with real model_response values. Qualified failure requires `semantic_trigger_smoke_blockers.json` with blocker_type such as cuda_unavailable, oom, model_load_failure, missing_input, missing_dependency, or runtime_error. Record without_logprobs_fallback when logprobs are unavailable. Do not fabricate responses, logprobs, AUROC/F1/ASR/clean utility, labels, benchmark truth, gates, route_c, or 199+. Do not run full matrix, train, force push, delete branches, or touch PR #14. Follow AGENTS.md PR workflow.",
+      "completion_verdicts": {
+        "validated": [
+          "Qwen2.5-7B semantic trigger smoke response generation validated"
+        ],
+        "partially_validated": [
+          "Partially validated"
+        ],
+        "not_validated": [
+          "Not validated"
+        ]
+      },
+      "verdict_artifacts": [
+        "outputs/dualscope_qwen2p5_7b_semantic_trigger_smoke_response_generation/default/semantic_trigger_smoke_verdict.json"
+      ],
+      "next_task_if_validated": "dualscope-qwen2p5-7b-semantic-trigger-smoke-metric-computation",
+      "next_task_if_partially_validated": "dualscope-qwen2p5-7b-semantic-trigger-smoke-response-generation-repair",
+      "next_task_if_not_validated": "dualscope-qwen2p5-7b-semantic-trigger-smoke-blocker-closure",
+      "execution_gate_requirements": {
+        "response_jsonl": "outputs/dualscope_qwen2p5_7b_semantic_trigger_smoke_response_generation/default/semantic_trigger_smoke_responses.jsonl",
+        "blocker_json": "outputs/dualscope_qwen2p5_7b_semantic_trigger_smoke_response_generation/default/semantic_trigger_smoke_blockers.json",
+        "requires_real_execution_or_blocker": true
+      }
+    },
+    {
+      "task_id": "dualscope-qwen2p5-7b-semantic-trigger-smoke-metric-computation",
+      "purpose": "Compute real available metrics for semantic trigger smoke responses.",
+      "expected_inputs": [
+        ".reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-semantic-trigger-smoke-response-generation.json",
+        "outputs/dualscope_qwen2p5_7b_semantic_trigger_smoke_response_generation/default",
+        "data/stanford_alpaca/first_slice/alpaca_first_slice_labeled_pairs.jsonl"
+      ],
+      "expected_outputs": [
+        ".plans/dualscope-qwen2p5-7b-semantic-trigger-smoke-metric-computation.md",
+        "docs/dualscope_qwen2p5_7b_semantic_trigger_smoke_metric_computation.md",
+        ".reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-semantic-trigger-smoke-metric-computation.json",
+        "outputs/dualscope_qwen2p5_7b_semantic_trigger_smoke_metric_computation/default/available_metrics.json",
+        "outputs/dualscope_qwen2p5_7b_semantic_trigger_smoke_metric_computation/default/readiness_matrix.json",
+        "outputs/dualscope_qwen2p5_7b_semantic_trigger_smoke_metric_computation/default/metric_blockers.json",
+        "outputs/dualscope_qwen2p5_7b_semantic_trigger_smoke_metric_computation/default/metric_report.md",
+        "outputs/dualscope_qwen2p5_7b_semantic_trigger_smoke_metric_computation/default/metric_verdict.json"
+      ],
+      "branch_name_suggestion": "codex/qwen2p5-7b-semantic-trigger-smoke-metric-computation",
+      "prompt_template": "Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, and DUALSCOPE_TASK_QUEUE.md first. Compute only metrics supported by real semantic-trigger response rows, labels, target rules, and available score fields. Produce available_metrics, readiness_matrix, metric_blockers, report, verdict, and tracked registry. If final_risk_score, target_match, ASR, or clean utility inputs are missing, emit explicit blockers rather than placeholders. Current without-logprobs fallback must remain explicit and no with-logprobs metrics may be claimed. Do not fabricate responses, logprobs, AUROC/F1/ASR/clean utility, labels, benchmark truth, gates, route_c, or 199+. Do not run full matrix, train, force push, delete branches, or touch PR #14. Follow AGENTS.md PR workflow.",
+      "completion_verdicts": {
+        "validated": [
+          "Qwen2.5-7B semantic trigger smoke metrics validated"
+        ],
+        "partially_validated": [
+          "Partially validated"
+        ],
+        "not_validated": [
+          "Not validated"
+        ]
+      },
+      "verdict_artifacts": [
+        "outputs/dualscope_qwen2p5_7b_semantic_trigger_smoke_metric_computation/default/metric_verdict.json"
+      ],
+      "next_task_if_validated": "dualscope-qwen2p5-7b-semantic-trigger-smoke-result-package",
+      "next_task_if_partially_validated": "dualscope-qwen2p5-7b-semantic-trigger-smoke-metric-repair",
+      "next_task_if_not_validated": "dualscope-qwen2p5-7b-semantic-trigger-smoke-metric-blocker-closure",
+      "execution_gate_requirements": {
+        "available_metrics": "outputs/dualscope_qwen2p5_7b_semantic_trigger_smoke_metric_computation/default/available_metrics.json",
+        "readiness_matrix": "outputs/dualscope_qwen2p5_7b_semantic_trigger_smoke_metric_computation/default/readiness_matrix.json",
+        "blocker_json": "outputs/dualscope_qwen2p5_7b_semantic_trigger_smoke_metric_computation/default/metric_blockers.json",
+        "requires_real_execution_or_blocker": true
+      }
+    },
+    {
+      "task_id": "dualscope-qwen2p5-7b-semantic-trigger-smoke-result-package",
+      "purpose": "Package semantic trigger smoke results and limitations.",
+      "expected_inputs": [
+        ".reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-semantic-trigger-smoke-metric-computation.json",
+        "outputs/dualscope_qwen2p5_7b_semantic_trigger_smoke_response_generation/default",
+        "outputs/dualscope_qwen2p5_7b_semantic_trigger_smoke_metric_computation/default"
+      ],
+      "expected_outputs": [
+        ".plans/dualscope-qwen2p5-7b-semantic-trigger-smoke-result-package.md",
+        "docs/dualscope_qwen2p5_7b_semantic_trigger_smoke_result_package.md",
+        ".reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-semantic-trigger-smoke-result-package.json",
+        "outputs/dualscope_qwen2p5_7b_semantic_trigger_smoke_result_package/default/result_package_summary.json",
+        "outputs/dualscope_qwen2p5_7b_semantic_trigger_smoke_result_package/default/metric_availability_matrix.json",
+        "outputs/dualscope_qwen2p5_7b_semantic_trigger_smoke_result_package/default/result_package_report.md",
+        "outputs/dualscope_qwen2p5_7b_semantic_trigger_smoke_result_package/default/result_package_verdict.json"
+      ],
+      "branch_name_suggestion": "codex/qwen2p5-7b-semantic-trigger-smoke-result-package",
+      "prompt_template": "Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, and DUALSCOPE_TASK_QUEUE.md first. Package semantic trigger smoke response and metric artifacts. Separate real metrics, fallback metrics, blocked metrics, limitations, and next actions. Do not claim full trigger-family performance or full matrix evidence. Produce summary, metric availability matrix, report, verdict, and tracked registry. Do not fabricate responses, logprobs, AUROC/F1/ASR/clean utility, labels, benchmark truth, gates, route_c, or 199+. Do not run full matrix, train, force push, delete branches, or touch PR #14. Follow AGENTS.md PR workflow.",
+      "completion_verdicts": {
+        "validated": [
+          "Qwen2.5-7B semantic trigger smoke result package validated"
+        ],
+        "partially_validated": [
+          "Partially validated"
+        ],
+        "not_validated": [
+          "Not validated"
+        ]
+      },
+      "verdict_artifacts": [
+        "outputs/dualscope_qwen2p5_7b_semantic_trigger_smoke_result_package/default/result_package_verdict.json"
+      ],
+      "next_task_if_validated": "dualscope-qwen2p5-7b-behavior-shift-target-smoke-response-generation",
+      "next_task_if_partially_validated": "dualscope-qwen2p5-7b-semantic-trigger-smoke-result-package-repair",
+      "next_task_if_not_validated": "dualscope-qwen2p5-7b-semantic-trigger-smoke-result-package-blocker-closure",
+      "execution_gate_requirements": {
+        "summary": "outputs/dualscope_qwen2p5_7b_semantic_trigger_smoke_result_package/default/result_package_summary.json",
+        "report": "outputs/dualscope_qwen2p5_7b_semantic_trigger_smoke_result_package/default/result_package_report.md",
+        "verdict": "outputs/dualscope_qwen2p5_7b_semantic_trigger_smoke_result_package/default/result_package_verdict.json",
+        "requires_real_execution_or_blocker": true
+      }
+    },
+    {
+      "task_id": "dualscope-qwen2p5-7b-behavior-shift-target-smoke-response-generation",
+      "purpose": "Run small-scale behavior-shift target smoke response generation.",
+      "expected_inputs": [
+        ".reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-behavior-shift-target-smoke-plan.json",
+        "data/stanford_alpaca/first_slice/alpaca_first_slice_labeled_pairs.jsonl",
+        "/mnt/sda3/lh/models/qwen2p5-7b-instruct",
+        "models/qwen2p5-7b-instruct"
+      ],
+      "expected_outputs": [
+        ".plans/dualscope-qwen2p5-7b-behavior-shift-target-smoke-response-generation.md",
+        "docs/dualscope_qwen2p5_7b_behavior_shift_target_smoke_response_generation.md",
+        ".reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-behavior-shift-target-smoke-response-generation.json",
+        "outputs/dualscope_qwen2p5_7b_behavior_shift_target_smoke_response_generation/default/behavior_shift_smoke_responses.jsonl",
+        "outputs/dualscope_qwen2p5_7b_behavior_shift_target_smoke_response_generation/default/behavior_shift_smoke_summary.json",
+        "outputs/dualscope_qwen2p5_7b_behavior_shift_target_smoke_response_generation/default/behavior_shift_smoke_blockers.json",
+        "outputs/dualscope_qwen2p5_7b_behavior_shift_target_smoke_response_generation/default/behavior_shift_smoke_report.md",
+        "outputs/dualscope_qwen2p5_7b_behavior_shift_target_smoke_response_generation/default/behavior_shift_smoke_verdict.json"
+      ],
+      "branch_name_suggestion": "codex/qwen2p5-7b-behavior-shift-target-smoke-response-generation",
+      "prompt_template": "Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, and DUALSCOPE_TASK_QUEUE.md first. Execute a bounded behavior-shift target smoke response generation task, not a plan-only package. Use safe behavior-shift target semantics from the plan, small safe samples, Qwen2.5-7B, batch_size=1, max_examples 8 or fewer if needed, max_new_tokens=64, and external GPU runner or GPU-visible shell. Do not generate actually dangerous content; use safety-preserving target behavior proxies or refusal/behavior-shift readiness where appropriate. Success requires real response JSONL row_count > 0. Qualified failure requires blocker JSON with a clear blocker_type. Record without_logprobs_fallback if logprobs are unavailable. Do not fabricate responses, logprobs, AUROC/F1/ASR/clean utility, labels, benchmark truth, gates, route_c, or 199+. Do not run full matrix, train, force push, delete branches, or touch PR #14. Follow AGENTS.md PR workflow.",
+      "completion_verdicts": {
+        "validated": [
+          "Qwen2.5-7B behavior-shift target smoke response generation validated"
+        ],
+        "partially_validated": [
+          "Partially validated"
+        ],
+        "not_validated": [
+          "Not validated"
+        ]
+      },
+      "verdict_artifacts": [
+        "outputs/dualscope_qwen2p5_7b_behavior_shift_target_smoke_response_generation/default/behavior_shift_smoke_verdict.json"
+      ],
+      "next_task_if_validated": "dualscope-qwen2p5-7b-behavior-shift-target-smoke-metric-computation",
+      "next_task_if_partially_validated": "dualscope-qwen2p5-7b-behavior-shift-target-smoke-response-repair",
+      "next_task_if_not_validated": "dualscope-qwen2p5-7b-behavior-shift-target-smoke-blocker-closure",
+      "execution_gate_requirements": {
+        "response_jsonl": "outputs/dualscope_qwen2p5_7b_behavior_shift_target_smoke_response_generation/default/behavior_shift_smoke_responses.jsonl",
+        "blocker_json": "outputs/dualscope_qwen2p5_7b_behavior_shift_target_smoke_response_generation/default/behavior_shift_smoke_blockers.json",
+        "requires_real_execution_or_blocker": true
+      }
+    },
+    {
+      "task_id": "dualscope-qwen2p5-7b-behavior-shift-target-smoke-metric-computation",
+      "purpose": "Compute available behavior-shift target smoke metrics.",
+      "expected_inputs": [
+        ".reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-behavior-shift-target-smoke-response-generation.json",
+        "outputs/dualscope_qwen2p5_7b_behavior_shift_target_smoke_response_generation/default",
+        "data/stanford_alpaca/first_slice/alpaca_first_slice_labeled_pairs.jsonl"
+      ],
+      "expected_outputs": [
+        ".plans/dualscope-qwen2p5-7b-behavior-shift-target-smoke-metric-computation.md",
+        "docs/dualscope_qwen2p5_7b_behavior_shift_target_smoke_metric_computation.md",
+        ".reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-behavior-shift-target-smoke-metric-computation.json",
+        "outputs/dualscope_qwen2p5_7b_behavior_shift_target_smoke_metric_computation/default/available_metrics.json",
+        "outputs/dualscope_qwen2p5_7b_behavior_shift_target_smoke_metric_computation/default/readiness_matrix.json",
+        "outputs/dualscope_qwen2p5_7b_behavior_shift_target_smoke_metric_computation/default/metric_blockers.json",
+        "outputs/dualscope_qwen2p5_7b_behavior_shift_target_smoke_metric_computation/default/metric_report.md",
+        "outputs/dualscope_qwen2p5_7b_behavior_shift_target_smoke_metric_computation/default/metric_verdict.json"
+      ],
+      "branch_name_suggestion": "codex/qwen2p5-7b-behavior-shift-target-smoke-metric-computation",
+      "prompt_template": "Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, and DUALSCOPE_TASK_QUEUE.md first. Compute only available behavior-shift smoke metrics from real response rows and explicit target behavior readiness fields. Do not infer harmfulness or utility from free text. Emit blockers for missing target-success rules, ASR inputs, clean utility fields, or score alignment. Produce available_metrics, readiness_matrix, blockers, report, verdict, and tracked registry. Do not fabricate responses, logprobs, AUROC/F1/ASR/clean utility, labels, benchmark truth, gates, route_c, or 199+. Do not run full matrix, train, force push, delete branches, or touch PR #14. Follow AGENTS.md PR workflow.",
+      "completion_verdicts": {
+        "validated": [
+          "Qwen2.5-7B behavior-shift target smoke metrics validated"
+        ],
+        "partially_validated": [
+          "Partially validated"
+        ],
+        "not_validated": [
+          "Not validated"
+        ]
+      },
+      "verdict_artifacts": [
+        "outputs/dualscope_qwen2p5_7b_behavior_shift_target_smoke_metric_computation/default/metric_verdict.json"
+      ],
+      "next_task_if_validated": "dualscope-qwen2p5-7b-behavior-shift-target-smoke-result-package",
+      "next_task_if_partially_validated": "dualscope-qwen2p5-7b-behavior-shift-target-smoke-metric-repair",
+      "next_task_if_not_validated": "dualscope-qwen2p5-7b-behavior-shift-target-smoke-metric-blocker-closure",
+      "execution_gate_requirements": {
+        "available_metrics": "outputs/dualscope_qwen2p5_7b_behavior_shift_target_smoke_metric_computation/default/available_metrics.json",
+        "readiness_matrix": "outputs/dualscope_qwen2p5_7b_behavior_shift_target_smoke_metric_computation/default/readiness_matrix.json",
+        "blocker_json": "outputs/dualscope_qwen2p5_7b_behavior_shift_target_smoke_metric_computation/default/metric_blockers.json",
+        "requires_real_execution_or_blocker": true
+      }
+    },
+    {
+      "task_id": "dualscope-qwen2p5-7b-behavior-shift-target-smoke-result-package",
+      "purpose": "Package behavior-shift target smoke results.",
+      "expected_inputs": [
+        ".reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-behavior-shift-target-smoke-metric-computation.json",
+        "outputs/dualscope_qwen2p5_7b_behavior_shift_target_smoke_response_generation/default",
+        "outputs/dualscope_qwen2p5_7b_behavior_shift_target_smoke_metric_computation/default"
+      ],
+      "expected_outputs": [
+        ".plans/dualscope-qwen2p5-7b-behavior-shift-target-smoke-result-package.md",
+        "docs/dualscope_qwen2p5_7b_behavior_shift_target_smoke_result_package.md",
+        ".reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-behavior-shift-target-smoke-result-package.json",
+        "outputs/dualscope_qwen2p5_7b_behavior_shift_target_smoke_result_package/default/result_package_summary.json",
+        "outputs/dualscope_qwen2p5_7b_behavior_shift_target_smoke_result_package/default/metric_availability_matrix.json",
+        "outputs/dualscope_qwen2p5_7b_behavior_shift_target_smoke_result_package/default/result_package_report.md",
+        "outputs/dualscope_qwen2p5_7b_behavior_shift_target_smoke_result_package/default/result_package_verdict.json"
+      ],
+      "branch_name_suggestion": "codex/qwen2p5-7b-behavior-shift-target-smoke-result-package",
+      "prompt_template": "Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, and DUALSCOPE_TASK_QUEUE.md first. Package behavior-shift target smoke response and metric artifacts. Separate real results, safety-preserving proxy limitations, blockers, and next actions. Do not claim harmful behavior success, full target-family performance, or clean utility unless artifacts prove it. Produce summary, metric availability matrix, report, verdict, and tracked registry. Do not fabricate responses, logprobs, AUROC/F1/ASR/clean utility, labels, benchmark truth, gates, route_c, or 199+. Do not run full matrix, train, force push, delete branches, or touch PR #14. Follow AGENTS.md PR workflow.",
+      "completion_verdicts": {
+        "validated": [
+          "Qwen2.5-7B behavior-shift target smoke result package validated"
+        ],
+        "partially_validated": [
+          "Partially validated"
+        ],
+        "not_validated": [
+          "Not validated"
+        ]
+      },
+      "verdict_artifacts": [
+        "outputs/dualscope_qwen2p5_7b_behavior_shift_target_smoke_result_package/default/result_package_verdict.json"
+      ],
+      "next_task_if_validated": "dualscope-advbench-small-slice-materialization",
+      "next_task_if_partially_validated": "dualscope-qwen2p5-7b-behavior-shift-target-smoke-result-package-repair",
+      "next_task_if_not_validated": "dualscope-qwen2p5-7b-behavior-shift-target-smoke-result-package-blocker-closure",
+      "execution_gate_requirements": {
+        "summary": "outputs/dualscope_qwen2p5_7b_behavior_shift_target_smoke_result_package/default/result_package_summary.json",
+        "report": "outputs/dualscope_qwen2p5_7b_behavior_shift_target_smoke_result_package/default/result_package_report.md",
+        "verdict": "outputs/dualscope_qwen2p5_7b_behavior_shift_target_smoke_result_package/default/result_package_verdict.json",
+        "requires_real_execution_or_blocker": true
+      }
+    },
+    {
+      "task_id": "dualscope-advbench-small-slice-materialization",
+      "purpose": "Materialize or validate a bounded AdvBench small-slice if publicly available locally or downloadable; otherwise output a real blocker without fabricating data.",
+      "expected_inputs": [
+        ".reports/dualscope_task_verdicts/dualscope-advbench-small-slice-readiness-plan.json",
+        "docs/dualscope_advbench_small_slice_readiness_plan.md"
+      ],
+      "expected_outputs": [
+        ".plans/dualscope-advbench-small-slice-materialization.md",
+        "docs/dualscope_advbench_small_slice_materialization.md",
+        ".reports/dualscope_task_verdicts/dualscope-advbench-small-slice-materialization.json",
+        "outputs/dualscope_advbench_small_slice_materialization/default/advbench_small_slice_manifest.json",
+        "outputs/dualscope_advbench_small_slice_materialization/default/advbench_small_slice_schema_check.json",
+        "outputs/dualscope_advbench_small_slice_materialization/default/advbench_small_slice_blockers.json",
+        "outputs/dualscope_advbench_small_slice_materialization/default/advbench_small_slice_report.md",
+        "outputs/dualscope_advbench_small_slice_materialization/default/advbench_small_slice_verdict.json"
+      ],
+      "branch_name_suggestion": "codex/advbench-small-slice-materialization",
+      "prompt_template": "Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, and DUALSCOPE_TASK_QUEUE.md first. Materialize or validate only a bounded AdvBench small slice. If data exists locally or is publicly downloadable without special authorization, create a small-slice manifest and schema check. If unavailable, gated, license-ambiguous, network-blocked, or unsafe, emit explicit blockers and do not create fake rows. No response generation or metrics in this task. Do not fabricate responses, logprobs, AUROC/F1/ASR/clean utility, labels, benchmark truth, gates, route_c, or 199+. Do not run full matrix, train, force push, delete branches, or touch PR #14. Follow AGENTS.md PR workflow.",
+      "completion_verdicts": {
+        "validated": [
+          "AdvBench small-slice materialization validated"
+        ],
+        "partially_validated": [
+          "Partially validated"
+        ],
+        "not_validated": [
+          "Not validated"
+        ]
+      },
+      "verdict_artifacts": [
+        "outputs/dualscope_advbench_small_slice_materialization/default/advbench_small_slice_verdict.json"
+      ],
+      "next_task_if_validated": "dualscope-advbench-small-slice-response-generation-plan",
+      "next_task_if_partially_validated": "dualscope-advbench-small-slice-materialization-repair",
+      "next_task_if_not_validated": "dualscope-advbench-small-slice-data-blocker-closure",
+      "execution_gate_requirements": {
+        "manifest": "outputs/dualscope_advbench_small_slice_materialization/default/advbench_small_slice_manifest.json",
+        "schema_check": "outputs/dualscope_advbench_small_slice_materialization/default/advbench_small_slice_schema_check.json",
+        "blocker_json": "outputs/dualscope_advbench_small_slice_materialization/default/advbench_small_slice_blockers.json",
+        "requires_real_execution_or_blocker": true
+      }
+    },
+    {
+      "task_id": "dualscope-advbench-small-slice-response-generation-plan",
+      "purpose": "Plan bounded AdvBench response generation without running full matrix.",
+      "expected_inputs": [
+        ".reports/dualscope_task_verdicts/dualscope-advbench-small-slice-materialization.json",
+        "outputs/dualscope_advbench_small_slice_materialization/default"
+      ],
+      "expected_outputs": [
+        ".plans/dualscope-advbench-small-slice-response-generation-plan.md",
+        "docs/dualscope_advbench_small_slice_response_generation_plan.md",
+        ".reports/dualscope_task_verdicts/dualscope-advbench-small-slice-response-generation-plan.json",
+        "outputs/dualscope_advbench_small_slice_response_generation_plan/default/advbench_response_generation_plan.json",
+        "outputs/dualscope_advbench_small_slice_response_generation_plan/default/advbench_response_generation_plan_verdict.json"
+      ],
+      "branch_name_suggestion": "codex/advbench-small-slice-response-generation-plan",
+      "prompt_template": "Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, and DUALSCOPE_TASK_QUEUE.md first. Plan bounded AdvBench response generation using only materialized/validated small-slice artifacts. Do not generate responses in this task. Define max_examples, safety filters, target handling, external GPU runner requirements, expected artifacts, blockers, and metric readiness. Do not claim data availability beyond materialization artifacts. Do not fabricate responses, logprobs, AUROC/F1/ASR/clean utility, labels, benchmark truth, gates, route_c, or 199+. Do not run full matrix, train, force push, delete branches, or touch PR #14. Follow AGENTS.md PR workflow.",
+      "completion_verdicts": {
+        "validated": [
+          "AdvBench small-slice response generation plan validated"
+        ],
+        "partially_validated": [
+          "Partially validated"
+        ],
+        "not_validated": [
+          "Not validated"
+        ]
+      },
+      "verdict_artifacts": [
+        "outputs/dualscope_advbench_small_slice_response_generation_plan/default/advbench_response_generation_plan_verdict.json"
+      ],
+      "next_task_if_validated": "dualscope-jbb-small-slice-materialization",
+      "next_task_if_partially_validated": "dualscope-advbench-small-slice-response-generation-plan-repair",
+      "next_task_if_not_validated": "dualscope-advbench-small-slice-response-generation-plan-blocker-closure"
+    },
+    {
+      "task_id": "dualscope-jbb-small-slice-materialization",
+      "purpose": "Materialize or validate a bounded JBB-Behaviors small-slice if available; otherwise output a real blocker without fabricating data.",
+      "expected_inputs": [
+        ".reports/dualscope_task_verdicts/dualscope-jbb-small-slice-readiness-plan.json",
+        "docs/dualscope_jbb_small_slice_readiness_plan.md"
+      ],
+      "expected_outputs": [
+        ".plans/dualscope-jbb-small-slice-materialization.md",
+        "docs/dualscope_jbb_small_slice_materialization.md",
+        ".reports/dualscope_task_verdicts/dualscope-jbb-small-slice-materialization.json",
+        "outputs/dualscope_jbb_small_slice_materialization/default/jbb_small_slice_manifest.json",
+        "outputs/dualscope_jbb_small_slice_materialization/default/jbb_small_slice_schema_check.json",
+        "outputs/dualscope_jbb_small_slice_materialization/default/jbb_small_slice_blockers.json",
+        "outputs/dualscope_jbb_small_slice_materialization/default/jbb_small_slice_report.md",
+        "outputs/dualscope_jbb_small_slice_materialization/default/jbb_small_slice_verdict.json"
+      ],
+      "branch_name_suggestion": "codex/jbb-small-slice-materialization",
+      "prompt_template": "Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, and DUALSCOPE_TASK_QUEUE.md first. Materialize or validate only a bounded JBB-Behaviors small slice. If data exists locally or is publicly downloadable without special authorization, create a small-slice manifest and schema check. If unavailable, gated, license-ambiguous, network-blocked, or unsafe, emit explicit blockers and do not create fake rows. No response generation or metrics in this task. Do not fabricate responses, logprobs, AUROC/F1/ASR/clean utility, labels, benchmark truth, gates, route_c, or 199+. Do not run full matrix, train, force push, delete branches, or touch PR #14. Follow AGENTS.md PR workflow.",
+      "completion_verdicts": {
+        "validated": [
+          "JBB small-slice materialization validated"
+        ],
+        "partially_validated": [
+          "Partially validated"
+        ],
+        "not_validated": [
+          "Not validated"
+        ]
+      },
+      "verdict_artifacts": [
+        "outputs/dualscope_jbb_small_slice_materialization/default/jbb_small_slice_verdict.json"
+      ],
+      "next_task_if_validated": "dualscope-jbb-small-slice-response-generation-plan",
+      "next_task_if_partially_validated": "dualscope-jbb-small-slice-materialization-repair",
+      "next_task_if_not_validated": "dualscope-jbb-small-slice-data-blocker-closure",
+      "execution_gate_requirements": {
+        "manifest": "outputs/dualscope_jbb_small_slice_materialization/default/jbb_small_slice_manifest.json",
+        "schema_check": "outputs/dualscope_jbb_small_slice_materialization/default/jbb_small_slice_schema_check.json",
+        "blocker_json": "outputs/dualscope_jbb_small_slice_materialization/default/jbb_small_slice_blockers.json",
+        "requires_real_execution_or_blocker": true
+      }
+    },
+    {
+      "task_id": "dualscope-jbb-small-slice-response-generation-plan",
+      "purpose": "Plan bounded JBB response generation without running full matrix.",
+      "expected_inputs": [
+        ".reports/dualscope_task_verdicts/dualscope-jbb-small-slice-materialization.json",
+        "outputs/dualscope_jbb_small_slice_materialization/default"
+      ],
+      "expected_outputs": [
+        ".plans/dualscope-jbb-small-slice-response-generation-plan.md",
+        "docs/dualscope_jbb_small_slice_response_generation_plan.md",
+        ".reports/dualscope_task_verdicts/dualscope-jbb-small-slice-response-generation-plan.json",
+        "outputs/dualscope_jbb_small_slice_response_generation_plan/default/jbb_response_generation_plan.json",
+        "outputs/dualscope_jbb_small_slice_response_generation_plan/default/jbb_response_generation_plan_verdict.json"
+      ],
+      "branch_name_suggestion": "codex/jbb-small-slice-response-generation-plan",
+      "prompt_template": "Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, and DUALSCOPE_TASK_QUEUE.md first. Plan bounded JBB response generation using only materialized/validated small-slice artifacts. Do not generate responses in this task. Define max_examples, safety filters, target handling, external GPU runner requirements, expected artifacts, blockers, and metric readiness. Do not claim data availability beyond materialization artifacts. Do not fabricate responses, logprobs, AUROC/F1/ASR/clean utility, labels, benchmark truth, gates, route_c, or 199+. Do not run full matrix, train, force push, delete branches, or touch PR #14. Follow AGENTS.md PR workflow.",
+      "completion_verdicts": {
+        "validated": [
+          "JBB small-slice response generation plan validated"
+        ],
+        "partially_validated": [
+          "Partially validated"
+        ],
+        "not_validated": [
+          "Not validated"
+        ]
+      },
+      "verdict_artifacts": [
+        "outputs/dualscope_jbb_small_slice_response_generation_plan/default/jbb_response_generation_plan_verdict.json"
+      ],
+      "next_task_if_validated": "dualscope-sci3-expanded-result-synthesis-package",
+      "next_task_if_partially_validated": "dualscope-jbb-small-slice-response-generation-plan-repair",
+      "next_task_if_not_validated": "dualscope-jbb-small-slice-response-generation-plan-blocker-closure"
+    },
+    {
+      "task_id": "dualscope-sci3-expanded-result-synthesis-package",
+      "purpose": "Synthesize current bounded Alpaca main-slice, semantic trigger, behavior-shift, AdvBench/JBB materialization or blocker results into an expanded SCI3 status package.",
+      "expected_inputs": [
+        ".reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-alpaca-main-slice-result-package.json",
+        ".reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-semantic-trigger-smoke-result-package.json",
+        ".reports/dualscope_task_verdicts/dualscope-qwen2p5-7b-behavior-shift-target-smoke-result-package.json",
+        ".reports/dualscope_task_verdicts/dualscope-advbench-small-slice-response-generation-plan.json",
+        ".reports/dualscope_task_verdicts/dualscope-jbb-small-slice-response-generation-plan.json"
+      ],
+      "expected_outputs": [
+        ".plans/dualscope-sci3-expanded-result-synthesis-package.md",
+        "docs/dualscope_sci3_expanded_result_synthesis.md",
+        ".reports/dualscope_task_verdicts/dualscope-sci3-expanded-result-synthesis-package.json",
+        "outputs/dualscope_sci3_expanded_result_synthesis_package/default/expanded_result_synthesis_summary.json",
+        "outputs/dualscope_sci3_expanded_result_synthesis_package/default/expanded_metric_availability_matrix.json",
+        "outputs/dualscope_sci3_expanded_result_synthesis_package/default/expanded_result_synthesis_report.md",
+        "outputs/dualscope_sci3_expanded_result_synthesis_package/default/expanded_result_synthesis_verdict.json"
+      ],
+      "branch_name_suggestion": "codex/sci3-expanded-result-synthesis-package",
+      "prompt_template": "Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, and DUALSCOPE_TASK_QUEUE.md first. Synthesize the expanded SCI3 status package from bounded Alpaca, semantic trigger, behavior-shift, AdvBench, and JBB artifacts. Separate real metrics, fallback evidence, blocked metrics, dataset blockers, and limitations. Do not claim full matrix, clean utility, cross-model validation, or dataset results unless artifacts prove them. Produce summary, expanded metric availability matrix, report, verdict, and tracked registry. Do not fabricate responses, logprobs, AUROC/F1/ASR/clean utility, labels, benchmark truth, gates, route_c, or 199+. Do not run full matrix, train, force push, delete branches, or touch PR #14. Follow AGENTS.md PR workflow.",
+      "completion_verdicts": {
+        "validated": [
+          "SCI3 expanded result synthesis package validated"
+        ],
+        "partially_validated": [
+          "Partially validated"
+        ],
+        "not_validated": [
+          "Not validated"
+        ]
+      },
+      "verdict_artifacts": [
+        "outputs/dualscope_sci3_expanded_result_synthesis_package/default/expanded_result_synthesis_verdict.json"
+      ],
+      "next_task_if_validated": "queue_complete",
+      "next_task_if_partially_validated": "dualscope-sci3-expanded-result-synthesis-package-repair",
+      "next_task_if_not_validated": "dualscope-sci3-expanded-result-synthesis-package-blocker-closure",
+      "execution_gate_requirements": {
+        "summary": "outputs/dualscope_sci3_expanded_result_synthesis_package/default/expanded_result_synthesis_summary.json",
+        "report": "outputs/dualscope_sci3_expanded_result_synthesis_package/default/expanded_result_synthesis_report.md",
+        "verdict": "outputs/dualscope_sci3_expanded_result_synthesis_package/default/expanded_result_synthesis_verdict.json",
+        "requires_real_execution_or_blocker": true
+      }
     }
   ]
 }
