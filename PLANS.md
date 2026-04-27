@@ -102,6 +102,8 @@
 
 当前 bounded Alpaca main-slice 已完成 16 条真实 Qwen2.5-7B response、可计算 detection metrics、ASR、without-logprobs fallback 与结果包；clean utility 仍真实 blocked。下一阶段入口是 `dualscope-sci3-semantic-behavior-expansion-track`：按小步执行 semantic trigger smoke、behavior-shift target smoke、AdvBench/JBB small-slice materialization 与 expanded synthesis。response generation、metric computation、result package 与 dataset materialization 任务必须真实执行 CLI/runner 或输出明确 blocker artifacts；不得用 plan/docs/registry-only PR 伪装实验完成。
 
+当前 AdvBench small-slice materialization blocker 的修复路径已明确：用户授权公开 Hugging Face 数据源 `walledai/AdvBench`。`dualscope-advbench-small-slice-public-source-materialization` 只允许 bounded materialization，样本数先控制在 32 条以内，标准化到 `data/advbench/small_slice/advbench_small_slice_source.jsonl`，并输出 manifest/schema/blocker/verdict/report。该步骤不得生成 response、不得计算 metrics、不得修改 benchmark truth 或 gate；若下载、依赖、网络或 schema 失败，必须输出真实 blocker。
+
 ---
 
 ## 1. What an ExecPlan Is

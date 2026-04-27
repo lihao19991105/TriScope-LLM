@@ -1731,7 +1731,7 @@ The Markdown text is for humans; the fenced JSON block is the source of truth.
     },
     {
       "task_id": "dualscope-advbench-small-slice-materialization",
-      "purpose": "Materialize or validate a bounded AdvBench small-slice if publicly available locally or downloadable; otherwise output a real blocker without fabricating data.",
+      "purpose": "Materialize or validate a bounded AdvBench small-slice from local authorized data or the public Hugging Face source walledai/AdvBench; otherwise output a real blocker without fabricating data.",
       "expected_inputs": [
         ".reports/dualscope_task_verdicts/dualscope-advbench-small-slice-readiness-plan.json",
         "docs/dualscope_advbench_small_slice_readiness_plan.md"
@@ -1741,15 +1741,19 @@ The Markdown text is for humans; the fenced JSON block is the source of truth.
         "docs/dualscope_advbench_small_slice_materialization.md",
         "src/eval/dualscope_advbench_small_slice_materialization.py",
         "scripts/build_dualscope_advbench_small_slice_materialization.py",
+        "scripts/build_post_dualscope_advbench_small_slice_materialization_analysis.py",
+        "src/eval/post_dualscope_advbench_small_slice_materialization_analysis.py",
+        "data/advbench/small_slice/advbench_small_slice_source.jsonl",
         ".reports/dualscope_task_verdicts/dualscope-advbench-small-slice-materialization.json",
         "outputs/dualscope_advbench_small_slice_materialization/default/advbench_small_slice_manifest.json",
         "outputs/dualscope_advbench_small_slice_materialization/default/advbench_small_slice_schema_check.json",
+        "outputs/dualscope_advbench_small_slice_materialization/default/advbench_small_slice_materialization_summary.json",
         "outputs/dualscope_advbench_small_slice_materialization/default/advbench_small_slice_blockers.json",
         "outputs/dualscope_advbench_small_slice_materialization/default/advbench_small_slice_report.md",
         "outputs/dualscope_advbench_small_slice_materialization/default/advbench_small_slice_verdict.json"
       ],
       "branch_name_suggestion": "codex/advbench-small-slice-materialization",
-      "prompt_template": "Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, and DUALSCOPE_TASK_QUEUE.md first. Materialize or validate only a bounded AdvBench small slice. If data exists locally or is publicly downloadable without special authorization, create a small-slice manifest and schema check. If unavailable, gated, license-ambiguous, network-blocked, or unsafe, emit explicit blockers and do not create fake rows. No response generation or metrics in this task. Do not fabricate responses, logprobs, AUROC/F1/ASR/clean utility, labels, benchmark truth, gates, route_c, or 199+. Do not run full matrix, train, force push, delete branches, or touch PR #14. Follow AGENTS.md PR workflow.",
+      "prompt_template": "Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, and DUALSCOPE_TASK_QUEUE.md first. Materialize only a bounded AdvBench small slice using local authorized data or the explicitly authorized public Hugging Face source `walledai/AdvBench` with `--allow-download`. Use max_examples 16 or 32 and write standardized rows to `data/advbench/small_slice/advbench_small_slice_source.jsonl` with fields sample_id, dataset_id, instruction, input, reference_response or expected_behavior, safety_category if available, source_dataset, source_split, and source_index. Create manifest, schema check, blockers, report, verdict, post-analysis, and tracked registry artifacts. If download/read/schema fails, emit explicit blockers and do not create fake rows. No response generation or metrics in this task. Do not fabricate data, responses, logprobs, AUROC/F1/ASR/clean utility, labels, benchmark truth, gates, route_c, or 199+. Do not run full matrix, train, force push, delete branches, or touch PR #14. Follow AGENTS.md PR workflow.",
       "completion_verdicts": {
         "validated": [
           "AdvBench small-slice materialization validated"
@@ -1765,12 +1769,54 @@ The Markdown text is for humans; the fenced JSON block is the source of truth.
         "outputs/dualscope_advbench_small_slice_materialization/default/advbench_small_slice_verdict.json"
       ],
       "next_task_if_validated": "dualscope-advbench-small-slice-response-generation-plan",
-      "next_task_if_partially_validated": "dualscope-advbench-small-slice-materialization-repair",
+      "next_task_if_partially_validated": "dualscope-advbench-small-slice-download-repair",
       "next_task_if_not_validated": "dualscope-advbench-small-slice-data-blocker-closure",
       "execution_gate_requirements": {
         "manifest": "outputs/dualscope_advbench_small_slice_materialization/default/advbench_small_slice_manifest.json",
         "schema_check": "outputs/dualscope_advbench_small_slice_materialization/default/advbench_small_slice_schema_check.json",
+        "small_slice_jsonl": "data/advbench/small_slice/advbench_small_slice_source.jsonl",
         "blocker_json": "outputs/dualscope_advbench_small_slice_materialization/default/advbench_small_slice_blockers.json",
+        "requires_real_execution_or_blocker": true
+      }
+    },
+    {
+      "task_id": "dualscope-advbench-small-slice-download-repair",
+      "purpose": "Repair AdvBench bounded small-slice download/read blockers without fabricating data.",
+      "expected_inputs": [
+        ".reports/dualscope_task_verdicts/dualscope-advbench-small-slice-materialization.json",
+        "outputs/dualscope_advbench_small_slice_materialization/default/advbench_small_slice_blockers.json",
+        "outputs/dualscope_advbench_small_slice_materialization/default/advbench_small_slice_manifest.json"
+      ],
+      "expected_outputs": [
+        ".plans/dualscope-advbench-small-slice-download-repair.md",
+        "docs/dualscope_advbench_small_slice_download_repair.md",
+        ".reports/dualscope_task_verdicts/dualscope-advbench-small-slice-download-repair.json",
+        "outputs/dualscope_advbench_small_slice_download_repair/default/advbench_download_repair_summary.json",
+        "outputs/dualscope_advbench_small_slice_download_repair/default/advbench_download_repair_blockers.json",
+        "outputs/dualscope_advbench_small_slice_download_repair/default/advbench_download_repair_verdict.json"
+      ],
+      "branch_name_suggestion": "codex/advbench-small-slice-download-repair",
+      "prompt_template": "Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, and DUALSCOPE_TASK_QUEUE.md first. Repair only the AdvBench small-slice download/read blocker. Inspect `walledai/AdvBench` artifacts and blockers. If the Hugging Face dataset is gated or requires authentication, record a real `dataset_permission_blocker` and do not fabricate rows. If a public unauthenticated mirror or local authorized source is available, materialize at most 32 standardized rows to `data/advbench/small_slice/advbench_small_slice_source.jsonl` and rerun schema checks. Do not generate responses or metrics in this task. Do not fabricate data, labels, responses, logprobs, AUROC/F1/ASR/clean utility, benchmark truth, gates, route_c, or 199+. Do not run full matrix, train, force push, delete branches, or touch PR #14. Follow AGENTS.md PR workflow.",
+      "completion_verdicts": {
+        "validated": [
+          "AdvBench small-slice download repair validated"
+        ],
+        "partially_validated": [
+          "Partially validated"
+        ],
+        "not_validated": [
+          "Not validated"
+        ]
+      },
+      "verdict_artifacts": [
+        "outputs/dualscope_advbench_small_slice_download_repair/default/advbench_download_repair_verdict.json"
+      ],
+      "next_task_if_validated": "dualscope-advbench-small-slice-response-generation-plan",
+      "next_task_if_partially_validated": "dualscope-advbench-small-slice-data-blocker-closure",
+      "next_task_if_not_validated": "dualscope-advbench-small-slice-data-blocker-closure",
+      "execution_gate_requirements": {
+        "summary": "outputs/dualscope_advbench_small_slice_download_repair/default/advbench_download_repair_summary.json",
+        "blocker_json": "outputs/dualscope_advbench_small_slice_download_repair/default/advbench_download_repair_blockers.json",
         "requires_real_execution_or_blocker": true
       }
     },
