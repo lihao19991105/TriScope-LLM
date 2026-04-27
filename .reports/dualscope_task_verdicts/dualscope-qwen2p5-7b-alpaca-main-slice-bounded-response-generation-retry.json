@@ -1,0 +1,15 @@
+{
+  "task_id": "dualscope-qwen2p5-7b-alpaca-main-slice-response-generation",
+  "verdict": "Partially validated",
+  "source_output_dir": "outputs/dualscope_qwen2p5_7b_alpaca_main_slice_response_generation/default",
+  "created_at": "2026-04-27T00:18:56Z",
+  "validated": false,
+  "next_task": "dualscope-qwen2p5-7b-alpaca-main-slice-response-generation-repair",
+  "blocker_type": "torch_cuda_unavailable",
+  "raw_blocker": "cuda_unavailable_cpu_generation_disabled",
+  "generated_rows": 0,
+  "blocked_rows": 8,
+  "model_response_fabricated": false,
+  "logprobs_fabricated": false,
+  "metrics_computed": false
+}
