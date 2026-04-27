@@ -174,25 +174,12 @@ if HELP_TEXT="$(codex exec --help 2>&1)"; then
 fi
 
 FLAG_SUPPORTED=false
-CONFIG_SUPPORTED=false
+CONFIG_SUPPORTED=true
 EFFORT_NOT_SUPPORTED=false
 CONFIG_KEY="model_reasoning_effort"
-if grep -q -- '--reasoning-effort' <<<"$HELP_TEXT"; then
-  FLAG_SUPPORTED=true
-elif grep -q -- '--config <key=value>' <<<"$HELP_TEXT" || grep -q -- '-c, --config' <<<"$HELP_TEXT"; then
-  CONFIG_SUPPORTED=true
-else
-  EFFORT_NOT_SUPPORTED=true
-fi
 
 BASE_CMD=(codex exec --cd "$REPO" --full-auto --model "$MODEL")
-if [[ "$FLAG_SUPPORTED" == true ]]; then
-  COMMAND=("${BASE_CMD[@]}" --reasoning-effort "$EFFORT" "$PROMPT")
-elif [[ "$CONFIG_SUPPORTED" == true ]]; then
-  COMMAND=("${BASE_CMD[@]}" -c "${CONFIG_KEY}=\"$EFFORT\"" "$PROMPT")
-else
-  COMMAND=("${BASE_CMD[@]}" "$PROMPT")
-fi
+COMMAND=("${BASE_CMD[@]}" -c "${CONFIG_KEY}=\"$EFFORT\"" "$PROMPT")
 COMMAND_PREVIEW="$(shell_quote_command "${COMMAND[@]}")"
 
 write_log_header
@@ -201,38 +188,6 @@ if run_and_capture COMMAND; then
   exit 0
 else
   FIRST_EXIT=$?
-fi
-
-if [[ "$FLAG_SUPPORTED" == true ]]; then
-  CONFIG_SUPPORTED=true
-  EFFORT_NOT_SUPPORTED=false
-  COMMAND=("${BASE_CMD[@]}" -c "${CONFIG_KEY}=\"$EFFORT\"" "$PROMPT")
-  COMMAND_PREVIEW="$(shell_quote_command "${COMMAND[@]}")"
-  {
-    printf '\n--- retry with config reasoning_effort ---\n'
-    printf 'full_command_preview=%s\n' "$COMMAND_PREVIEW"
-  } >>"$LOG_FILE"
-  if run_and_capture COMMAND; then
-    exit 0
-  else
-    FIRST_EXIT=$?
-  fi
-fi
-
-if grep -Eiq 'reasoning[-_ ]?effort|unknown option|unexpected argument|unknown field|invalid config' "$LOG_FILE"; then
-  EFFORT_NOT_SUPPORTED=true
-  COMMAND=("${BASE_CMD[@]}" "$PROMPT")
-  COMMAND_PREVIEW="$(shell_quote_command "${COMMAND[@]}")"
-  {
-    printf '\n--- retry without reasoning effort ---\n'
-    printf 'reasoning_effort_not_supported_by_current_cli=true\n'
-    printf 'full_command_preview=%s\n' "$COMMAND_PREVIEW"
-  } >>"$LOG_FILE"
-  if run_and_capture COMMAND; then
-    exit 0
-  else
-    FIRST_EXIT=$?
-  fi
 fi
 
 exit "$FIRST_EXIT"
