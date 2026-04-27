@@ -1825,8 +1825,6 @@ The Markdown text is for humans; the fenced JSON block is the source of truth.
       "purpose": "Plan bounded AdvBench response generation without running full matrix.",
       "expected_inputs": [
         ".reports/dualscope_task_verdicts/dualscope-advbench-small-slice-materialization.json",
-        ".reports/dualscope_task_verdicts/dualscope-advbench-small-slice-download-repair.json",
-        "data/advbench/small_slice/advbench_small_slice_source.jsonl",
         "outputs/dualscope_advbench_small_slice_materialization/default"
       ],
       "expected_outputs": [
@@ -1837,7 +1835,7 @@ The Markdown text is for humans; the fenced JSON block is the source of truth.
         "outputs/dualscope_advbench_small_slice_response_generation_plan/default/advbench_response_generation_plan_verdict.json"
       ],
       "branch_name_suggestion": "codex/advbench-small-slice-response-generation-plan",
-      "prompt_template": "Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, and DUALSCOPE_TASK_QUEUE.md first. Plan bounded AdvBench response generation using only `data/advbench/small_slice/advbench_small_slice_source.jsonl` and the validated materialization/download-repair registries. Do not generate responses in this task. Define max_examples <= 16 or 32, batch_size=1, max_new_tokens=64, Qwen2.5-7B external GPU runner usage, model path `/mnt/sda3/lh/models/qwen2p5-7b-instruct`, HF cache settings, safety-aware prompt construction, controlled safety evaluation templates for harmful instructions, without-logprobs fallback handling, expected response/summary/blocker/report/verdict artifacts, and metric readiness. Do not claim data availability beyond materialization artifacts. Do not generate actual dangerous content, do not run full matrix, and do not fabricate responses, logprobs, AUROC/F1/ASR/clean utility, labels, benchmark truth, gates, route_c, or 199+. Do not train, force push, delete branches, or touch PR #14. Follow AGENTS.md PR workflow.",
+      "prompt_template": "Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, and DUALSCOPE_TASK_QUEUE.md first. Plan bounded AdvBench response generation using only materialized/validated small-slice artifacts. Do not generate responses in this task. Define max_examples, safety filters, target handling, external GPU runner requirements, expected artifacts, blockers, and metric readiness. Do not claim data availability beyond materialization artifacts. Do not fabricate responses, logprobs, AUROC/F1/ASR/clean utility, labels, benchmark truth, gates, route_c, or 199+. Do not run full matrix, train, force push, delete branches, or touch PR #14. Follow AGENTS.md PR workflow.",
       "completion_verdicts": {
         "validated": [
           "AdvBench small-slice response generation plan validated"
@@ -1852,273 +1850,14 @@ The Markdown text is for humans; the fenced JSON block is the source of truth.
       "verdict_artifacts": [
         "outputs/dualscope_advbench_small_slice_response_generation_plan/default/advbench_response_generation_plan_verdict.json"
       ],
-      "next_task_if_validated": "dualscope-advbench-small-slice-response-generation",
+      "next_task_if_validated": "dualscope-jbb-small-slice-materialization",
       "next_task_if_partially_validated": "dualscope-advbench-small-slice-response-generation-plan-repair",
       "next_task_if_not_validated": "dualscope-advbench-small-slice-response-generation-plan-blocker-closure"
-    },
-    {
-      "task_id": "dualscope-advbench-small-slice-response-generation",
-      "purpose": "Run bounded safety-aware Qwen2.5-7B response generation for the validated AdvBench small-slice, or emit a real blocker.",
-      "expected_inputs": [
-        ".reports/dualscope_task_verdicts/dualscope-advbench-small-slice-response-generation-plan.json",
-        "data/advbench/small_slice/advbench_small_slice_source.jsonl"
-      ],
-      "expected_outputs": [
-        ".plans/dualscope-advbench-small-slice-response-generation.md",
-        "docs/dualscope_advbench_small_slice_response_generation.md",
-        ".reports/dualscope_task_verdicts/dualscope-advbench-small-slice-response-generation.json",
-        "outputs/dualscope_advbench_small_slice_response_generation/default/advbench_small_slice_responses.jsonl",
-        "outputs/dualscope_advbench_small_slice_response_generation/default/advbench_small_slice_response_generation_summary.json",
-        "outputs/dualscope_advbench_small_slice_response_generation/default/advbench_small_slice_response_generation_blockers.json",
-        "outputs/dualscope_advbench_small_slice_response_generation/default/advbench_small_slice_response_generation_report.md",
-        "outputs/dualscope_advbench_small_slice_response_generation/default/advbench_small_slice_response_generation_verdict.json"
-      ],
-      "branch_name_suggestion": "codex/advbench-small-slice-response-generation",
-      "prompt_template": "Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, and DUALSCOPE_TASK_QUEUE.md first. Execute bounded AdvBench small-slice response generation only if safe and feasible. Use `data/advbench/small_slice/advbench_small_slice_source.jsonl`, `/mnt/sda3/lh/models/qwen2p5-7b-instruct`, HF caches under `/mnt/sda3/lh/huggingface`, CUDA devices 2,3, max_examples <= 16 or 32, batch_size=1, and max_new_tokens=64. Prefer the external GPU runner/worktree flow instead of forcing CUDA inside the Codex sandbox. Use safety-aware prompt construction or controlled safety evaluation templates for harmful instructions and do not generate actionable dangerous content. If logprobs are unavailable, record `without_logprobs_fallback=true`. Write real responses only when produced by the model; otherwise write a blocker JSON with explicit blocker_type and do not mark validated. Response rows must include sample_id, dataset_id, instruction, model_response, generation_mode, capability_flags, safety_mode, and without_logprobs_fallback. Do not fabricate responses, logprobs, metrics, benchmark truth, gates, route_c, or 199+. Do not run full matrix, train, force push, delete branches, or touch PR #14. Follow AGENTS.md PR workflow.",
-      "completion_verdicts": {
-        "validated": [
-          "AdvBench small-slice response generation validated"
-        ],
-        "partially_validated": [
-          "Partially validated"
-        ],
-        "not_validated": [
-          "Not validated"
-        ]
-      },
-      "verdict_artifacts": [
-        "outputs/dualscope_advbench_small_slice_response_generation/default/advbench_small_slice_response_generation_verdict.json"
-      ],
-      "next_task_if_validated": "dualscope-advbench-small-slice-metric-computation",
-      "next_task_if_partially_validated": "dualscope-advbench-small-slice-response-generation-repair",
-      "next_task_if_not_validated": "dualscope-advbench-small-slice-response-generation-blocker-closure",
-      "execution_gate_requirements": {
-        "responses_jsonl": "outputs/dualscope_advbench_small_slice_response_generation/default/advbench_small_slice_responses.jsonl",
-        "summary": "outputs/dualscope_advbench_small_slice_response_generation/default/advbench_small_slice_response_generation_summary.json",
-        "blocker_json": "outputs/dualscope_advbench_small_slice_response_generation/default/advbench_small_slice_response_generation_blockers.json",
-        "verdict": "outputs/dualscope_advbench_small_slice_response_generation/default/advbench_small_slice_response_generation_verdict.json",
-        "requires_real_execution_or_blocker": true
-      }
-    },
-    {
-      "task_id": "dualscope-advbench-small-slice-response-generation-repair",
-      "purpose": "Repair and compress the partially validated AdvBench small-slice response-generation state into a dedicated routeable artifact package without fabricating responses.",
-      "expected_inputs": [
-        ".reports/dualscope_task_verdicts/dualscope-advbench-small-slice-response-generation.json",
-        "outputs/dualscope_advbench_small_slice_response_generation/default/advbench_small_slice_responses.jsonl",
-        "outputs/dualscope_advbench_small_slice_response_generation/default/advbench_small_slice_response_generation_summary.json",
-        "outputs/dualscope_advbench_small_slice_response_generation/default/advbench_small_slice_response_generation_blockers.json",
-        "outputs/dualscope_advbench_small_slice_response_generation/default/advbench_small_slice_response_generation_verdict.json"
-      ],
-      "expected_outputs": [
-        ".plans/dualscope-advbench-small-slice-response-generation-repair.md",
-        "docs/dualscope_advbench_small_slice_response_generation_repair.md",
-        "src/eval/dualscope_advbench_small_slice_response_generation_repair.py",
-        "scripts/build_dualscope_advbench_small_slice_response_generation_repair.py",
-        ".reports/dualscope_task_verdicts/dualscope-advbench-small-slice-response-generation-repair.json",
-        "outputs/dualscope_advbench_small_slice_response_generation_repair/default/advbench_small_slice_response_generation_repair_summary.json",
-        "outputs/dualscope_advbench_small_slice_response_generation_repair/default/advbench_small_slice_response_generation_repair_availability_matrix.json",
-        "outputs/dualscope_advbench_small_slice_response_generation_repair/default/advbench_small_slice_response_generation_repair_blocker_compression.json",
-        "outputs/dualscope_advbench_small_slice_response_generation_repair/default/advbench_small_slice_response_generation_repair_verdict.json"
-      ],
-      "branch_name_suggestion": "codex/advbench-small-slice-response-generation-repair",
-      "prompt_template": "Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, DUALSCOPE_TASK_QUEUE.md, the AdvBench response-generation partial verdict, and existing response artifacts first. This is a repair/compression task, not a metric task and not a full generation retry inside the CUDA-invisible Codex sandbox. Audit the source response rows, blocker JSON, summary, and verdict. If real response rows exist and are non-fabricated, route to `dualscope-advbench-small-slice-metric-computation`; if only an explicit CUDA/OOM/runtime/input blocker exists, preserve that blocker and route to blocker closure or input repair. Generate the repair ExecPlan, docs, core builder, CLI, repair summary, availability matrix, blocker compression, compact row audit, report, verdict, and tracked registry. Do not fabricate responses, logprobs, AUROC/F1/ASR/clean utility, labels, benchmark truth, gates, route_c, or 199+. Do not run full matrix, train, force push, delete branches, or touch PR #14. Follow AGENTS.md PR workflow.",
-      "completion_verdicts": {
-        "validated": [
-          "AdvBench small-slice response generation repair validated"
-        ],
-        "partially_validated": [
-          "Partially validated"
-        ],
-        "not_validated": [
-          "Not validated"
-        ]
-      },
-      "verdict_artifacts": [
-        "outputs/dualscope_advbench_small_slice_response_generation_repair/default/advbench_small_slice_response_generation_repair_verdict.json"
-      ],
-      "next_task_if_validated": "dualscope-advbench-small-slice-response-generation-blocker-closure",
-      "next_task_if_partially_validated": "dualscope-advbench-small-slice-response-generation-repair",
-      "next_task_if_not_validated": "dualscope-advbench-small-slice-response-generation-blocker-closure"
-    },
-    {
-      "task_id": "dualscope-advbench-small-slice-metric-computation",
-      "purpose": "Compute only available metrics from real bounded AdvBench responses and record blocked metrics honestly.",
-      "expected_inputs": [
-        ".reports/dualscope_task_verdicts/dualscope-advbench-small-slice-response-generation.json",
-        "outputs/dualscope_advbench_small_slice_response_generation/default/advbench_small_slice_responses.jsonl"
-      ],
-      "expected_outputs": [
-        ".plans/dualscope-advbench-small-slice-metric-computation.md",
-        "docs/dualscope_advbench_small_slice_metric_computation.md",
-        ".reports/dualscope_task_verdicts/dualscope-advbench-small-slice-metric-computation.json",
-        "outputs/dualscope_advbench_small_slice_metric_computation/default/metric_summary.json",
-        "outputs/dualscope_advbench_small_slice_metric_computation/default/available_metrics.json",
-        "outputs/dualscope_advbench_small_slice_metric_computation/default/metric_blockers.json",
-        "outputs/dualscope_advbench_small_slice_metric_computation/default/readiness_matrix.json",
-        "outputs/dualscope_advbench_small_slice_metric_computation/default/metric_report.md",
-        "outputs/dualscope_advbench_small_slice_metric_computation/default/metric_verdict.json"
-      ],
-      "branch_name_suggestion": "codex/advbench-small-slice-metric-computation",
-      "prompt_template": "Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, and DUALSCOPE_TASK_QUEUE.md first. Compute only metrics supported by real AdvBench bounded response artifacts: response availability, refusal rate, safety behavior proxy, target behavior status if target definitions are present, cost/fallback summaries, and detection metrics only when labels and final_risk_score are actually aligned. If AUROC, F1, ASR, clean utility, with-logprobs metrics, or score/label-aligned detection metrics are unavailable, record explicit blockers or not_applicable statuses. Do not fabricate AUROC/F1/ASR/clean utility/logprobs or promote projected placeholders as real performance. Write metric_summary, available_metrics, metric_blockers, readiness_matrix, report, verdict, and tracked registry. Do not modify benchmark truth, gates, route_c, or 199+. Do not run full matrix, train, force push, delete branches, or touch PR #14. Follow AGENTS.md PR workflow.",
-      "completion_verdicts": {
-        "validated": [
-          "AdvBench small-slice metric computation validated"
-        ],
-        "partially_validated": [
-          "Partially validated"
-        ],
-        "not_validated": [
-          "Not validated"
-        ]
-      },
-      "verdict_artifacts": [
-        "outputs/dualscope_advbench_small_slice_metric_computation/default/metric_verdict.json"
-      ],
-      "next_task_if_validated": "dualscope-advbench-small-slice-result-package",
-      "next_task_if_partially_validated": "dualscope-advbench-small-slice-metric-computation-repair",
-      "next_task_if_not_validated": "dualscope-advbench-small-slice-metric-computation-blocker-closure",
-      "execution_gate_requirements": {
-        "summary": "outputs/dualscope_advbench_small_slice_metric_computation/default/metric_summary.json",
-        "available_metrics": "outputs/dualscope_advbench_small_slice_metric_computation/default/available_metrics.json",
-        "blocker_json": "outputs/dualscope_advbench_small_slice_metric_computation/default/metric_blockers.json",
-        "readiness_matrix": "outputs/dualscope_advbench_small_slice_metric_computation/default/readiness_matrix.json",
-        "verdict": "outputs/dualscope_advbench_small_slice_metric_computation/default/metric_verdict.json",
-        "requires_real_execution_or_blocker": true
-      }
-    },
-    {
-      "task_id": "dualscope-advbench-small-slice-metric-computation-repair",
-      "purpose": "Repair and compress the partially validated AdvBench metric-computation state into routeable metric availability and blocker artifacts without fabricating unavailable metrics.",
-      "expected_inputs": [
-        ".reports/dualscope_task_verdicts/dualscope-advbench-small-slice-metric-computation.json",
-        ".reports/dualscope_task_verdicts/dualscope-advbench-small-slice-response-generation-repair.json",
-        "outputs/dualscope_advbench_small_slice_metric_computation/default",
-        "outputs/dualscope_advbench_small_slice_response_generation/default/advbench_small_slice_responses.jsonl"
-      ],
-      "expected_outputs": [
-        ".plans/dualscope-advbench-small-slice-metric-computation-repair.md",
-        "docs/dualscope_advbench_small_slice_metric_computation_repair.md",
-        "src/eval/dualscope_advbench_small_slice_metric_computation_repair.py",
-        "scripts/build_dualscope_advbench_small_slice_metric_computation_repair.py",
-        ".reports/dualscope_task_verdicts/dualscope-advbench-small-slice-metric-computation-repair.json",
-        "outputs/dualscope_advbench_small_slice_metric_computation_repair/default/advbench_small_slice_metric_computation_repair_summary.json",
-        "outputs/dualscope_advbench_small_slice_metric_computation_repair/default/advbench_small_slice_metric_computation_repair_metric_availability_matrix.json",
-        "outputs/dualscope_advbench_small_slice_metric_computation_repair/default/advbench_small_slice_metric_computation_repair_blocked_metric_compression.json",
-        "outputs/dualscope_advbench_small_slice_metric_computation_repair/default/advbench_small_slice_metric_computation_repair_verdict.json"
-      ],
-      "branch_name_suggestion": "codex/advbench-small-slice-metric-computation-repair",
-      "prompt_template": "Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, and DUALSCOPE_TASK_QUEUE.md first. This is a repair/compression task for the partially validated AdvBench metric-computation stage. Audit the source metric artifacts, response rows, metric registry, and response-generation repair registry. If the ignored source metric output directory is absent in the isolated worktree but response rows and registries exist, first rerun `python3 scripts/build_dualscope_advbench_small_slice_metric_computation.py --seed 20260427` or an equivalent supported invocation to recreate source metric artifacts without changing benchmark truth. Preserve only artifact-supported availability and fallback summaries; keep refusal, target behavior, detection, ASR, clean utility, and with-logprobs metrics blocked unless real response rows and required fields exist. If zero real response rows caused the metric gap, route to response-generation blocker closure rather than repeatedly recomputing metrics. Generate the repair ExecPlan, docs, core builder, CLI, repair summary, metric availability matrix, blocked metric compression, source audit, limitations, report, verdict, and tracked registry. Do not fabricate responses, logprobs, AUROC/F1/ASR/clean utility, labels, benchmark truth, gates, route_c, or 199+. Do not run full matrix, train, force push, delete branches, or touch PR #14. Follow AGENTS.md PR workflow.",
-      "completion_verdicts": {
-        "validated": [
-          "AdvBench small-slice metric computation repair validated"
-        ],
-        "partially_validated": [
-          "Partially validated"
-        ],
-        "not_validated": [
-          "Not validated"
-        ]
-      },
-      "verdict_artifacts": [
-        "outputs/dualscope_advbench_small_slice_metric_computation_repair/default/advbench_small_slice_metric_computation_repair_verdict.json"
-      ],
-      "next_task_if_validated": "dualscope-advbench-small-slice-response-generation-blocker-closure",
-      "next_task_if_partially_validated": "dualscope-advbench-small-slice-metric-computation-blocker-closure",
-      "next_task_if_not_validated": "dualscope-advbench-small-slice-metric-computation-blocker-closure"
-    },
-    {
-      "task_id": "dualscope-advbench-small-slice-result-package",
-      "purpose": "Package real bounded AdvBench small-slice response and metric evidence with limitations.",
-      "expected_inputs": [
-        ".reports/dualscope_task_verdicts/dualscope-advbench-small-slice-metric-computation.json",
-        "outputs/dualscope_advbench_small_slice_metric_computation/default"
-      ],
-      "expected_outputs": [
-        ".plans/dualscope-advbench-small-slice-result-package.md",
-        "docs/dualscope_advbench_small_slice_result_package.md",
-        ".reports/dualscope_task_verdicts/dualscope-advbench-small-slice-result-package.json",
-        "outputs/dualscope_advbench_small_slice_result_package/default/result_package_summary.json",
-        "outputs/dualscope_advbench_small_slice_result_package/default/result_package_report.md",
-        "outputs/dualscope_advbench_small_slice_result_package/default/metric_availability_matrix.json",
-        "outputs/dualscope_advbench_small_slice_result_package/default/result_package_verdict.json"
-      ],
-      "branch_name_suggestion": "codex/advbench-small-slice-result-package",
-      "prompt_template": "Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, and DUALSCOPE_TASK_QUEUE.md first. Package the real AdvBench bounded small-slice status: materialization summary, response generation summary, metric availability, refusal/safety behavior proxy or target success only if supported, blocked metrics, without-logprobs limitation, no full-matrix claim, no full paper performance claim, and a next-step recommendation. Do not fabricate metrics, responses, logprobs, benchmark truth, gates, route_c, or 199+. Write result_package_summary, result_package_report, metric_availability_matrix, result_package_verdict, and tracked registry. Do not run full matrix, train, force push, delete branches, or touch PR #14. Follow AGENTS.md PR workflow.",
-      "completion_verdicts": {
-        "validated": [
-          "AdvBench small-slice result package validated"
-        ],
-        "partially_validated": [
-          "Partially validated"
-        ],
-        "not_validated": [
-          "Not validated"
-        ]
-      },
-      "verdict_artifacts": [
-        "outputs/dualscope_advbench_small_slice_result_package/default/result_package_verdict.json"
-      ],
-      "next_task_if_validated": "dualscope-jbb-small-slice-materialization",
-      "next_task_if_partially_validated": "dualscope-advbench-small-slice-result-package-repair",
-      "next_task_if_not_validated": "dualscope-advbench-small-slice-result-package-blocker-closure",
-      "execution_gate_requirements": {
-        "summary": "outputs/dualscope_advbench_small_slice_result_package/default/result_package_summary.json",
-        "report": "outputs/dualscope_advbench_small_slice_result_package/default/result_package_report.md",
-        "metric_availability_matrix": "outputs/dualscope_advbench_small_slice_result_package/default/metric_availability_matrix.json",
-        "verdict": "outputs/dualscope_advbench_small_slice_result_package/default/result_package_verdict.json",
-        "requires_real_execution_or_blocker": true
-      }
-    },
-    {
-      "task_id": "dualscope-advbench-small-slice-result-package-repair",
-      "purpose": "Repair and compress the partially validated AdvBench result-package state into explicit evidence boundaries, blockers, and routeable next-step artifacts without fabricating unavailable metrics.",
-      "expected_inputs": [
-        ".reports/dualscope_task_verdicts/dualscope-advbench-small-slice-result-package.json",
-        ".reports/dualscope_task_verdicts/dualscope-advbench-small-slice-metric-computation-repair.json",
-        ".reports/dualscope_task_verdicts/dualscope-advbench-small-slice-response-generation-repair.json",
-        "outputs/dualscope_advbench_small_slice_result_package/default",
-        "outputs/dualscope_advbench_small_slice_metric_computation_repair/default",
-        "outputs/dualscope_advbench_small_slice_response_generation/default/advbench_small_slice_responses.jsonl"
-      ],
-      "expected_outputs": [
-        ".plans/dualscope-advbench-small-slice-result-package-repair.md",
-        "docs/dualscope_advbench_small_slice_result_package_repair.md",
-        "src/eval/dualscope_advbench_small_slice_result_package_repair.py",
-        "scripts/build_dualscope_advbench_small_slice_result_package_repair.py",
-        ".reports/dualscope_task_verdicts/dualscope-advbench-small-slice-result-package-repair.json",
-        "outputs/dualscope_advbench_small_slice_result_package_repair/default/advbench_small_slice_result_package_repair_summary.json",
-        "outputs/dualscope_advbench_small_slice_result_package_repair/default/advbench_small_slice_result_package_repair_evidence_boundary.json",
-        "outputs/dualscope_advbench_small_slice_result_package_repair/default/advbench_small_slice_result_package_repair_blocker_compression.json",
-        "outputs/dualscope_advbench_small_slice_result_package_repair/default/advbench_small_slice_result_package_repair_verdict.json",
-        "outputs/dualscope_advbench_small_slice_result_package_repair_analysis/default/advbench_small_slice_result_package_repair_verdict.json"
-      ],
-      "branch_name_suggestion": "codex/advbench-small-slice-result-package-repair",
-      "prompt_template": "Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, and DUALSCOPE_TASK_QUEUE.md first. This is a repair/compression task for the partially validated AdvBench result-package stage. Audit the prior result package, metric-computation repair package, response-generation repair registry, and response rows. If ignored source output directories are absent in the isolated worktree but response rows and registries exist, first rerun the supported metric-computation, metric-repair, and result-package CLIs to recreate source artifacts without changing benchmark truth. Preserve only artifact-supported materialization, response availability, and fallback summaries; keep refusal, target behavior, detection, ASR, clean utility, and with-logprobs metrics blocked unless real response rows and required fields exist. If zero real response rows caused the partial result package, route to response-generation blocker closure rather than JBB expansion. Generate the repair ExecPlan, docs, core builder, CLI, repair summary, evidence boundary, blocker compression, source audit, limitations, report, verdict, analysis mirror, and tracked registry. Do not fabricate responses, logprobs, AUROC/F1/ASR/clean utility, labels, benchmark truth, gates, route_c, or 199+. Do not run full matrix, train, force push, delete branches, or touch PR #14. Follow AGENTS.md PR workflow.",
-      "completion_verdicts": {
-        "validated": [
-          "AdvBench small-slice result package repair validated"
-        ],
-        "partially_validated": [
-          "Partially validated"
-        ],
-        "not_validated": [
-          "Not validated"
-        ]
-      },
-      "verdict_artifacts": [
-        "outputs/dualscope_advbench_small_slice_result_package_repair/default/advbench_small_slice_result_package_repair_verdict.json",
-        "outputs/dualscope_advbench_small_slice_result_package_repair_analysis/default/advbench_small_slice_result_package_repair_verdict.json"
-      ],
-      "next_task_if_validated": "dualscope-advbench-small-slice-response-generation-blocker-closure",
-      "next_task_if_partially_validated": "dualscope-advbench-small-slice-result-package-blocker-closure",
-      "next_task_if_not_validated": "dualscope-advbench-small-slice-result-package-blocker-closure"
     },
     {
       "task_id": "dualscope-jbb-small-slice-materialization",
       "purpose": "Materialize or validate a bounded JBB-Behaviors small-slice if available; otherwise output a real blocker without fabricating data.",
       "expected_inputs": [
-        ".reports/dualscope_task_verdicts/dualscope-advbench-small-slice-result-package.json",
         ".reports/dualscope_task_verdicts/dualscope-jbb-small-slice-readiness-plan.json",
         "docs/dualscope_jbb_small_slice_readiness_plan.md"
       ],
@@ -2173,7 +1912,7 @@ The Markdown text is for humans; the fenced JSON block is the source of truth.
         "outputs/dualscope_jbb_small_slice_response_generation_plan/default/jbb_response_generation_plan_verdict.json"
       ],
       "branch_name_suggestion": "codex/jbb-small-slice-response-generation-plan",
-      "prompt_template": "Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, and DUALSCOPE_TASK_QUEUE.md first. Plan bounded JBB response generation using only materialized/validated JBB small-slice artifacts. Do not generate responses in this task. Define max_examples <= 16 or 32, batch_size=1, max_new_tokens=64, Qwen2.5-7B external GPU runner usage, model path `/mnt/sda3/lh/models/qwen2p5-7b-instruct`, HF cache settings, safety-aware prompt construction, controlled safety evaluation templates for harmful instructions, without-logprobs fallback handling, expected response/summary/blocker/report/verdict artifacts, and metric readiness. Do not claim data availability beyond materialization artifacts. Do not generate actual dangerous content, do not run full matrix, and do not fabricate responses, logprobs, AUROC/F1/ASR/clean utility, labels, benchmark truth, gates, route_c, or 199+. Do not train, force push, delete branches, or touch PR #14. Follow AGENTS.md PR workflow.",
+      "prompt_template": "Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, and DUALSCOPE_TASK_QUEUE.md first. Plan bounded JBB response generation using only materialized/validated small-slice artifacts. Do not generate responses in this task. Define max_examples, safety filters, target handling, external GPU runner requirements, expected artifacts, blockers, and metric readiness. Do not claim data availability beyond materialization artifacts. Do not fabricate responses, logprobs, AUROC/F1/ASR/clean utility, labels, benchmark truth, gates, route_c, or 199+. Do not run full matrix, train, force push, delete branches, or touch PR #14. Follow AGENTS.md PR workflow.",
       "completion_verdicts": {
         "validated": [
           "JBB small-slice response generation plan validated"
@@ -2188,32 +1927,29 @@ The Markdown text is for humans; the fenced JSON block is the source of truth.
       "verdict_artifacts": [
         "outputs/dualscope_jbb_small_slice_response_generation_plan/default/jbb_response_generation_plan_verdict.json"
       ],
-      "next_task_if_validated": "dualscope-jbb-small-slice-response-generation",
+      "next_task_if_validated": "dualscope-advbench-small-slice-metric-computation",
       "next_task_if_partially_validated": "dualscope-jbb-small-slice-response-generation-plan-repair",
       "next_task_if_not_validated": "dualscope-jbb-small-slice-response-generation-plan-blocker-closure"
     },
     {
-      "task_id": "dualscope-jbb-small-slice-response-generation",
-      "purpose": "Run bounded safety-aware Qwen2.5-7B response generation for the validated JBB small-slice, or emit a real blocker.",
+      "task_id": "dualscope-advbench-small-slice-metric-computation",
+      "purpose": "Compute only metrics supported by existing bounded AdvBench response artifacts, preserving blockers for absent real responses, labels, clean utility, and logprobs.",
       "expected_inputs": [
-        ".reports/dualscope_task_verdicts/dualscope-jbb-small-slice-response-generation-plan.json",
-        "outputs/dualscope_jbb_small_slice_materialization/default"
+        "outputs/dualscope_advbench_small_slice_response_generation/default/advbench_small_slice_responses.jsonl"
       ],
       "expected_outputs": [
-        ".plans/dualscope-jbb-small-slice-response-generation.md",
-        "docs/dualscope_jbb_small_slice_response_generation.md",
-        ".reports/dualscope_task_verdicts/dualscope-jbb-small-slice-response-generation.json",
-        "outputs/dualscope_jbb_small_slice_response_generation/default/jbb_small_slice_responses.jsonl",
-        "outputs/dualscope_jbb_small_slice_response_generation/default/jbb_small_slice_response_generation_summary.json",
-        "outputs/dualscope_jbb_small_slice_response_generation/default/jbb_small_slice_response_generation_blockers.json",
-        "outputs/dualscope_jbb_small_slice_response_generation/default/jbb_small_slice_response_generation_report.md",
-        "outputs/dualscope_jbb_small_slice_response_generation/default/jbb_small_slice_response_generation_verdict.json"
+        ".reports/dualscope_task_verdicts/dualscope-advbench-small-slice-metric-computation.json",
+        "outputs/dualscope_advbench_small_slice_metric_computation/default/response_metrics.json",
+        "outputs/dualscope_advbench_small_slice_metric_computation/default/detection_metrics.json",
+        "outputs/dualscope_advbench_small_slice_metric_computation/default/metric_availability_matrix.json",
+        "outputs/dualscope_advbench_small_slice_metric_computation/default/metric_blockers.json",
+        "outputs/dualscope_advbench_small_slice_metric_computation/default/advbench_small_slice_metric_computation_verdict.json"
       ],
-      "branch_name_suggestion": "codex/jbb-small-slice-response-generation",
-      "prompt_template": "Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, and DUALSCOPE_TASK_QUEUE.md first. Execute bounded JBB small-slice response generation only if safe and feasible. Use the validated JBB small-slice artifact, `/mnt/sda3/lh/models/qwen2p5-7b-instruct`, HF caches under `/mnt/sda3/lh/huggingface`, CUDA devices 2,3, max_examples <= 16 or 32, batch_size=1, and max_new_tokens=64. Prefer the external GPU runner/worktree flow instead of forcing CUDA inside the Codex sandbox. Use safety-aware prompt construction or controlled safety evaluation templates for harmful instructions and do not generate actionable dangerous content. If logprobs are unavailable, record `without_logprobs_fallback=true`. Write real responses only when produced by the model; otherwise write a blocker JSON with explicit blocker_type and do not mark validated. Response rows must include sample_id, dataset_id, instruction, model_response, generation_mode, capability_flags, safety_mode, and without_logprobs_fallback when those source fields exist. Do not fabricate responses, logprobs, metrics, benchmark truth, gates, route_c, or 199+. Do not run full matrix, train, force push, delete branches, or touch PR #14. Follow AGENTS.md PR workflow.",
+      "branch_name_suggestion": "codex/advbench-small-slice-metric-computation",
+      "prompt_template": "Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, DUALSCOPE_TASK_QUEUE.md, and current AdvBench response artifacts first. Do not rerun response generation. Compute only metrics supported by real response rows; if rows are blocked, report response availability and blockers only. Do not fabricate AUROC/F1/ASR/clean utility/logprobs, do not modify benchmark truth or gates, do not route_c, do not generate 199+, and do not touch PR #14.",
       "completion_verdicts": {
         "validated": [
-          "JBB small-slice response generation validated"
+          "AdvBench small-slice metrics validated"
         ],
         "partially_validated": [
           "Partially validated"
@@ -2223,42 +1959,66 @@ The Markdown text is for humans; the fenced JSON block is the source of truth.
         ]
       },
       "verdict_artifacts": [
-        "outputs/dualscope_jbb_small_slice_response_generation/default/jbb_small_slice_response_generation_verdict.json"
+        "outputs/dualscope_advbench_small_slice_metric_computation/default/advbench_small_slice_metric_computation_verdict.json"
+      ],
+      "next_task_if_validated": "dualscope-advbench-small-slice-result-package",
+      "next_task_if_partially_validated": "dualscope-advbench-small-slice-result-package",
+      "next_task_if_not_validated": "dualscope-advbench-small-slice-metric-computation-repair"
+    },
+    {
+      "task_id": "dualscope-advbench-small-slice-result-package",
+      "purpose": "Package bounded AdvBench response artifacts, available metrics, and blockers without claiming full benchmark performance.",
+      "expected_inputs": [
+        ".reports/dualscope_task_verdicts/dualscope-advbench-small-slice-metric-computation.json",
+        "outputs/dualscope_advbench_small_slice_response_generation/default",
+        "outputs/dualscope_advbench_small_slice_metric_computation/default"
+      ],
+      "expected_outputs": [
+        ".reports/dualscope_task_verdicts/dualscope-advbench-small-slice-result-package.json",
+        "outputs/dualscope_advbench_small_slice_result_package/default/result_package_summary.json",
+        "outputs/dualscope_advbench_small_slice_result_package/default/metric_availability_matrix.json",
+        "outputs/dualscope_advbench_small_slice_result_package/default/result_package_report.md",
+        "outputs/dualscope_advbench_small_slice_result_package/default/result_package_verdict.json"
+      ],
+      "branch_name_suggestion": "codex/advbench-small-slice-result-package",
+      "prompt_template": "Package the existing AdvBench bounded small-slice artifacts. Separate 16 response artifact rows from real generated responses, blocked metrics, without-logprobs fallback, and limitations. Do not fabricate metrics or claim full paper performance. Do not modify benchmark truth, gates, route_c, 199+, or PR #14.",
+      "completion_verdicts": {
+        "validated": [
+          "AdvBench small-slice result package validated"
+        ],
+        "partially_validated": [
+          "Partially validated"
+        ],
+        "not_validated": [
+          "Not validated"
+        ]
+      },
+      "verdict_artifacts": [
+        "outputs/dualscope_advbench_small_slice_result_package/default/result_package_verdict.json"
       ],
       "next_task_if_validated": "dualscope-jbb-small-slice-metric-computation",
-      "next_task_if_partially_validated": "dualscope-jbb-small-slice-response-generation-repair",
-      "next_task_if_not_validated": "dualscope-jbb-small-slice-response-generation-blocker-closure",
-      "execution_gate_requirements": {
-        "responses_jsonl": "outputs/dualscope_jbb_small_slice_response_generation/default/jbb_small_slice_responses.jsonl",
-        "summary": "outputs/dualscope_jbb_small_slice_response_generation/default/jbb_small_slice_response_generation_summary.json",
-        "blocker_json": "outputs/dualscope_jbb_small_slice_response_generation/default/jbb_small_slice_response_generation_blockers.json",
-        "verdict": "outputs/dualscope_jbb_small_slice_response_generation/default/jbb_small_slice_response_generation_verdict.json",
-        "requires_real_execution_or_blocker": true
-      }
+      "next_task_if_partially_validated": "dualscope-jbb-small-slice-metric-computation",
+      "next_task_if_not_validated": "dualscope-advbench-small-slice-result-package-repair"
     },
     {
       "task_id": "dualscope-jbb-small-slice-metric-computation",
-      "purpose": "Compute only available metrics from real bounded JBB responses and record blocked metrics honestly.",
+      "purpose": "Compute only metrics supported by existing bounded JBB response artifacts, preserving blockers for absent real responses, labels, clean utility, and logprobs.",
       "expected_inputs": [
-        ".reports/dualscope_task_verdicts/dualscope-jbb-small-slice-response-generation.json",
         "outputs/dualscope_jbb_small_slice_response_generation/default/jbb_small_slice_responses.jsonl"
       ],
       "expected_outputs": [
-        ".plans/dualscope-jbb-small-slice-metric-computation.md",
-        "docs/dualscope_jbb_small_slice_metric_computation.md",
         ".reports/dualscope_task_verdicts/dualscope-jbb-small-slice-metric-computation.json",
-        "outputs/dualscope_jbb_small_slice_metric_computation/default/metric_summary.json",
-        "outputs/dualscope_jbb_small_slice_metric_computation/default/available_metrics.json",
+        "outputs/dualscope_jbb_small_slice_metric_computation/default/response_metrics.json",
+        "outputs/dualscope_jbb_small_slice_metric_computation/default/detection_metrics.json",
+        "outputs/dualscope_jbb_small_slice_metric_computation/default/metric_availability_matrix.json",
         "outputs/dualscope_jbb_small_slice_metric_computation/default/metric_blockers.json",
-        "outputs/dualscope_jbb_small_slice_metric_computation/default/readiness_matrix.json",
-        "outputs/dualscope_jbb_small_slice_metric_computation/default/metric_report.md",
-        "outputs/dualscope_jbb_small_slice_metric_computation/default/metric_verdict.json"
+        "outputs/dualscope_jbb_small_slice_metric_computation/default/jbb_small_slice_metric_computation_verdict.json"
       ],
       "branch_name_suggestion": "codex/jbb-small-slice-metric-computation",
-      "prompt_template": "Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, and DUALSCOPE_TASK_QUEUE.md first. Compute only metrics supported by real JBB bounded response artifacts: response availability, refusal rate, safety behavior proxy, target behavior status if target definitions are present, cost/fallback summaries, and detection metrics only when labels and final_risk_score are actually aligned. If AUROC, F1, ASR, clean utility, with-logprobs metrics, or score/label-aligned detection metrics are unavailable, record explicit blockers or not_applicable statuses. Do not fabricate AUROC/F1/ASR/clean utility/logprobs or promote projected placeholders as real performance. Write metric_summary, available_metrics, metric_blockers, readiness_matrix, report, verdict, and tracked registry. Do not modify benchmark truth, gates, route_c, or 199+. Do not run full matrix, train, force push, delete branches, or touch PR #14. Follow AGENTS.md PR workflow.",
+      "prompt_template": "Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, DUALSCOPE_TASK_QUEUE.md, and current JBB response artifacts first. Do not rerun response generation. Compute only metrics supported by real response rows; if rows are blocked, report response availability and blockers only. Do not fabricate AUROC/F1/ASR/clean utility/logprobs, do not modify benchmark truth or gates, do not route_c, do not generate 199+, and do not touch PR #14.",
       "completion_verdicts": {
         "validated": [
-          "JBB small-slice metric computation validated"
+          "JBB small-slice metrics validated"
         ],
         "partially_validated": [
           "Partially validated"
@@ -2268,38 +2028,29 @@ The Markdown text is for humans; the fenced JSON block is the source of truth.
         ]
       },
       "verdict_artifacts": [
-        "outputs/dualscope_jbb_small_slice_metric_computation/default/metric_verdict.json"
+        "outputs/dualscope_jbb_small_slice_metric_computation/default/jbb_small_slice_metric_computation_verdict.json"
       ],
       "next_task_if_validated": "dualscope-jbb-small-slice-result-package",
-      "next_task_if_partially_validated": "dualscope-jbb-small-slice-metric-computation-repair",
-      "next_task_if_not_validated": "dualscope-jbb-small-slice-metric-computation-blocker-closure",
-      "execution_gate_requirements": {
-        "summary": "outputs/dualscope_jbb_small_slice_metric_computation/default/metric_summary.json",
-        "available_metrics": "outputs/dualscope_jbb_small_slice_metric_computation/default/available_metrics.json",
-        "blocker_json": "outputs/dualscope_jbb_small_slice_metric_computation/default/metric_blockers.json",
-        "readiness_matrix": "outputs/dualscope_jbb_small_slice_metric_computation/default/readiness_matrix.json",
-        "verdict": "outputs/dualscope_jbb_small_slice_metric_computation/default/metric_verdict.json",
-        "requires_real_execution_or_blocker": true
-      }
+      "next_task_if_partially_validated": "dualscope-jbb-small-slice-result-package",
+      "next_task_if_not_validated": "dualscope-jbb-small-slice-metric-computation-repair"
     },
     {
       "task_id": "dualscope-jbb-small-slice-result-package",
-      "purpose": "Package real bounded JBB small-slice response and metric evidence with limitations.",
+      "purpose": "Package bounded JBB response artifacts, available metrics, and blockers without claiming full benchmark performance.",
       "expected_inputs": [
         ".reports/dualscope_task_verdicts/dualscope-jbb-small-slice-metric-computation.json",
+        "outputs/dualscope_jbb_small_slice_response_generation/default",
         "outputs/dualscope_jbb_small_slice_metric_computation/default"
       ],
       "expected_outputs": [
-        ".plans/dualscope-jbb-small-slice-result-package.md",
-        "docs/dualscope_jbb_small_slice_result_package.md",
         ".reports/dualscope_task_verdicts/dualscope-jbb-small-slice-result-package.json",
         "outputs/dualscope_jbb_small_slice_result_package/default/result_package_summary.json",
-        "outputs/dualscope_jbb_small_slice_result_package/default/result_package_report.md",
         "outputs/dualscope_jbb_small_slice_result_package/default/metric_availability_matrix.json",
+        "outputs/dualscope_jbb_small_slice_result_package/default/result_package_report.md",
         "outputs/dualscope_jbb_small_slice_result_package/default/result_package_verdict.json"
       ],
       "branch_name_suggestion": "codex/jbb-small-slice-result-package",
-      "prompt_template": "Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, and DUALSCOPE_TASK_QUEUE.md first. Package the real JBB bounded small-slice status: materialization summary, response generation summary, metric availability, refusal/safety behavior proxy or target success only if supported, blocked metrics, without-logprobs limitation, no full-matrix claim, no full paper performance claim, and a next-step recommendation. Do not fabricate metrics, responses, logprobs, benchmark truth, gates, route_c, or 199+. Write result_package_summary, result_package_report, metric_availability_matrix, result_package_verdict, and tracked registry. Do not run full matrix, train, force push, delete branches, or touch PR #14. Follow AGENTS.md PR workflow.",
+      "prompt_template": "Package the existing JBB bounded small-slice artifacts. Separate 16 response artifact rows from real generated responses, blocked metrics, without-logprobs fallback, and limitations. Do not fabricate metrics or claim full paper performance. Do not modify benchmark truth, gates, route_c, 199+, or PR #14.",
       "completion_verdicts": {
         "validated": [
           "JBB small-slice result package validated"
@@ -2315,15 +2066,8 @@ The Markdown text is for humans; the fenced JSON block is the source of truth.
         "outputs/dualscope_jbb_small_slice_result_package/default/result_package_verdict.json"
       ],
       "next_task_if_validated": "dualscope-sci3-expanded-result-synthesis-package",
-      "next_task_if_partially_validated": "dualscope-jbb-small-slice-result-package-repair",
-      "next_task_if_not_validated": "dualscope-jbb-small-slice-result-package-blocker-closure",
-      "execution_gate_requirements": {
-        "summary": "outputs/dualscope_jbb_small_slice_result_package/default/result_package_summary.json",
-        "report": "outputs/dualscope_jbb_small_slice_result_package/default/result_package_report.md",
-        "metric_availability_matrix": "outputs/dualscope_jbb_small_slice_result_package/default/metric_availability_matrix.json",
-        "verdict": "outputs/dualscope_jbb_small_slice_result_package/default/result_package_verdict.json",
-        "requires_real_execution_or_blocker": true
-      }
+      "next_task_if_partially_validated": "dualscope-sci3-expanded-result-synthesis-package",
+      "next_task_if_not_validated": "dualscope-jbb-small-slice-result-package-repair"
     },
     {
       "task_id": "dualscope-sci3-expanded-result-synthesis-package",
@@ -2339,13 +2083,13 @@ The Markdown text is for humans; the fenced JSON block is the source of truth.
         ".plans/dualscope-sci3-expanded-result-synthesis-package.md",
         "docs/dualscope_sci3_expanded_result_synthesis.md",
         ".reports/dualscope_task_verdicts/dualscope-sci3-expanded-result-synthesis-package.json",
-        "outputs/dualscope_sci3_expanded_result_synthesis_package/default/expanded_result_summary.json",
-        "outputs/dualscope_sci3_expanded_result_synthesis_package/default/expanded_result_report.md",
-        "outputs/dualscope_sci3_expanded_result_synthesis_package/default/remaining_blockers.json",
-        "outputs/dualscope_sci3_expanded_result_synthesis_package/default/expanded_result_verdict.json"
+        "outputs/dualscope_sci3_expanded_result_synthesis_package/default/expanded_result_synthesis_summary.json",
+        "outputs/dualscope_sci3_expanded_result_synthesis_package/default/expanded_metric_availability_matrix.json",
+        "outputs/dualscope_sci3_expanded_result_synthesis_package/default/expanded_result_synthesis_report.md",
+        "outputs/dualscope_sci3_expanded_result_synthesis_package/default/expanded_result_synthesis_verdict.json"
       ],
       "branch_name_suggestion": "codex/sci3-expanded-result-synthesis-package",
-      "prompt_template": "Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, and DUALSCOPE_TASK_QUEUE.md first. Synthesize the expanded SCI3 status package from bounded Alpaca main-slice metrics, semantic trigger smoke metrics, behavior-shift target smoke metrics, AdvBench materialization/response/metrics/result package status, and JBB materialization/response/metrics/result package status. Separate real metrics, fallback evidence, blocked metrics, dataset blockers, cross-model readiness status, clean utility blockers, without-logprobs limitations, no-full-matrix limitations, and the next SCI3 plan. Do not claim full matrix, clean utility, cross-model validation, or dataset results unless artifacts prove them. Produce expanded_result_summary, expanded_result_report, remaining_blockers, expanded_result_verdict, and tracked registry. Do not fabricate responses, logprobs, AUROC/F1/ASR/clean utility, labels, benchmark truth, gates, route_c, or 199+. Do not run full matrix, train, force push, delete branches, or touch PR #14. Follow AGENTS.md PR workflow.",
+      "prompt_template": "Read AGENTS.md, PLANS.md, DUALSCOPE_MASTER_PLAN.md, and DUALSCOPE_TASK_QUEUE.md first. Synthesize the expanded SCI3 status package from bounded Alpaca, semantic trigger, behavior-shift, AdvBench, and JBB artifacts. Separate real metrics, fallback evidence, blocked metrics, dataset blockers, and limitations. Do not claim full matrix, clean utility, cross-model validation, or dataset results unless artifacts prove them. Produce summary, expanded metric availability matrix, report, verdict, and tracked registry. Do not fabricate responses, logprobs, AUROC/F1/ASR/clean utility, labels, benchmark truth, gates, route_c, or 199+. Do not run full matrix, train, force push, delete branches, or touch PR #14. Follow AGENTS.md PR workflow.",
       "completion_verdicts": {
         "validated": [
           "SCI3 expanded result synthesis package validated"
@@ -2358,16 +2102,15 @@ The Markdown text is for humans; the fenced JSON block is the source of truth.
         ]
       },
       "verdict_artifacts": [
-        "outputs/dualscope_sci3_expanded_result_synthesis_package/default/expanded_result_verdict.json"
+        "outputs/dualscope_sci3_expanded_result_synthesis_package/default/expanded_result_synthesis_verdict.json"
       ],
       "next_task_if_validated": "queue_complete",
       "next_task_if_partially_validated": "dualscope-sci3-expanded-result-synthesis-package-repair",
       "next_task_if_not_validated": "dualscope-sci3-expanded-result-synthesis-package-blocker-closure",
       "execution_gate_requirements": {
-        "summary": "outputs/dualscope_sci3_expanded_result_synthesis_package/default/expanded_result_summary.json",
-        "report": "outputs/dualscope_sci3_expanded_result_synthesis_package/default/expanded_result_report.md",
-        "remaining_blockers": "outputs/dualscope_sci3_expanded_result_synthesis_package/default/remaining_blockers.json",
-        "verdict": "outputs/dualscope_sci3_expanded_result_synthesis_package/default/expanded_result_verdict.json",
+        "summary": "outputs/dualscope_sci3_expanded_result_synthesis_package/default/expanded_result_synthesis_summary.json",
+        "report": "outputs/dualscope_sci3_expanded_result_synthesis_package/default/expanded_result_synthesis_report.md",
+        "verdict": "outputs/dualscope_sci3_expanded_result_synthesis_package/default/expanded_result_synthesis_verdict.json",
         "requires_real_execution_or_blocker": true
       }
     }
