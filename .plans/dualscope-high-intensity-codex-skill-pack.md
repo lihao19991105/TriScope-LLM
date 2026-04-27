@@ -37,6 +37,7 @@ This plan packages the repeated high-intensity Codex operating instructions for 
 - `configs/dualscope_codex_task_profiles.json`
 - `scripts/codex_dualscope_skill.sh`
 - `scripts/codex_smart_exec.sh` alignment to the verified `model_reasoning_effort` config key
+- `scripts/dualscope_safe_pr_merge_gate.py` narrow allowlist for the project-local skill pack files
 
 ## Progress
 
@@ -44,6 +45,7 @@ This plan packages the repeated high-intensity Codex operating instructions for 
 - [x] Confirm main worktree has unrelated dirty paths and use a clean temporary clone.
 - [x] Add skill, profile config, wrapper, docs, and this ExecPlan.
 - [x] Align the existing smart exec wrapper so the preferred path also uses `-c model_reasoning_effort="<effort>"`.
+- [x] Add a narrow safe merge gate allowlist for the exact skill pack files after check-only flagged them as file-scope false positives.
 - [ ] Run syntax and dry-run validation.
 - [ ] Open PR and run safe merge gate.
 
