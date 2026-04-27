@@ -27,6 +27,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--model-dir", type=Path, default=Path("/mnt/sda3/lh/models/qwen2p5-7b-instruct"))
     parser.add_argument("--repo-model-symlink", type=Path, default=Path("models/qwen2p5-7b-instruct"))
     parser.add_argument("--hf-home", type=Path, default=Path("/mnt/sda3/lh/huggingface"))
+    parser.add_argument("--hf-hub-cache", type=Path, default=Path("/mnt/sda3/lh/huggingface/hub"))
+    parser.add_argument("--transformers-cache", type=Path, default=Path("/mnt/sda3/lh/huggingface/transformers"))
     parser.add_argument("--tmpdir", type=Path, default=Path("/mnt/sda3/lh/tmp"))
     parser.add_argument(
         "--registry-path",
@@ -48,6 +50,8 @@ def main() -> int:
         model_dir=args.model_dir,
         repo_model_symlink=args.repo_model_symlink,
         hf_home=args.hf_home,
+        hf_hub_cache=args.hf_hub_cache,
+        transformers_cache=args.transformers_cache,
         tmpdir=args.tmpdir,
         registry_path=args.registry_path,
         attempt_pip_install=args.attempt_pip_install,
